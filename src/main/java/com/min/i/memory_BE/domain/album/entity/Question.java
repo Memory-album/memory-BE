@@ -1,6 +1,7 @@
 package com.min.i.memory_BE.domain.album.entity;
 
 import com.min.i.memory_BE.domain.album.enums.QuestionTheme;
+import com.min.i.memory_BE.domain.media.entity.Media;
 import com.min.i.memory_BE.global.entity.BaseEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -17,7 +18,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
-import javax.print.attribute.standard.Media;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
