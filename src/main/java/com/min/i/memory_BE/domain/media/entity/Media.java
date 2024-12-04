@@ -47,7 +47,6 @@ public class Media extends BaseEntity {
   @Column(nullable = false)
   private Long fileSize;
   
-  @Column(columnDefinition = "jsonb")
   private String metadata;
   
   private String thumbnailUrl;
