@@ -10,11 +10,10 @@ import lombok.Getter;
 @MappedSuperclass
 public abstract class BaseEntity {
   
-  @Column(name = "created_at", nullable = false, unique = false)
+  @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
   
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;
   
-
 }

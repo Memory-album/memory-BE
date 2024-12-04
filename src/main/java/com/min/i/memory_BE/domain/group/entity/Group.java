@@ -28,7 +28,6 @@ public class Group extends BaseEntity {
   @Column(nullable = false)
   private String name;
   
-  @Column(unique = true)
   private String inviteCode;
   
   private String groupImageUrl;
