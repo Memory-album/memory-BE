@@ -3,7 +3,6 @@ package com.min.i.memory_BE.global.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.persistence.PrePersist;
 import java.time.LocalDateTime;
 import lombok.Getter;
 
