@@ -33,7 +33,7 @@ public class Group extends BaseEntity {
   private String groupImageUrl;
   
   @OneToMany(mappedBy = "group")
-  private List<UserGroup> userGroups = new ArrayList<>();
+  private final List<UserGroup> userGroups = new ArrayList<>();
   
   @OneToMany(mappedBy = "group")
   private List<Album> albums = new ArrayList<>();

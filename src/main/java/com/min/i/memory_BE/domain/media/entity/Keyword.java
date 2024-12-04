@@ -35,7 +35,7 @@ public class Keyword extends BaseEntity {
   private KeywordCategory category;
   
   @OneToMany(mappedBy = "keyword")
-  private List<MediaKeyword> mediaKeywords = new ArrayList<>();
+  private final List<MediaKeyword> mediaKeywords = new ArrayList<>();
   
   @Builder
   public Keyword(String name, KeywordCategory category) {
