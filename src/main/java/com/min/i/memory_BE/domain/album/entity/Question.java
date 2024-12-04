@@ -45,11 +45,10 @@ public class Question extends BaseEntity {
   
   private boolean isPrivate = false;
   
-  @Column(columnDefinition = "jsonb")
   private String keywordsUsed;
   
   @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)
-  private List<Answer> answers = new ArrayList<>();
+  private final List<Answer> answers = new ArrayList<>();
   
   @Builder
   public Question(Media media, String content, QuestionTheme theme,

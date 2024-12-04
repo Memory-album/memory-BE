@@ -45,10 +45,10 @@ public class User extends BaseEntity {
   private UserStatus status = UserStatus.ACTIVE;
   
   @OneToMany(mappedBy = "user")
-  private List<OAuthAccount> oauthAccounts = new ArrayList<>();
+  private final List<OAuthAccount> oauthAccounts = new ArrayList<>();
   
   @OneToMany(mappedBy = "user")
-  private List<UserGroup> userGroups = new ArrayList<>();
+  private final List<UserGroup> userGroups = new ArrayList<>();
   
   
   @Builder

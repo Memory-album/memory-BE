@@ -64,7 +64,7 @@ public class Media extends BaseEntity {
   private User uploadedBy;
   
   @OneToMany(mappedBy = "media", cascade = CascadeType.ALL)
-  private List<MediaKeyword> mediaKeywords = new ArrayList<>();
+  private final List<MediaKeyword> mediaKeywords = new ArrayList<>();
   
   @Builder
   public Media(String fileUrl, MediaType fileType, String originalFilename, Long fileSize,
