@@ -43,7 +43,7 @@ public class AlbumPage extends BaseEntity {
   private String layoutType;
   
   @OneToMany(mappedBy = "page")
-  private List<Media> mediaList = new ArrayList<>();
+  private final List<Media> mediaList = new ArrayList<>();
   
   @Builder
   public AlbumPage(Album album, Integer pageNumber, String layoutType) {

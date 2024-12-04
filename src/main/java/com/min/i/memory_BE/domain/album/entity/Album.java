@@ -58,11 +58,11 @@ public class Album extends BaseEntity {
   @Enumerated(EnumType.STRING)
   private AlbumVisibility visibility = AlbumVisibility.GROUP;
   
-  @OneToMany(mappedBy = "album", cascade = CascadeType.ALL)
-  private List<AlbumPage> pages = new ArrayList<>();
+  @OneToMany(mappedBy = "album")
+  private final List<AlbumPage> pages = new ArrayList<>();
   
-  @OneToMany(mappedBy = "album", cascade = CascadeType.ALL)
-  private List<Media> mediaList = new ArrayList<>();
+  @OneToMany(mappedBy = "album")
+  private final List<Media> mediaList = new ArrayList<>();
   
   @Builder
   public Album(String title, String description, String thumbnailUrl,
