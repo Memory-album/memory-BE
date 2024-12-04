@@ -36,7 +36,7 @@ public class Group extends BaseEntity {
   private final List<UserGroup> userGroups = new ArrayList<>();
   
   @OneToMany(mappedBy = "group")
-  private List<Album> albums = new ArrayList<>();
+  private final List<Album> albums = new ArrayList<>();
   
   @Builder
   public Group(String name, String inviteCode, String groupImageUrl) {
