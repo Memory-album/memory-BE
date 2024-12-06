@@ -5,7 +5,8 @@ import lombok.Getter;
 @Getter
 public enum UserGroupRole {
   OWNER("엘범생성자"),
-  MEMBER("멤버");
+  MEMBER("멤버"),
+  SENIOR("어르신");
   
   private final String description;
   
