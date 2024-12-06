@@ -42,7 +42,7 @@ public class User extends BaseEntity {
   private LocalDate dateOfBirth;
   
   @Enumerated(EnumType.STRING)
-  private UserStatus status = UserStatus.ACTIVE;
+  private final UserStatus status = UserStatus.ACTIVE;
   
   @OneToMany(mappedBy = "user")
   private final List<OAuthAccount> oauthAccounts = new ArrayList<>();
