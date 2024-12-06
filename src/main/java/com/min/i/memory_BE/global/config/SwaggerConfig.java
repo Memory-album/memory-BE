@@ -11,9 +11,9 @@ public class SwaggerConfig {
   @Bean
   public OpenAPI openAPI() {
     Info info = new Info()
-      .title("Memory API Documentation")
+      .title("Min:i API Documentation")
       .version("v1.0")
-      .description("Memory 서비스의 API 문서");
+      .description("Min:i API 문서");
     
     return new OpenAPI()
       .info(info);
