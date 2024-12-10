@@ -33,7 +33,6 @@ dependencies {
 	runtimeOnly 'com.h2database:h2'                    // H2 Database
 	runtimeOnly 'com.mysql:mysql-connector-j'          // MySQL
 
-
 	// AWS S3
 //	implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
 

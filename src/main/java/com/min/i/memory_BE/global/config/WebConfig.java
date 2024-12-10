@@ -12,5 +12,11 @@ public class WebConfig implements WebMvcConfigurer {
       .allowedOrigins("http://localhost:3000")  // React 개발 서버
       .allowedMethods("*")
       .allowedHeaders("*");
+
+    // 추가: /user/** 경로에도 CORS 허용
+    registry.addMapping("/user/**")
+            .allowedOrigins("http://localhost:3000")
+            .allowedMethods("*")
+            .allowedHeaders("*");
   }
 }
