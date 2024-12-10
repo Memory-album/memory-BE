@@ -6,11 +6,18 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();  // BCryptPasswordEncoder를 빈으로 등록
+  }
 
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -27,7 +34,8 @@ public class SecurityConfig {
           "/swagger-ui/**",
           "/swagger-ui.html",
           "/v3/api-docs/**",
-          "/api/v1/mock/**"
+          "/api/v1/mock/**",
+          "/user/register"  // 회원가입 URL도 인증 없이 허용
         ).permitAll()
         .anyRequest().authenticated()
       );
