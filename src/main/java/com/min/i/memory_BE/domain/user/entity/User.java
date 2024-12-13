@@ -56,6 +56,5 @@ public class User extends BaseEntity {
     this.password = password;
     this.name = name;
     this.profileImgUrl = profileImageUrl;
-    this.dateOfBirth = dateOfBirth;
   }
 }
