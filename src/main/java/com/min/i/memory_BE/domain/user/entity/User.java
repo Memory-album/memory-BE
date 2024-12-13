@@ -20,8 +20,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Table(name = "users")
 @Entity
+@Table(name = "users")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
@@ -32,19 +32,19 @@ public class User extends BaseEntity {
   @Column(unique = true, nullable = false)
   private String email;
   
-  @Column(nullable = false)
-  private boolean emailVerified = false;
-  
-  private String emailVerificationCode;
-  
-  private LocalDateTime emailVerificationExpiredAt;
-  
   private String password;
   
   @Column(nullable = false)
   private String name;
   
   private String profileImgUrl;
+  
+  @Column(nullable = false)
+  private boolean emailVerified = false;
+  
+  private String emailVerificationCode;
+  
+  private LocalDateTime emailVerificationExpiredAt;
   
   @Enumerated(EnumType.STRING)
   private final UserStatus status = UserStatus.ACTIVE;
@@ -55,10 +55,10 @@ public class User extends BaseEntity {
   @OneToMany(mappedBy = "user")
   private final List<UserGroup> userGroups = new ArrayList<>();
   
-  
   @Builder
   public User(String email, String password, String name, String profileImageUrl,
-    boolean emailVerified, String emailVerificationCode, LocalDateTime emailVerificationExpiredAt) {
+    boolean emailVerified, String emailVerificationCode,
+    LocalDateTime emailVerificationExpiredAt) {
     this.email = email;
     this.password = password;
     this.name = name;
