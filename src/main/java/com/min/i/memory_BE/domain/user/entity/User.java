@@ -39,8 +39,6 @@ public class User extends BaseEntity {
   
   private String profileImgUrl;
   
-  private LocalDate dateOfBirth;
-  
   @Enumerated(EnumType.STRING)
   private final UserStatus status = UserStatus.ACTIVE;
   
