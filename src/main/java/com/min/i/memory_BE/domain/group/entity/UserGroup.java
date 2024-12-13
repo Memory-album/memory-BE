@@ -15,6 +15,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -44,25 +45,29 @@ public class UserGroup extends BaseEntity {
   @Column(nullable = false)
   private UserGroupRole role;
   
-  // 그룹별 프로필 정보만 유지
   @Column(name = "group_nickname")
   private String groupNickname;
   
   @Column(name = "group_profile_img_url")
   private String groupProfileImgUrl;
   
+  @Column(name = "last_visit_at")
+  private LocalDateTime lastVisitAt;
+  
+  @Column(name = "notification_enabled", nullable = false)
+  private boolean notificationEnabled = true;
+  
+  @Column(name = "sort_order")
+  private Integer sortOrder;
+  
   @Builder
   public UserGroup(User user, Group group, UserGroupRole role,
-    String groupNickname, String groupProfileImgUrl) {
+    String groupNickname, String groupProfileImgUrl, boolean notificationEnabled) {
     this.user = user;
     this.group = group;
     this.role = role;
     this.groupNickname = groupNickname;
     this.groupProfileImgUrl = groupProfileImgUrl;
-  }
-  
-  public void updateGroupProfile(String groupNickname, String groupProfileImgUrl) {
-    this.groupNickname = groupNickname;
-    this.groupProfileImgUrl = groupProfileImgUrl;
+    this.notificationEnabled = notificationEnabled;
   }
 }
