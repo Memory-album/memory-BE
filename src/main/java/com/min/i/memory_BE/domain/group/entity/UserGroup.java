@@ -33,21 +33,36 @@ public class UserGroup extends BaseEntity {
   private Long id;
   
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
+  @JoinColumn(name = "user_id", nullable = false)
   private User user;
   
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "group_id")
+  @JoinColumn(name = "group_id", nullable = false)
   private Group group;
   
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
   private UserGroupRole role;
   
+  // 그룹별 프로필 정보만 유지
+  @Column(name = "group_nickname")
+  private String groupNickname;
+  
+  @Column(name = "group_profile_img_url")
+  private String groupProfileImgUrl;
+  
   @Builder
-  public UserGroup(User user, Group group, UserGroupRole role) {
+  public UserGroup(User user, Group group, UserGroupRole role,
+    String groupNickname, String groupProfileImgUrl) {
     this.user = user;
     this.group = group;
     this.role = role;
+    this.groupNickname = groupNickname;
+    this.groupProfileImgUrl = groupProfileImgUrl;
+  }
+  
+  public void updateGroupProfile(String groupNickname, String groupProfileImgUrl) {
+    this.groupNickname = groupNickname;
+    this.groupProfileImgUrl = groupProfileImgUrl;
   }
 }
