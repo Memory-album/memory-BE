@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -32,6 +33,13 @@ public class User extends BaseEntity {
   @Column(unique = true, nullable = false)
   private String email;
   
+  @Column(nullable = false)
+  private boolean emailVerified = false;
+  
+  private String emailVerificationCode;
+  
+  private LocalDateTime emailVerificationExpiredAt;
+  
   private String password;
   
   @Column(nullable = false)
@@ -50,11 +58,14 @@ public class User extends BaseEntity {
   
   
   @Builder
-  public User(String email, String password, String name,
-    String profileImageUrl, LocalDate dateOfBirth) {
+  public User(String email, String password, String name, String profileImageUrl,
+    boolean emailVerified, String emailVerificationCode, LocalDateTime emailVerificationExpiredAt) {
     this.email = email;
     this.password = password;
     this.name = name;
     this.profileImgUrl = profileImageUrl;
+    this.emailVerified = emailVerified;
+    this.emailVerificationCode = emailVerificationCode;
+    this.emailVerificationExpiredAt = emailVerificationExpiredAt;
   }
 }
