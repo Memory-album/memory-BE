@@ -38,7 +38,6 @@ public class UserController {
                 .password(encodedPassword)  // 암호화된 비밀번호 설정
                 .name(user.getName())
                 .profileImageUrl(user.getProfileImgUrl())
-                .dateOfBirth(user.getDateOfBirth())
                 .build();
 
         // 유저 서비스에서 유저 저장
