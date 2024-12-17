@@ -9,10 +9,20 @@ spring:
         format_sql: true
     open-in-view: false
 
+  security:
+    user:
+      name: admin             # 기본 사용자 이름 설정
+      password: adminpassword  # 기본 비밀번호 설정 (운영 환경에서는 암호화된 비밀번호 사용하는 것이 좋음)
+
+
+
 logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type: trace
+    org.springframework.security: DEBUG   # Spring Security 로그 레벨 추가
+    com.min.i.memory_BE: DEBUG
+
 
 ---
 spring.config.activate.on-profile: local
