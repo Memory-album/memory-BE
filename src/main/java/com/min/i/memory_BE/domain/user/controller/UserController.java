@@ -1,14 +1,14 @@
 package com.min.i.memory_BE.domain.user.controller;
 
-import com.min.i.memory_BE.domain.user.entity.User;
+import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
+import com.min.i.memory_BE.domain.user.dto.UserRegisterResultDto;
 import com.min.i.memory_BE.domain.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/user")
@@ -17,37 +17,38 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    // 회원가입 페이지로 이동
-    @GetMapping("/register")
-    public String showRegisterForm() {
-        return "register"; // 회원가입 페이지 뷰
-    }
-
     // 회원가입 처리
     @PostMapping("/register")
-    public String registerUser(@RequestBody User user) {
-        // 비밀번호 암호화
-        String encodedPassword = passwordEncoder.encode(user.getPassword());
+    public ResponseEntity<UserRegisterResultDto> register(@RequestBody UserRegisterDto userRegisterDto) {
 
-        // User 객체 생성 (Builder 패턴 사용)
-        user = User.builder()
-                .email(user.getEmail())
-                .password(encodedPassword)  // 암호화된 비밀번호 설정
-                .name(user.getName())
-                .profileImageUrl(user.getProfileImgUrl())
-                .dateOfBirth(user.getDateOfBirth())
-                .build();
+        // 회원가입 처리 후 결과 반환
+        UserRegisterResultDto result = userService.registerUser(userRegisterDto);
 
-        // 유저 서비스에서 유저 저장
-        userService.saveUser(user);
+        SecurityContextHolder.clearContext();
 
-        return "회원가입이 완료되었습니다.";  // JSON 응답으로 처리
-
-//        model.addAttribute("message", "회원가입이 완료되었습니다.");
-//        return "login"; // 로그인 페이지로 리다이렉트
+        // 성공 응답 반환
+        return ResponseEntity.status(201).body(result);
     }
 
+    // 로그인 페이지
+    @GetMapping("/loginPage")
+    public ResponseEntity<String> loginPage() {
+        return ResponseEntity.ok("로그인 페이지로 이동");
+    }
+
+    // 홈 페이지
+    @GetMapping("/home")
+    public ResponseEntity<String> homePage() {
+        return ResponseEntity.ok("홈으로 이동");
+    }
+
+    // 마이 페이지
+    @GetMapping("/my-page")
+    public ResponseEntity<String> myPage(Authentication auth) {
+        if (auth != null && auth.isAuthenticated()) {
+            return ResponseEntity.ok("마이 페이지: " + auth.getName());
+        } else {
+            return ResponseEntity.status(401).body("로그인 필요");
+        }
+    }
 }

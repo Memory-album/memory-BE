@@ -20,6 +20,9 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type: trace
+    org.springframework.security: DEBUG   # Spring Security 로그 레벨 추가
+    com.min.i.memory_BE: DEBUG
+
 
 ---
 spring.config.activate.on-profile: local
