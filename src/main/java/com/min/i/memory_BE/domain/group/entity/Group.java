@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -28,7 +29,15 @@ public class Group extends BaseEntity {
   @Column(nullable = false)
   private String name;
   
+  @Column(columnDefinition = "TEXT")
+  private String groupDescription;
+  
   private String inviteCode;
+  
+  private LocalDateTime inviteCodeExpiryAt;
+  
+  @Column(nullable = false)
+  private boolean isInviteCodeActive = true;
   
   private String groupImageUrl;
   
@@ -39,10 +48,15 @@ public class Group extends BaseEntity {
   private final List<Album> albums = new ArrayList<>();
   
   @Builder
-  public Group(String name, String inviteCode, String groupImageUrl) {
+  public Group(String name, String groupDescription, String inviteCode,
+    String groupImageUrl, LocalDateTime inviteCodeExpiryAt,
+    boolean isInviteCodeActive) {
     this.name = name;
+    this.groupDescription = groupDescription;
     this.inviteCode = inviteCode;
     this.groupImageUrl = groupImageUrl;
+    this.inviteCodeExpiryAt = inviteCodeExpiryAt;
+    this.isInviteCodeActive = isInviteCodeActive;
   }
 }
 
