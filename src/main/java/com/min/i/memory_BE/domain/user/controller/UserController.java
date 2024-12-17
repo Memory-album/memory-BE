@@ -30,10 +30,12 @@ public class UserController {
         return ResponseEntity.status(201).body(result);
     }
 
+
     // 로그인 페이지
     @GetMapping("/loginPage")
     public ResponseEntity<String> loginPage() {
         return ResponseEntity.ok("로그인 페이지로 이동");
+
     }
 
     // 홈 페이지

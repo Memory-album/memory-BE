@@ -6,7 +6,6 @@ import com.min.i.memory_BE.domain.group.entity.Group;
 import com.min.i.memory_BE.domain.media.entity.Media;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.entity.BaseEntity;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
