@@ -34,10 +34,10 @@ public class Group extends BaseEntity {
   
   private String inviteCode;
   
-  private LocalDateTime inviteCodeExpiryAt;
+  private LocalDateTime inviteCodeExpiryAt; //유효기간
   
   @Column(nullable = false)
-  private boolean isInviteCodeActive = true;
+  private boolean isInviteCodeActive = true; //코드활성화 여부
   
   private String groupImageUrl;
   

@@ -40,11 +40,10 @@ public class User extends BaseEntity {
   private String profileImgUrl;
   
   @Column(nullable = false)
-  private boolean emailVerified = false;
-  
+  private boolean emailVerified = false; //인증되면 트루로 변경되면 - 인증처리
   private String emailVerificationCode;
   
-  private LocalDateTime emailVerificationExpiredAt;
+  private LocalDateTime emailVerificationExpiredAt;// 유효기간
   
   @Enumerated(EnumType.STRING)
   private final UserStatus status = UserStatus.ACTIVE;

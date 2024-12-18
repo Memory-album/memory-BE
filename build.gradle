@@ -63,6 +63,9 @@ dependencies {
 
 	// Dev Tools
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	//jwt
+	implementation 'io.jsonwebtoken:jjwt:0.12.6'
 }
 
 tasks.named('test') {
