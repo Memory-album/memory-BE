@@ -14,8 +14,6 @@ spring:
       name: admin             # 기본 사용자 이름 설정
       password: adminpassword  # 기본 비밀번호 설정 (운영 환경에서는 암호화된 비밀번호 사용하는 것이 좋음)
 
-
-
 logging:
   level:
     org.hibernate.SQL: debug
@@ -75,3 +73,17 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   show-actuator: true
+
+---
+
+spring:
+  mail:
+    host: smtp.naver.com
+    port: 465
+    username: yj753110@naver.com  # 네이버 이메일 주소
+    password: QC5QHPSYB6X8   # 이메일 비밀번호
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+
+
