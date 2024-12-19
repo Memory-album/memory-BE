@@ -17,23 +17,6 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private EmailService emailService;
-
-    // 회원가입 처리
-    @PostMapping("/register")
-    public ResponseEntity<UserRegisterResultDto> register(@RequestBody UserRegisterDto userRegisterDto) {
-
-        // 이메일 인증 코드 발송
-        emailService.sendVerificationCode(userRegisterDto);
-
-        // 인증 코드 전송 후 바로 성공 응답 반환
-        UserRegisterResultDto result = new UserRegisterResultDto();
-        result.setMessage("이메일 인증 코드가 전송되었습니다.");
-        result.setStatus("success");
-        return ResponseEntity.status(201).body(result);
-    }
-
     // 이메일 인증 코드 확인 (POST /user/verify-email)
     @PostMapping("/verify-email")
     public ResponseEntity<String> verifyEmail(@RequestBody UserRegisterDto userRegisterDto) {
