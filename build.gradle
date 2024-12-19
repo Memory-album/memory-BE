@@ -34,7 +34,7 @@ dependencies {
 	runtimeOnly 'com.mysql:mysql-connector-j'          // MySQL
 
 	// AWS S3
-	implementation 'io.awspring.cloud:spring-cloud-aws-starter:3.0.1'
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter:3.0.3'
 
 
 	// JWT
