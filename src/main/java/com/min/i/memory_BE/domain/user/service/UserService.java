@@ -39,6 +39,10 @@ public class UserService {
 
             userRepository.save(user);
             return true;
+        } else if (LocalDateTime.now().isAfter(user.getEmailVerificationExpiredAt())) {
+            // 인증 기한이 만료되었으면 사용자를 삭제
+            userRepository.delete(user);
+            throw new IllegalArgumentException("인증 기한이 만료되었습니다.");
         }
 
         return false; // 인증 실패

@@ -25,7 +25,6 @@ public class MailConfig {
     @Value("${GMAIL_MAIL_PASSWORD}")
     private String gmailPassword;
 
-
     @Bean(name = "naverMailSender")
     public JavaMailSender naverMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
@@ -54,6 +53,16 @@ public class MailConfig {
         props.put("mail.smtp.ssl.enable", "true");
 
         return mailSender;
+    }
+
+    public String getFromEmail(String email) {
+        if (email.endsWith("@gmail.com")) {
+            return gmailUsername;
+        } else if (email.endsWith("@naver.com")) {
+            return naverUsername;
+        } else {
+            throw new IllegalArgumentException("지원되지 않는 이메일 도메인입니다.");
+        }
     }
 }
 
