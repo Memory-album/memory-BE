@@ -80,10 +80,22 @@ spring:
   mail:
     host: smtp.naver.com
     port: 465
-    username:   # 네이버 이메일 주소
-    password:   # 이메일 비밀번호
+    username:  ${NAVER_MAIL_USERNAME} # 네이버 이메일 주소
+    password:  ${NAVER_MAIL_PASSWORD} # 이메일 비밀번호
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
+---
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 465
+    username: ${GMAIL_MAIL_USERNAME} # Gmail 이메일 주소
+    password: ${GMAIL_MAIL_PASSWORD} # Gmail 앱 비밀번호
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+
 
 

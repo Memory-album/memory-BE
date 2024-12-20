@@ -5,6 +5,7 @@ import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.enums.UserMailStatus;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -16,7 +17,12 @@ import java.time.LocalDateTime;
 public class EmailService {
 
     @Autowired
-    private JavaMailSender mailSender;
+    @Qualifier("gmailMailSender")
+    private JavaMailSender gmailMailSender; // Gmail 전용 JavaMailSender
+
+    @Autowired
+    @Qualifier("naverMailSender")
+    private JavaMailSender naverMailSender; // 네이버 전용 JavaMailSender
 
     @Autowired
     private UserRepository userRepository; // UserRepository를 사용해 이메일 인증 코드 및 유효 기간을 저장
@@ -63,8 +69,16 @@ public class EmailService {
             message.setSubject("이메일 인증 코드");
             message.setText("인증 코드: " + verificationCode);
 
-            // 메일 전송
-            mailSender.send(message);
+            // 이메일 도메인에 따라 Gmail 또는 Naver 메일 서버 선택
+            if (userRegisterDto.getEmail().endsWith("@gmail.com")) {
+                // Gmail 메일 서버 사용
+                gmailMailSender.send(message);
+            } else if (userRegisterDto.getEmail().endsWith("@naver.com")) {
+                // Naver 메일 서버 사용
+                naverMailSender.send(message);
+            } else {
+                throw new IllegalArgumentException("지원되지 않는 이메일 도메인입니다.");
+            }
 
             return true; // 이메일 전송 성공
 
