@@ -15,8 +15,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Collections;
 
-
-
 @Service
 public class MyUserDetailsService implements UserDetailsService {
 
@@ -32,10 +30,10 @@ public class MyUserDetailsService implements UserDetailsService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        logger.debug("Attempting to load user by username: {}", username);  // 이메일 확인용 로그
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + username));
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        logger.debug("Attempting to load user by email: {}", email);  // 이메일 확인용 로그
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
         logger.debug("User found: {}", user.getEmail());
         return org.springframework.security.core.userdetails.User.withUsername(user.getEmail())
                 .password(user.getPassword())
