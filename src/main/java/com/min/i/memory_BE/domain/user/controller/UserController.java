@@ -2,12 +2,12 @@ package com.min.i.memory_BE.domain.user.controller;
 
 import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
 import com.min.i.memory_BE.domain.user.dto.UserRegisterResultDto;
+import com.min.i.memory_BE.domain.user.service.EmailService;
 import com.min.i.memory_BE.domain.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,17 +17,25 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // 회원가입 처리
-    @PostMapping("/register")
-    public ResponseEntity<UserRegisterResultDto> register(@RequestBody UserRegisterDto userRegisterDto) {
+    // 이메일 인증 코드 확인 (POST /user/verify-email)
+    @PostMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestBody UserRegisterDto userRegisterDto) {
+        boolean isVerified = userService.verifyEmail(userRegisterDto);
 
-        // 회원가입 처리 후 결과 반환
-        UserRegisterResultDto result = userService.registerUser(userRegisterDto);
+        if (isVerified) {
+            return ResponseEntity.ok("이메일 인증에 성공했습니다.");
+        } else {
+            return ResponseEntity.status(400).body("이메일 인증에 실패했습니다. 인증 코드를 다시 확인하세요.");
+        }
+    }
 
-        SecurityContextHolder.clearContext();
+    // 사용자 정보 추가 입력 후 최종 회원가입 처리
+    @PostMapping("/complete-register")
+    public ResponseEntity<String> completeRegister(@RequestBody UserRegisterDto userRegisterDto) {
+        // 인증된 이메일로 최종 회원가입 처리
+        userService.completeRegister(userRegisterDto);
 
-        // 성공 응답 반환
-        return ResponseEntity.status(201).body(result);
+        return ResponseEntity.ok("회원가입이 완료되었습니다.");
     }
 
 

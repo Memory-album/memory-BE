@@ -1,7 +1,8 @@
-#application.yml
 spring:
   config:
-    import: classpath:application-db.yml
+    import:
+      - classpath:application-db.yml
+      - classpath:application-key.yml
   jpa:
     properties:
       hibernate:
@@ -14,15 +15,12 @@ spring:
       name: admin             # 기본 사용자 이름 설정
       password: adminpassword  # 기본 비밀번호 설정 (운영 환경에서는 암호화된 비밀번호 사용하는 것이 좋음)
 
-
-
 logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type: trace
-    org.springframework.security: DEBUG   # Spring Security 로그 레벨 추가
+    org.springframework.security: DEBUG
     com.min.i.memory_BE: DEBUG
-
 
 ---
 spring.config.activate.on-profile: local
@@ -75,3 +73,29 @@ springdoc:
   api-docs:
     path: /v3/api-docs
   show-actuator: true
+
+---
+
+spring:
+  mail:
+    host: smtp.naver.com
+    port: 465
+    username:  ${NAVER_MAIL_USERNAME} # 네이버 이메일 주소
+    password:  ${NAVER_MAIL_PASSWORD} # 이메일 비밀번호
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+---
+spring:
+  mail:
+    host: smtp.gmail.com
+    port: 465
+    username: ${GMAIL_MAIL_USERNAME} # Gmail 이메일 주소
+    password: ${GMAIL_MAIL_PASSWORD} # Gmail 앱 비밀번호
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+
+
+

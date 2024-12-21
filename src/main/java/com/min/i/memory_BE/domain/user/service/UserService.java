@@ -3,11 +3,14 @@ package com.min.i.memory_BE.domain.user.service;
 import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
 import com.min.i.memory_BE.domain.user.dto.UserRegisterResultDto;
 import com.min.i.memory_BE.domain.user.entity.User;
+import com.min.i.memory_BE.domain.user.enums.UserMailStatus;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Service
 public class UserService {
@@ -21,28 +24,47 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // 유저 저장
-    public UserRegisterResultDto registerUser(UserRegisterDto userRegisterDto) {
+    // 이메일 인증 확인 및 코드 검증
+    public boolean verifyEmail(UserRegisterDto userRegisterDto) {
+        // 이메일로 임시 사용자 검색
+        User user = userRepository.findByEmail(userRegisterDto.getEmail())
+                .orElseThrow(() -> new IllegalArgumentException("해당 이메일로 가입된 사용자가 없습니다."));
+
+        // 인증 코드 검증
+        if (user.getEmailVerificationCode().equals(userRegisterDto.getEmailVerificationCode()) &&
+                LocalDateTime.now().isBefore(user.getEmailVerificationExpiredAt())) {
+
+            // 인증 성공 후, 상태를 VERIFIED로 변경
+            user.completeEmailVerification();
+
+            userRepository.save(user);
+            return true;
+        } else if (LocalDateTime.now().isAfter(user.getEmailVerificationExpiredAt())) {
+            // 인증 기한이 만료되었으면 사용자를 삭제
+            userRepository.delete(user);
+            throw new IllegalArgumentException("인증 기한이 만료되었습니다.");
+        }
+
+        return false; // 인증 실패
+    }
+
+    // 회원가입을 위한 최종 처리
+    public UserRegisterResultDto completeRegister(UserRegisterDto userRegisterDto) {
+
+        // 임시 사용자 검색
+        User tempUser = userRepository.findByEmail(userRegisterDto.getEmail())
+                .filter(user -> user.getMailStatus() == UserMailStatus.VERIFIED)  // 이메일 인증이 완료된 사용자만
+                .orElseThrow(() -> new IllegalArgumentException("이메일 인증을 먼저 완료해야 합니다."));
 
         // 비밀번호 암호화
         String hashedPassword = passwordEncoder.encode(userRegisterDto.getPassword());
         userRegisterDto.setPassword(hashedPassword);  // 암호화된 비밀번호로 덮어쓰기
 
-        // User 객체
-        User newUser = User.builder()
-                .email(userRegisterDto.getEmail())
-                .password(hashedPassword)  // 암호화된 비밀번호 사용
-                .name(userRegisterDto.getName())
-                .profileImageUrl(userRegisterDto.getProfileImgUrl())
-                .build();
+        // 최종 사용자로 업데이트 (이름, 프로필 이미지, 비밀번호 등)
+        tempUser.completeRegistration(userRegisterDto.getPassword(), userRegisterDto.getName(), userRegisterDto.getProfileImgUrl());
 
-        // 이미 존재하는 이메일인지 체크 (중복 가입 방지)
-        if (userRepository.existsByEmail(newUser.getEmail())) {
-            throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
-        }
-
-        // 유저 저장
-        userRepository.save(newUser);
+        // 최종 사용자로 저장
+        userRepository.save(tempUser);
 
         // 결과 반환 (DTO 반환)
         UserRegisterResultDto result = new UserRegisterResultDto();

@@ -38,3 +38,6 @@ out/
 
 #Database configuration
 application-db.yml
+
+#secret
+application-key.yml
