@@ -14,9 +14,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 이메일로 유저 조회
     Optional<User> findByEmail(String email);
-
-    @Modifying
-    @Query("DELETE FROM User u WHERE u.emailVerificationExpiredAt < :now AND u.mailStatus = 'UNVERIFIED'")
-    void deleteExpiredUsers(LocalDateTime now);
-
 }
