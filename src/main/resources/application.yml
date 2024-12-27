@@ -97,5 +97,9 @@ spring:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: true
 
+---
+jwt:
+  secret: "your-secure-secret-key12345678910111213141516"
+
 
 

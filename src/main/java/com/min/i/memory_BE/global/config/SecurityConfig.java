@@ -51,7 +51,7 @@ public class SecurityConfig {
     http
             .csrf().disable()  // CSRF 보호 비활성화
             .authorizeRequests()
-              .requestMatchers("/h2-console/**" ,"/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api/v1/mock/**", "/mail/send-verification-code", "/user/verify-email", "/user/complete-register")  // 로그인 및 회원가입 URL은 인증 없이 접근 허용
+              .requestMatchers("/h2-console/**" ,"/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api/v1/mock/**", "/user/send-verification-code", "/user/verify-email", "/user/complete-register")  // 로그인 및 회원가입 URL은 인증 없이 접근 허용
               .permitAll()
               .requestMatchers("/auth/login").permitAll()  // 로그인 URL을 인증 없이 접근 허용
               .requestMatchers("/user/home").authenticated()// 홈 페이지는 로그인한 사용자만 접근 가능

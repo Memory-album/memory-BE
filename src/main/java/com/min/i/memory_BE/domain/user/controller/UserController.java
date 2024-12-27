@@ -17,13 +17,33 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    // 이메일 인증 코드 확인 (POST /user/verify-email)
-    @PostMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestBody UserRegisterDto userRegisterDto) {
-        boolean isVerified = userService.verifyEmail(userRegisterDto);
+    @Autowired
+    private EmailService emailService;
 
-        if (isVerified) {
-            return ResponseEntity.ok("이메일 인증에 성공했습니다.");
+    // 이메일 인증 코드 발송
+    @PostMapping("/send-verification-code")
+    public ResponseEntity<String> sendVerificationCode(@RequestBody UserRegisterDto userRegisterDto) {
+        // JWT 생성 및 이메일 전송
+        String jwt = emailService.sendVerificationCode(userRegisterDto);
+
+        if (jwt != null) {
+            return ResponseEntity.ok("인증 코드가 이메일로 전송되었습니다. JWT: " + jwt);
+        } else {
+            return ResponseEntity.status(500).body("이메일 전송에 실패했습니다.");
+        }
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<String> verifyEmail(@RequestBody UserRegisterDto userRegisterDto,
+                                              @RequestHeader("Authorization") String authorization) {
+        // JWT 토큰 추출 (Bearer 토큰에서 실제 JWT 값을 추출)
+        String jwtToken = authorization.replace("Bearer ", "");
+
+        // JWT 유효성 검사 후 이메일 인증
+        String newJwt = userService.verifyEmail(jwtToken, userRegisterDto.getEmailVerificationCode());
+
+        if (newJwt != null) {
+            return ResponseEntity.ok("이메일 인증에 성공했습니다. New JWT: " + newJwt);
         } else {
             return ResponseEntity.status(400).body("이메일 인증에 실패했습니다. 인증 코드를 다시 확인하세요.");
         }
@@ -31,11 +51,15 @@ public class UserController {
 
     // 사용자 정보 추가 입력 후 최종 회원가입 처리
     @PostMapping("/complete-register")
-    public ResponseEntity<String> completeRegister(@RequestBody UserRegisterDto userRegisterDto) {
-        // 인증된 이메일로 최종 회원가입 처리
-        userService.completeRegister(userRegisterDto);
+    public ResponseEntity<String> completeRegister(@RequestBody UserRegisterDto userRegisterDto, @RequestHeader("Authorization") String authorization) {
 
-        return ResponseEntity.ok("회원가입이 완료되었습니다.");
+        // JWT 토큰 추출 (Bearer 토큰에서 실제 JWT 값을 추출)
+        String jwtToken = authorization.replace("Bearer ", "");
+
+        // 인증된 이메일로 최종 회원가입 처리
+        UserRegisterResultDto result = userService.completeRegister(userRegisterDto, jwtToken);
+
+        return ResponseEntity.ok(result.getMessage());
     }
 
 
