@@ -99,7 +99,7 @@ spring:
 
 ---
 jwt:
-  secret: "your-secure-secret-key12345678910111213141516"
+  secret: ${JWT_SECRET_KEY}
 
 
 
