@@ -24,12 +24,10 @@ public class S3Service {
   private final S3Client s3Client;
   private final String bucketName;
   
-  // 허용되는 이미지 타입
   private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList(
     "image/jpeg", "image/jpg", "image/png", "image/gif"
   );
   
-  // 최대 파일 크기 (10MB)
   private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
   
   public S3Service(S3Client s3Client,
