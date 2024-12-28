@@ -1,7 +1,10 @@
 package com.min.i.memory_BE.global.service;
 
-import com.min.i.memory_BE.global.error.ErrorCode;
-import com.min.i.memory_BE.global.error.exception.ApiException;
+import com.min.i.memory_BE.global.error.exception.FileValidationException;
+import com.min.i.memory_BE.global.error.exception.S3Exception;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -14,15 +17,19 @@ import java.util.UUID;
 import java.util.Arrays;
 import java.util.List;
 
+@Slf4j
 @Service
+@Tag(name = "S3 Service", description = "AWS S3 관련 서비스")
 public class S3Service {
   private final S3Client s3Client;
   private final String bucketName;
   
+  // 허용되는 이미지 타입
   private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList(
     "image/jpeg", "image/jpg", "image/png", "image/gif"
   );
   
+  // 최대 파일 크기 (10MB)
   private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
   
   public S3Service(S3Client s3Client,
@@ -31,9 +38,7 @@ public class S3Service {
     this.bucketName = bucketName;
   }
   
-  /**
-   * 앨범 이미지 업로드
-   */
+  @Operation(summary = "앨범 이미지 업로드", description = "앨범에 이미지를 업로드합니다.")
   public String uploadAlbumImage(MultipartFile file, Long albumId) {
     validateImageFile(file);
     
@@ -50,15 +55,16 @@ public class S3Service {
       s3Client.putObject(putObjectRequest,
         RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
       
+      log.info("File uploaded successfully: {}", key);
       return getFileUrl(key);
+      
     } catch (IOException e) {
-      throw new ApiException("파일 업로드 중 오류가 발생했습니다", ErrorCode.INTERNAL_SERVER_ERROR);
+      log.error("File upload failed: {}", e.getMessage());
+      throw new S3Exception("파일 업로드 중 오류가 발생했습니다");
     }
   }
   
-  /**
-   * 이미지 삭제
-   */
+  @Operation(summary = "이미지 삭제", description = "S3에서 이미지를 삭제합니다.")
   public void deleteImage(String fileUrl) {
     String key = extractKeyFromUrl(fileUrl);
     
@@ -69,49 +75,37 @@ public class S3Service {
         .build();
       
       s3Client.deleteObject(deleteObjectRequest);
+      log.info("File deleted successfully: {}", key);
+      
     } catch (Exception e) {
-      throw new ApiException("파일 삭제 중 오류가 발생했습니다", ErrorCode.INTERNAL_SERVER_ERROR);
+      log.error("File deletion failed: {}", e.getMessage());
+      throw new S3Exception("파일 삭제 중 오류가 발생했습니다");
     }
   }
   
-  /**
-   * 파일 유효성 검사
-   */
   private void validateImageFile(MultipartFile file) {
-    // 파일 존재 여부 확인
     if (file.isEmpty()) {
-      throw new ApiException("파일이 비어있습니다", ErrorCode.INVALID_INPUT_VALUE);
+      throw new FileValidationException("파일이 비어있습니다");
     }
     
-    // 파일 크기 검사
     if (file.getSize() > MAX_FILE_SIZE) {
-      throw new ApiException("파일 크기가 10MB를 초과합니다", ErrorCode.INVALID_INPUT_VALUE);
+      throw new FileValidationException("파일 크기가 10MB를 초과합니다");
     }
     
-    // 파일 타입 검사
     String contentType = file.getContentType();
     if (contentType == null || !ALLOWED_IMAGE_TYPES.contains(contentType.toLowerCase())) {
-      throw new ApiException("지원하지 않는 이미지 형식입니다", ErrorCode.INVALID_INPUT_VALUE);
+      throw new FileValidationException("지원하지 않는 이미지 형식입니다");
     }
   }
   
-  /**
-   * 고유한 파일명 생성
-   */
   private String generateFileName(String originalFilename) {
     return UUID.randomUUID().toString() + "-" + originalFilename;
   }
   
-  /**
-   * 파일 URL 생성
-   */
   private String getFileUrl(String key) {
     return String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
   }
   
-  /**
-   * URL에서 키 추출
-   */
   private String extractKeyFromUrl(String fileUrl) {
     return fileUrl.substring(fileUrl.indexOf(".com/") + 5);
   }
