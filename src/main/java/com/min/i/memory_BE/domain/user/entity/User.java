@@ -38,16 +38,13 @@ public class User extends BaseEntity {
   private String name;
   
   private String profileImgUrl;
-  
+
   @Column(nullable = false)
   private boolean emailVerified = false;
-  
+
   private String emailVerificationCode;
   
-  private LocalDateTime emailVerificationExpiredAt;
-  
-  @Enumerated(EnumType.STRING)
-  private final UserStatus status = UserStatus.ACTIVE;
+  private LocalDateTime emailVerificationExpiredAt;// 유효기간
   
   @OneToMany(mappedBy = "user")
   private final List<OAuthAccount> oauthAccounts = new ArrayList<>();
@@ -56,8 +53,7 @@ public class User extends BaseEntity {
   private final List<UserGroup> userGroups = new ArrayList<>();
   
   @Builder
-  public User(String email, String password, String name, String profileImageUrl,
-    boolean emailVerified, String emailVerificationCode,
+  public User(String email, String password, String name, boolean emailVerified, String profileImageUrl, String emailVerificationCode,
     LocalDateTime emailVerificationExpiredAt) {
     this.email = email;
     this.password = password;
