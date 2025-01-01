@@ -10,6 +10,7 @@ import com.min.i.memory_BE.domain.media.repository.MediaRepository;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.global.service.S3Service;
+import java.nio.file.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +51,37 @@ public class MediaService {
       .build();
     
     return mediaRepository.save(media);
+  }
+  
+  @Transactional
+  public Media updateMedia(Long groupId, Long albumId, Long mediaId, MultipartFile file, User user) {
+    Media existingMedia = mediaRepository.findById(mediaId)
+      .orElseThrow(() -> new EntityNotFoundException("Media not found"));
+    
+    // S3에 새 파일 업로드 및 이전 파일 삭제
+    String newFileUrl = s3Service.updateAlbumImage(file, albumId, existingMedia.getFileUrl());
+    
+    Media updatedMedia = Media.builder()
+      .fileUrl(newFileUrl)
+      .fileType(MediaType.IMAGE)
+      .originalFilename(file.getOriginalFilename())
+      .fileSize(file.getSize())
+      .album(existingMedia.getAlbum())
+      .uploadedBy(existingMedia.getUploadedBy())
+      .page(existingMedia.getPage())
+      .build();
+    
+    return mediaRepository.save(updatedMedia);
+  }
+  
+  @Transactional
+  public void deleteMedia(Long groupId, Long albumId, Long mediaId, User user) {
+    Media media = mediaRepository.findById(mediaId)
+      .orElseThrow(() -> new EntityNotFoundException("Media not found"));
+    
+    
+    s3Service.deleteImage(media.getFileUrl());
+    mediaRepository.delete(media);
   }
   
   // 그룹의 특정 앨범 미디어 조회 (페이징)

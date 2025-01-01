@@ -2,8 +2,6 @@ package com.min.i.memory_BE.global.service;
 
 import com.min.i.memory_BE.global.error.exception.FileValidationException;
 import com.min.i.memory_BE.global.error.exception.S3Exception;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,7 +17,6 @@ import java.util.List;
 
 @Slf4j
 @Service
-@Tag(name = "S3 Service", description = "AWS S3 관련 서비스")
 public class S3Service {
   private final S3Client s3Client;
   private final String bucketName;
@@ -36,7 +33,6 @@ public class S3Service {
     this.bucketName = bucketName;
   }
   
-  @Operation(summary = "앨범 이미지 업로드", description = "앨범에 이미지를 업로드합니다.")
   public String uploadAlbumImage(MultipartFile file, Long albumId) {
     validateImageFile(file);
     
@@ -62,7 +58,25 @@ public class S3Service {
     }
   }
   
-  @Operation(summary = "이미지 삭제", description = "S3에서 이미지를 삭제합니다.")
+  public String updateAlbumImage(MultipartFile file, Long albumId, String oldFileUrl) {
+    validateImageFile(file);
+    
+    try {
+      // 1. 새 파일 업로드
+      String newFileUrl = uploadAlbumImage(file, albumId);
+      
+      // 2. 이전 파일 삭제
+      if (oldFileUrl != null) {
+        deleteImage(oldFileUrl);
+      }
+      
+      return newFileUrl;
+    } catch (Exception e) {
+      log.error("File update failed: {}", e.getMessage());
+      throw new S3Exception("파일 업데이트 중 오류가 발생했습니다");
+    }
+  }
+  
   public void deleteImage(String fileUrl) {
     String key = extractKeyFromUrl(fileUrl);
     
