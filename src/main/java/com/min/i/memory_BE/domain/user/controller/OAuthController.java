@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/oauth")
 public class OAuthController {
 
     private final OAuthService oAuthService;
@@ -28,7 +28,7 @@ public class OAuthController {
     public ResponseEntity<String> handleNaverCallback(@RequestParam("code") String code,
                                                       @RequestParam("state") String state) {
         oAuthService.handleNaverCallback(code, state);
-        return ResponseEntity.ok("로그인 성공");
+        return ResponseEntity.ok("네이버 로그인 성공");
     }
 }
 

@@ -5,6 +5,7 @@ import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.enums.OAuthProvider;
 import com.min.i.memory_BE.domain.user.repository.OAuthAccountRepository;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,10 +22,20 @@ import java.util.UUID;
 @Service
 public class OAuthService {
 
-    private final String NAVER_CLIENT_ID = "YOUR_NAVER_CLIENT_ID";
-    private final String NAVER_CLIENT_SECRET = "YOUR_NAVER_CLIENT_SECRET";
-    private final String NAVER_REDIRECT_URI = "http://localhost:8080/api/auth/callback/naver";
-    private final String NAVER_TOKEN_URL = "https://nid.naver.com/oauth2.0/token";
+    @Value("${naver.oauth.client-id}")
+    private String naverClientId;
+
+    @Value("${naver.oauth.client-secret}")
+    private String naverClientSecret;
+
+    @Value("${naver.oauth.redirect-uri}")
+    private String naverRedirectUri;
+
+    @Value("${naver.oauth.token-url}")
+    private String naverTokenUrl;
+
+    @Value("${naver.oauth.auth-url}")
+    private String naverAuthUrl;
 
     private final UserRepository userRepository;
     private final OAuthAccountRepository oAuthAccountRepository;
@@ -34,12 +45,11 @@ public class OAuthService {
         this.oAuthAccountRepository = oAuthAccountRepository;
     }
 
-
     public String generateNaverAuthUrl() {
-        return "https://nid.naver.com/oauth2.0/authorize" +
+        return naverAuthUrl +
                 "?response_type=code" +
-                "&client_id=" + NAVER_CLIENT_ID +
-                "&redirect_uri=" + NAVER_REDIRECT_URI +
+                "&client_id=" + naverClientId +
+                "&redirect_uri=" + naverRedirectUri +
                 "&state=" + generateState();
     }
 
@@ -110,11 +120,9 @@ public class OAuthService {
     private void saveOrUpdateUser(Map<String, Object> userProfile, String accessToken) {
         // 프로필 사진, 이름 등 필요한 정보 추출
         String providerUserId = (String) userProfile.get("id"); // 네이버 사용자 고유 ID
-        String name = (String) userProfile.getOrDefault("name", "사용자"); // 기본값 "사용자"
+        String name = (String) userProfile.getOrDefault("name", "네이버 사용자"); // 기본값 "사용자"
         String profileImgUrl = (String) userProfile.getOrDefault("profile_image", "default-profile-img-url"); // 기본 이미지 URL
-
-        // 이메일 정보 생성: 네이버 고유 ID를 기반으로 이메일 생성
-        String email = providerUserId + "@naver.com";
+        String email = (String) userProfile.get("email"); // 이메일
 
         // 기존 사용자 확인
         Optional<OAuthAccount> existingOAuthAccount = oAuthAccountRepository.findByProviderAndProviderUserId(OAuthProvider.NAVER, providerUserId);
@@ -150,10 +158,10 @@ public class OAuthService {
     }
 
     private String buildTokenRequestUrl(String code, String state) {
-        return NAVER_TOKEN_URL +
+        return naverTokenUrl +
                 "?grant_type=authorization_code" +
-                "&client_id=" + NAVER_CLIENT_ID +
-                "&client_secret=" + NAVER_CLIENT_SECRET +
+                "&client_id=" + naverClientId +
+                "&client_secret=" + naverClientSecret +
                 "&code=" + code +
                 "&state=" + state;
     }
