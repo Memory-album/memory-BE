@@ -1,7 +1,6 @@
 package com.min.i.memory_BE.domain.user.service;
 
 import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
-import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.global.config.MailConfig;
 import io.jsonwebtoken.Jwts;

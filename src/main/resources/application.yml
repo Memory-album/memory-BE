@@ -101,5 +101,23 @@ spring:
 jwt:
   secret: ${JWT_SECRET_KEY}
 
+---
+naver:
+  oauth:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
+    redirect-uri: http://localhost:8080/api/auth/callback/naver
+    token-url: https://nid.naver.com/oauth2.0/token
+    auth-url: https://nid.naver.com/oauth2.0/authorize
+
+---
+
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    token-url: https://kauth.kakao.com/oauth/token
+    redirect-uri: http://localhost:8080/oauth/callback/kakao
+
 
 
