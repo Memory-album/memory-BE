@@ -1,7 +1,8 @@
-#application.yml
 spring:
   config:
-    import: classpath:application-db.yml
+    import:
+      - classpath:application-db.yml
+      - classpath:application-key.yml
   jpa:
     properties:
       hibernate:
@@ -18,9 +19,8 @@ logging:
   level:
     org.hibernate.SQL: debug
     org.hibernate.type: trace
-    org.springframework.security: DEBUG   # Spring Security 로그 레벨 추가
+    org.springframework.security: DEBUG
     com.min.i.memory_BE: DEBUG
-
 
 ---
 spring.config.activate.on-profile: local
