@@ -37,6 +37,18 @@ public class OAuthService {
     @Value("${naver.oauth.auth-url}")
     private String naverAuthUrl;
 
+    @Value("${kakao.oauth.client-id}")
+    private String kakaoClientId;
+
+    @Value("${kakao.oauth.client-secret}")
+    private String kakaoClientSecret;
+
+    @Value("${kakao.oauth.token-url}")
+    private String kakaoTokenUrl;
+
+    @Value("${kakao.oauth.redirect-uri}")
+    private String kakaoRedirectUri;
+
     private final UserRepository userRepository;
     private final OAuthAccountRepository oAuthAccountRepository;
 
@@ -53,13 +65,21 @@ public class OAuthService {
                 "&state=" + generateState();
     }
 
+    public String generateKakaoAuthUrl() {
+        return "https://kauth.kakao.com/oauth/authorize" +
+                "?response_type=code" +
+                "&client_id=" + kakaoClientId +
+                "&redirect_uri=" + kakaoRedirectUri;
+    }
+
+
     private String generateState() {
         return UUID.randomUUID().toString();
     }
 
     public void handleNaverCallback(String code, String state) {
 
-        String tokenRequestUrl = buildTokenRequestUrl(code, state);
+        String tokenRequestUrl = buildNaverTokenRequestUrl(code, state);
         // 네이버 서버에 Access Token 요청
         RestTemplate restTemplate = new RestTemplate();
 
@@ -83,6 +103,39 @@ public class OAuthService {
         String accessToken = (String) responseBody.get("access_token");
         fetchUserProfileFromNaver(accessToken);
     }
+
+    public void handleKakaoCallback(String code) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        // 카카오 토큰 요청 URL 생성
+        String tokenRequestUrl = buildKakaoTokenRequestUrl(code);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Content-Type", "application/x-www-form-urlencoded");
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map<String, Object>> tokenResponse;
+        try {
+            tokenResponse = restTemplate.exchange(
+                    tokenRequestUrl,
+                    HttpMethod.POST,
+                    entity,
+                    new ParameterizedTypeReference<>() {}
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("카카오 액세스 토큰 요청 실패", e);
+        }
+
+        Map<String, Object> tokenResponseBody = tokenResponse.getBody();
+        if (tokenResponseBody == null || !tokenResponseBody.containsKey("access_token")) {
+            throw new RuntimeException("카카오 액세스 토큰이 없습니다.");
+        }
+
+        String accessToken = (String) tokenResponseBody.get("access_token");
+        fetchKakaoUserProfile(accessToken);
+    }
+
 
     private void fetchUserProfileFromNaver(String accessToken) {
         // 네이버 사용자 프로필 요청
@@ -116,6 +169,37 @@ public class OAuthService {
         // 사용자 프로필 정보 저장
         saveOrUpdateUser(userProfile, accessToken);
     }
+
+    private void fetchKakaoUserProfile(String accessToken) {
+        RestTemplate restTemplate = new RestTemplate();
+        String profileUrl = "https://kapi.kakao.com/v2/user/me";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + accessToken);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<Map<String, Object>> response;
+        try {
+            response = restTemplate.exchange(
+                    profileUrl,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<>() {}
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("카카오 사용자 프로필 요청 실패", e);
+        }
+
+        Map<String, Object> userProfile = response.getBody();
+
+        if (userProfile == null) {
+            throw new RuntimeException("카카오 사용자 정보가 비어 있습니다.");
+        }
+
+        saveOrUpdateKakaoUser(userProfile);
+    }
+
 
     private void saveOrUpdateUser(Map<String, Object> userProfile, String accessToken) {
         // 프로필 사진, 이름 등 필요한 정보 추출
@@ -157,7 +241,50 @@ public class OAuthService {
         }
     }
 
-    private String buildTokenRequestUrl(String code, String state) {
+    private void saveOrUpdateKakaoUser(Map<String, Object> userProfile) {
+        // 사용자 정보 추출
+        String providerUserId = String.valueOf(userProfile.get("id")); // 카카오 사용자 고유 ID
+        Map<String, Object> kakaoAccount = (Map<String, Object>) userProfile.get("kakao_account");
+        Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+
+        String nickname = (String) profile.get("nickname"); // 닉네임
+        String profileImgUrl = (String) profile.get("profile_image_url"); // 프로필 사진
+
+        String email = "이메일 입력이 필요합니다."; // 카카오는 이메일 기본 제공 안해줌 사업자 정보있어야함..
+
+        // 기존 OAuthAccount 확인 - OAuthProvider와 providerUserId로 OAuthAccount 검색
+        Optional<OAuthAccount> existingOAuthAccount = oAuthAccountRepository.findByProviderAndProviderUserId(OAuthProvider.KAKAO, providerUserId);
+
+        if (existingOAuthAccount.isPresent()) {
+            // 기존 사용자 업데이트
+            OAuthAccount oauthAccount = existingOAuthAccount.get();
+            oauthAccount.updateAccessToken(providerUserId, LocalDateTime.now().plusHours(1)); // Access Token 업데이트
+            oAuthAccountRepository.save(oauthAccount);
+
+        } else {
+                // 새로운 사용자 생성
+                User newUser = User.builder()
+                        .name(nickname) // 닉네임 저장
+                        .email(email) // 이메일 저장
+                        .profileImageUrl(profileImgUrl) // 프로필 이미지 저장
+                        .emailVerified(false) // 이메일 없는 경우 기본값 false
+                        .build();
+
+                userRepository.save(newUser);
+
+                // 새로운 OAuthAccount 생성
+                OAuthAccount newOAuthAccount = OAuthAccount.builder()
+                        .user(newUser)
+                        .provider(OAuthProvider.KAKAO)
+                        .providerUserId(providerUserId) // 카카오 고유 ID 저장
+                        .tokenExpiresAt(LocalDateTime.now().plusHours(1))
+                        .build();
+                oAuthAccountRepository.save(newOAuthAccount);
+        }
+    }
+
+
+    private String buildNaverTokenRequestUrl(String code, String state) {
         return naverTokenUrl +
                 "?grant_type=authorization_code" +
                 "&client_id=" + naverClientId +
@@ -166,6 +293,14 @@ public class OAuthService {
                 "&state=" + state;
     }
 
+    private String buildKakaoTokenRequestUrl(String code) {
+        return kakaoTokenUrl +
+                "?grant_type=authorization_code" +
+                "&client_id=" + kakaoClientId +
+                "&client_secret=" + kakaoClientSecret +
+                "&redirect_uri=" + kakaoRedirectUri +
+                "&code=" + code;
+    }
 
 }
 

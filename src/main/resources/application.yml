@@ -110,5 +110,14 @@ naver:
     token-url: https://nid.naver.com/oauth2.0/token
     auth-url: https://nid.naver.com/oauth2.0/authorize
 
+---
+
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    token-url: https://kauth.kakao.com/oauth/token
+    redirect-uri: http://localhost:8080/oauth/callback/kakao
+
 
 

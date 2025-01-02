@@ -30,5 +30,17 @@ public class OAuthController {
         oAuthService.handleNaverCallback(code, state);
         return ResponseEntity.ok("네이버 로그인 성공");
     }
+
+    @GetMapping("/login/kakao")
+    public ResponseEntity<String> redirectToKakaoLogin() {
+        String kakaoAuthUrl = oAuthService.generateKakaoAuthUrl();
+        return ResponseEntity.status(HttpStatus.FOUND).header("Location", kakaoAuthUrl).build();
+    }
+
+    @GetMapping("/callback/kakao")
+    public ResponseEntity<String> handleKakaoCallback(@RequestParam("code") String code) {
+        oAuthService.handleKakaoCallback(code);
+        return ResponseEntity.ok("카카오 로그인 성공");
+    }
 }
 
