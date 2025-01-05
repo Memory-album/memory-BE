@@ -60,6 +60,7 @@ public class SecurityConfig {
               .requestMatchers("/auth/login").permitAll()  // 로그인 URL을 인증 없이 접근 허용
               .requestMatchers("/user/home").authenticated()// 홈 페이지는 로그인한 사용자만 접근 가능
               .requestMatchers("/user/my-page").authenticated()  // 마이 페이지도 로그인한 사용자만 접근 가능
+              .requestMatchers("/api/v1/groups/**").authenticated() //그룹 젠부 허용
               .anyRequest().authenticated()  // 그 외 모든 요청은 인증 필요
             .and()
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)  // JWT 필터 추가
