@@ -1,5 +1,6 @@
 package com.min.i.memory_BE.domain.user.controller;
 
+import com.min.i.memory_BE.domain.user.enums.OAuthProvider;
 import com.min.i.memory_BE.domain.user.service.OAuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,29 +19,20 @@ public class OAuthController {
         this.oAuthService = oAuthService;
     }
 
-    @GetMapping("/login/naver")
-    public ResponseEntity<String> redirectToNaverLogin() {
-        String naverAuthUrl = oAuthService.generateNaverAuthUrl();
-        return ResponseEntity.status(HttpStatus.FOUND).header("Location", naverAuthUrl).build();
+    @GetMapping("/login")
+    public ResponseEntity<Void> redirectToLogin(@RequestParam("provider") String providerName) {
+        OAuthProvider provider = OAuthProvider.valueOf(providerName.toUpperCase());
+        String authUrl = oAuthService.generateAuthUrl(provider);
+        return ResponseEntity.status(HttpStatus.FOUND).header("Location", authUrl).build();
     }
 
-    @GetMapping("/callback/naver")
-    public ResponseEntity<String> handleNaverCallback(@RequestParam("code") String code,
-                                                      @RequestParam("state") String state) {
-        oAuthService.handleNaverCallback(code, state);
-        return ResponseEntity.ok("네이버 로그인 성공");
-    }
-
-    @GetMapping("/login/kakao")
-    public ResponseEntity<String> redirectToKakaoLogin() {
-        String kakaoAuthUrl = oAuthService.generateKakaoAuthUrl();
-        return ResponseEntity.status(HttpStatus.FOUND).header("Location", kakaoAuthUrl).build();
-    }
-
-    @GetMapping("/callback/kakao")
-    public ResponseEntity<String> handleKakaoCallback(@RequestParam("code") String code) {
-        oAuthService.handleKakaoCallback(code);
-        return ResponseEntity.ok("카카오 로그인 성공");
+    @GetMapping("/callback")
+    public ResponseEntity<String> handleCallback(@RequestParam("provider") String providerName,
+                                                 @RequestParam("code") String code,
+                                                 @RequestParam(value = "state", required = false) String state) {
+        OAuthProvider provider = OAuthProvider.valueOf(providerName.toUpperCase());
+        oAuthService.handleCallback(provider, code, state);
+        return ResponseEntity.ok(providerName + " 로그인 성공");
     }
 }
 
