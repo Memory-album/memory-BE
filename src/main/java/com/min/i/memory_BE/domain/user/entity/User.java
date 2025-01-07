@@ -3,10 +3,7 @@ package com.min.i.memory_BE.domain.user.entity;
 import com.min.i.memory_BE.domain.group.entity.UserGroup;
 import com.min.i.memory_BE.global.entity.BaseEntity;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,24 +32,41 @@ public class User extends BaseEntity {
   private boolean emailVerified = false;
 
   private String emailVerificationCode;
-  
-  private LocalDateTime emailVerificationExpiredAt;// 유효기간
-  
+
+  // 이메일 인증 코드 유효기간
+  private LocalDateTime emailVerificationExpiredAt;
+
+  // 로그인 시도 횟수
+  private int loginAttempts = 0;  // 기본값 0
+
+  // 계정 잠금 여부
+  private boolean accountLocked = false;
+
+  // 마지막 로그인 시도 시간
+  private LocalDateTime lastLoginAttempt;
+
+  // 계정 잠금 해제까지 남은 시간
+  private LocalDateTime lockedUntil;
+
   @OneToMany(mappedBy = "user")
   private final List<OAuthAccount> oauthAccounts = new ArrayList<>();
   
   @OneToMany(mappedBy = "user")
   private final List<UserGroup> userGroups = new ArrayList<>();
   
-  @Builder
-  public User(String email, String password, String name, boolean emailVerified, String profileImageUrl, String emailVerificationCode,
-    LocalDateTime emailVerificationExpiredAt) {
+  @Builder(toBuilder = true)  // toBuilder 활성화
+  public User(String email, String password, String name, boolean emailVerified, String profileImgUrl, String emailVerificationCode,
+    LocalDateTime emailVerificationExpiredAt, int loginAttempts, boolean accountLocked, LocalDateTime lastLoginAttempt, LocalDateTime lockedUntil) {
     this.email = email;
     this.password = password;
     this.name = name;
-    this.profileImgUrl = profileImageUrl;
+    this.profileImgUrl = profileImgUrl;
     this.emailVerified = emailVerified;
     this.emailVerificationCode = emailVerificationCode;
     this.emailVerificationExpiredAt = emailVerificationExpiredAt;
+    this.loginAttempts = loginAttempts;
+    this.accountLocked = accountLocked;
+    this.lastLoginAttempt = lastLoginAttempt;
+    this.lockedUntil = lockedUntil;
   }
 }

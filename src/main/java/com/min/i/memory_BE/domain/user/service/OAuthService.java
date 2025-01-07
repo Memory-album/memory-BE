@@ -145,7 +145,8 @@ public class OAuthService {
                 tokenRequestUrl,
                 HttpMethod.POST,
                 null,
-                new ParameterizedTypeReference<>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
 
         Map<String, Object> responseBody = response.getBody();
@@ -173,7 +174,8 @@ public class OAuthService {
                 tokenRequestUrl,
                 HttpMethod.POST,
                 entity,
-                new ParameterizedTypeReference<>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
 
         Map<String, Object> responseBody = response.getBody();
@@ -202,7 +204,8 @@ public class OAuthService {
                 googleTokenUrl,
                 HttpMethod.POST,
                 request,
-                new ParameterizedTypeReference<>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
 
         Map<String, Object> responseBody = response.getBody();
@@ -238,7 +241,8 @@ public class OAuthService {
                 profileUrl,
                 HttpMethod.GET,
                 entity,
-                new ParameterizedTypeReference<>() {}
+                new ParameterizedTypeReference<>() {
+                }
         );
 
         Map<String, Object> userProfile = response.getBody();
@@ -248,6 +252,7 @@ public class OAuthService {
 
         saveOrUpdateUser(userProfile, provider, accessToken);
     }
+
     private void saveOrUpdateUser(Map<String, Object> userProfile, OAuthProvider provider, String accessToken) {
         String providerUserId;
         String email = null;
@@ -295,8 +300,8 @@ public class OAuthService {
                 User newUser = User.builder()
                         .email(finalEmail)
                         .name(finalName)
-                        .profileImageUrl(finalProfileImgUrl)
-                        .emailVerified(finalEmail  != null && !finalEmail .isEmpty())
+                        .profileImgUrl(finalProfileImgUrl)
+                        .emailVerified(finalEmail != null && !finalEmail.isEmpty())
                         .build();
                 return userRepository.save(newUser);
             });
