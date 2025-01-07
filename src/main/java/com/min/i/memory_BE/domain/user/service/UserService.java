@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.user.dto.JwtAuthenticationResponse;
 import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
 import com.min.i.memory_BE.domain.user.dto.UserRegisterResultDto;
 import com.min.i.memory_BE.domain.user.entity.User;
+import com.min.i.memory_BE.domain.user.enums.UserStatus;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -121,7 +122,7 @@ public class UserService {
         String hashedPassword = passwordEncoder.encode(userRegisterDto.getPassword());
         userRegisterDto.setPassword(hashedPassword);  // 암호화된 비밀번호로 덮어쓰기
 
-        // 최종 사용자로 업데이트 (이메일, 암호화된 비밀번호, 이름, 프로필 이미지 등)
+        // 최종 사용자로 build (이메일, 암호화된 비밀번호, 이름, 프로필 이미지 등)
         User newUser = User.builder()
                 .email(email)  // JWT에서 가져온 이메일 사용
                 .password(hashedPassword)  // 암호화된 비밀번호
@@ -132,6 +133,7 @@ public class UserService {
                 .accountLocked(false)  // 계정 잠금 초기화
                 .lastLoginAttempt(LocalDateTime.now())  // 마지막 로그인 시도 시간 현재 시간으로 설정
                 .lockedUntil(null)  // 잠금 해제 시간 초기화 (null로 설정)
+                .status(UserStatus.ACTIVE) // 사용자 상태 기본값 = 활성화
                 .build();
 
         // 최종 사용자로 저장
@@ -221,5 +223,57 @@ public class UserService {
         }
     }
 
+    // 사용자 정보 수정
+    public User updateUser(String email, String password, String name, String profileImgUrl) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // 기존 사용자 정보를 바탕으로 변경할 부분만 수정하여 새로운 User 객체를 생성
+        User updatedUser = user.toBuilder()
+                .password(password != null ? password : user.getPassword())  // 비밀번호 수정
+                .name(name != null ? name : user.getName())  // 이름 수정
+                .profileImgUrl(profileImgUrl != null ? profileImgUrl : user.getProfileImgUrl())  // 프로필 사진 수정
+                .build();  // toBuilder로 새로운 객체 생성
+
+        return userRepository.save(updatedUser);  // 수정된 사용자 정보 저장
+    }
+
+    // 사용자 비활성화
+    public void deactivateUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 상태를 '비활성'으로 변경
+        User updatedUser = user.toBuilder()
+                .status(UserStatus.INACTIVE)  // 사용자 상태를 '비활성'으로 변경
+                .build();
+
+        //비활성화 상태로 변경된 사용자 정보 저장
+        userRepository.save(updatedUser);
+    }
+
+    // 사용자 계정 활성화
+    public void activateUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 비활성화된 계정만 활성화할 수 있도록 처리
+        if (user.getStatus() != UserStatus.INACTIVE) {
+            throw new IllegalArgumentException("비활성화된 계정만 활성화할 수 있습니다.");
+        }
+
+        User updatedUser = user.toBuilder()
+                .status(UserStatus.ACTIVE)  // 상태를 'ACTIVE'로 변경
+                .build();
+
+        userRepository.save(updatedUser);
+    }
+
+    // 사용자 탈퇴 (계정 영구 삭제)
+    public void deleteUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        userRepository.delete(user);  // 사용자 계정 삭제
+    }
 }
