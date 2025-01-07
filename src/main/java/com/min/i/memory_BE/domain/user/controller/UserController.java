@@ -1,81 +1,61 @@
 package com.min.i.memory_BE.domain.user.controller;
 
-import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
-import com.min.i.memory_BE.domain.user.dto.UserRegisterResultDto;
-import com.min.i.memory_BE.domain.user.service.EmailService;
-import com.min.i.memory_BE.domain.user.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/user")
 public class UserController {
 
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private EmailService emailService;
-
-    // 이메일 인증 코드 발송
-    @PostMapping("/send-verification-code")
-    public ResponseEntity<String> sendVerificationCode(@RequestBody UserRegisterDto userRegisterDto) {
-        // JWT 생성 및 이메일 전송
-        String jwt = emailService.sendVerificationCode(userRegisterDto);
-
-        if (jwt != null) {
-            return ResponseEntity.ok("인증 코드가 이메일로 전송되었습니다. JWT: " + jwt);
-        } else {
-            return ResponseEntity.status(500).body("이메일 전송에 실패했습니다.");
-        }
-    }
-
-    @PostMapping("/verify-email")
-    public ResponseEntity<String> verifyEmail(@RequestBody UserRegisterDto userRegisterDto,
-                                              @RequestHeader("Authorization") String authorization) {
-        // JWT 토큰 추출 (Bearer 토큰에서 실제 JWT 값을 추출)
-        String jwtToken = authorization.replace("Bearer ", "");
-
-        // JWT 유효성 검사 후 이메일 인증
-        String newJwt = userService.verifyEmail(jwtToken, userRegisterDto.getEmailVerificationCode());
-
-        if (newJwt != null) {
-            return ResponseEntity.ok("이메일 인증에 성공했습니다. New JWT: " + newJwt);
-        } else {
-            return ResponseEntity.status(400).body("이메일 인증에 실패했습니다. 인증 코드를 다시 확인하세요.");
-        }
-    }
-
-    // 사용자 정보 추가 입력 후 최종 회원가입 처리
-    @PostMapping("/complete-register")
-    public ResponseEntity<String> completeRegister(@RequestBody UserRegisterDto userRegisterDto, @RequestHeader("Authorization") String authorization) {
-
-        // JWT 토큰 추출 (Bearer 토큰에서 실제 JWT 값을 추출)
-        String jwtToken = authorization.replace("Bearer ", "");
-
-        // 인증된 이메일로 최종 회원가입 처리
-        UserRegisterResultDto result = userService.completeRegister(userRegisterDto, jwtToken);
-
-        return ResponseEntity.ok(result.getMessage());
-    }
-
-
-    // 로그인 페이지
+    @Operation(
+            summary = "로그인 페이지로 이동",
+            description = "사용자를 로그인 페이지로 리디렉션합니다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "로그인 페이지로 이동"
+    )
     @GetMapping("/loginPage")
     public ResponseEntity<String> loginPage() {
         return ResponseEntity.ok("로그인 페이지로 이동");
-
     }
+//
 
-    // 홈 페이지
+    @Operation(
+            summary = "홈 페이지로 이동",
+            description = "사용자를 홈 페이지로 리디렉션합니다. 인증된 사용자만 홈 페이지로 이동할 수 있습니다."
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "홈 페이지로 이동"
+    )
     @GetMapping("/home")
     public ResponseEntity<String> homePage() {
         return ResponseEntity.ok("홈으로 이동");
     }
+//
 
-    // 마이 페이지
+    @Operation(
+            summary = "마이 페이지로 이동",
+            description = "인증된 사용자만 마이 페이지로 이동할 수 있습니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "마이 페이지로 이동",
+                    content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json")
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "로그인 필요"
+            )
+    })
     @GetMapping("/my-page")
     public ResponseEntity<String> myPage(Authentication auth) {
         if (auth != null && auth.isAuthenticated()) {
@@ -84,4 +64,5 @@ public class UserController {
             return ResponseEntity.status(401).body("로그인 필요");
         }
     }
+
 }
