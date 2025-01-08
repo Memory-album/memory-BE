@@ -1,13 +1,14 @@
 package com.min.i.memory_BE.domain.user.controller;
 
-import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.service.UserService;
+import com.min.i.memory_BE.domain.user.dto.UserUpdateDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -87,16 +88,29 @@ public class UserController {
     })
     @PutMapping("/update")
     public ResponseEntity<String> updateUser(
-            @Parameter(description = "사용자가 수정할 이메일") @RequestParam String email,
-            @Parameter(description = "사용자가 수정할 비밀번호") @RequestParam(required = false) String password,
-            @Parameter(description = "사용자가 수정할 이름") @RequestParam(required = false) String name,
-            @Parameter(description = "사용자가 수정할 프로필 사진 URL") @RequestParam(required = false) String profileImgUrl,
+            @Parameter(description = "사용자 정보 수정 DTO") @RequestBody UserUpdateDto userUpdateDto,
             Authentication auth) {
-        if (auth != null && auth.isAuthenticated()) {
-            User updatedUser = userService.updateUser(email, password, name, profileImgUrl);
+        // 인증 확인
+        if (auth == null || !auth.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+
+        try {
+            // 현재 로그인한 사용자와 수정하려는 이메일이 일치하는지 확인
+            if (!auth.getName().equals(userUpdateDto.getEmail())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("자신의 정보만 수정할 수 있습니다.");
+            }
+
+            if (userService.updateUser(userUpdateDto.getEmail(), userUpdateDto.getPassword(), 
+                    userUpdateDto.getName(), userUpdateDto.getProfileImgUrl()) == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
+            }
+            
             return ResponseEntity.ok("사용자 정보가 성공적으로 수정되었습니다.");
-        } else {
-            return ResponseEntity.status(401).body("로그인 필요");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("서버 오류가 발생했습니다.");
         }
     }
 

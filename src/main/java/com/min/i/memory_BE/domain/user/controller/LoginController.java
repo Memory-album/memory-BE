@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -92,7 +90,7 @@ public class LoginController {
             }
 
             // 이메일과 비밀번호 검증
-            Authentication authentication = authenticationManager.authenticate(
+            authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
             );
 
@@ -154,23 +152,25 @@ public class LoginController {
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletResponse response) {
 
-        // 클라이언트가 JWT 쿠키를 삭제하도록 알림
-        Cookie cookie = new Cookie("jwtToken", null);
-        cookie.setHttpOnly(true); // 자바스크립트에서 접근 불가
-        cookie.setSecure(true); // HTTPS에서만 유효하도록 설정
-        cookie.setPath("/"); // 쿠키가 유효한 경로 설정
-        cookie.setMaxAge(0); // 쿠키 만료
-        cookie.setComment("SameSite=Strict"); // CSRF 방지를 위한 SameSite 설정
+        // JWT 쿠키 삭제를 위한 ResponseCookie 사용
+        ResponseCookie cookie = ResponseCookie.from("jwtToken", null)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
 
-        Cookie refreshCookie = new Cookie("refreshToken", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(0);
-        cookie.setComment("SameSite=Strict");
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", null)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
 
-        response.addCookie(cookie);
-        response.addCookie(refreshCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
         return ResponseEntity.ok("로그아웃 성공");
     }

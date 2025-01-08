@@ -8,6 +8,7 @@ import com.min.i.memory_BE.domain.user.enums.UserStatus;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
@@ -76,7 +77,7 @@ public class UserService {
                         .claim("emailVerificationCode", verificationCode)
                         .claim("expirationTime", expirationTime.toString())
                         .claim("isEmailVerified", true)  // 이메일 인증 완료 상태로 변경
-                        .signWith(SignatureAlgorithm.HS256, getSecretKey())
+                        .signWith(Keys.hmacShaKeyFor(getSecretKey().getBytes()), SignatureAlgorithm.HS256)
                         .compact();
 
                 return newJwt;
@@ -188,7 +189,7 @@ public class UserService {
                 .lastLoginAttempt(LocalDateTime.now())  // 로그인 시도 시간 갱신
                 .build();
 
-            // 로그인 시도 횟수가 5번 이상이면 계정 잠금
+            // 로그인 시도도 횟수가 5번 이상이면 계정 잠금
             if (user.getLoginAttempts() >= 5) {
                 lockAccount(user);
             } else {

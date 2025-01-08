@@ -29,7 +29,7 @@ public class JwtTokenProvider {
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
 
         logger.debug("생성된 JWT Token: {}", token); // Token 생성 로그 추가
@@ -43,15 +43,16 @@ public class JwtTokenProvider {
                 .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
     }
 
 
     // JWT에서 사용자 이름 가져오기
     public String getUsernameFromToken(String token) {
-        return Jwts.parser()
+        return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
+                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
@@ -60,7 +61,10 @@ public class JwtTokenProvider {
     // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
+            Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
             logger.error("유효하지 않은 토큰입니다. (만료됨): {}. 이 토큰은 {} 시간 전에 만료되었습니다.",
@@ -75,7 +79,10 @@ public class JwtTokenProvider {
     // 리프레시 토큰 검사
     public boolean validateRefreshToken(String refreshToken) {
         try {
-            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(refreshToken);
+            Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(refreshToken);
             return true;
         } catch (ExpiredJwtException e) {
             logger.error("리프레시 토큰이 만료되었습니다: {}. 만료 시간: {}",
