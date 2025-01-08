@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
 import com.min.i.memory_BE.global.config.MailConfig;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,7 +49,7 @@ public class EmailService {
                     .claim("emailVerificationCode", verificationCode)
                     .claim("expirationTime", expirationTime.toString())
                     .claim("isEmailVerified", false)  // 이메일 인증 여부는 false로 설정
-                    .signWith(SignatureAlgorithm.HS256, getSecretKey())
+                    .signWith(Keys.hmacShaKeyFor(getSecretKey().getBytes()), SignatureAlgorithm.HS256)
                     .compact();
 
             // 이메일 전송

@@ -261,7 +261,12 @@ public class OAuthService {
 
         switch (provider) {
             case NAVER:
-                Map<String, Object> naverResponse = (Map<String, Object>) userProfile.get("response");
+                Object responseObj = userProfile.get("response");
+                if (!(responseObj instanceof Map)) {
+                    throw new RuntimeException("Invalid response format from Naver");
+                }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> naverResponse = (Map<String, Object>) responseObj;
                 providerUserId = (String) naverResponse.get("id");
                 name = (String) naverResponse.getOrDefault("name", "Naver User");
                 email = (String) naverResponse.get("email"); // 이메일 명시적으로 가져오기
@@ -269,8 +274,19 @@ public class OAuthService {
                 break;
             case KAKAO:
                 providerUserId = String.valueOf(userProfile.get("id"));
-                Map<String, Object> kakaoAccount = (Map<String, Object>) userProfile.get("kakao_account");
-                Map<String, Object> profile = (Map<String, Object>) kakaoAccount.get("profile");
+                Object kakaoAccountObj = userProfile.get("kakao_account");
+                if (!(kakaoAccountObj instanceof Map)) {
+                    throw new RuntimeException("Invalid kakao_account format from Kakao");
+                }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> kakaoAccount = (Map<String, Object>) kakaoAccountObj;
+                
+                Object profileObj = kakaoAccount.get("profile");
+                if (!(profileObj instanceof Map)) {
+                    throw new RuntimeException("Invalid profile format from Kakao");
+                }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> profile = (Map<String, Object>) profileObj;
                 name = (String) profile.get("nickname");
                 profileImgUrl = (String) profile.get("profile_image_url");
                 email = "Email not provided";
