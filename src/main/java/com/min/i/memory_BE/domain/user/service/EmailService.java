@@ -1,8 +1,6 @@
 package com.min.i.memory_BE.domain.user.service;
 
 import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
-import com.min.i.memory_BE.domain.user.entity.User;
-import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.global.config.MailConfig;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -27,9 +25,6 @@ public class EmailService {
     @Autowired
     @Qualifier("naverMailSender")
     private JavaMailSender naverMailSender; // 네이버 전용 JavaMailSender
-
-    @Autowired
-    private UserRepository userRepository; // UserRepository를 사용해 이메일 인증 코드 및 유효 기간을 저장
 
     @Autowired
     private MailConfig mailConfig;  // MailConfig를 주입받아 fromEmail을 동적으로 설정

@@ -59,4 +59,15 @@ public class OAuthAccount extends BaseEntity {
     this.refreshToken = refreshToken;
     this.tokenExpiresAt = tokenExpiresAt;
   }
+
+  // AccessToken 업데이트 메서드
+  public void updateAccessToken(String newAccessToken, LocalDateTime newTokenExpiresAt) {
+    this.accessToken = newAccessToken;
+    this.tokenExpiresAt = newTokenExpiresAt;
+  }
+
+  // RefreshToken 업데이트 메서드
+  public void updateRefreshToken(String newRefreshToken) {
+    this.refreshToken = newRefreshToken;
+  }
 }
