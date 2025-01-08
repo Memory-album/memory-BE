@@ -71,11 +71,18 @@ public class SecurityConfig {
                 ).permitAll() // 인증 없이 접근 허용
                 .anyRequest().authenticated() // 나머지 요청은 인증 필요
                 .and()
-                .logout()
-                .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET")) // GET 요청 허용
-                .logoutSuccessUrl("/user/loginPage") // 로그아웃 성공 후 리다이렉트 URL
-                .invalidateHttpSession(true)  // 세션 무효화
-                .deleteCookies("JSESSIONID")  // 쿠키 삭제
+                    .logout()
+                    .logoutUrl("/auth/logout") // 일반 로그아웃 URL
+                    .logoutSuccessUrl("/user/loginPage") // 일반 로그아웃 성공 후 리다이렉트 URL
+                    .invalidateHttpSession(true) // 세션 무효화
+                    .deleteCookies("JSESSIONID", "jwtToken", "refreshToken") // 쿠키 삭제
+                    .permitAll()
+                .and()
+                    .logout()
+                    .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET")) // GET 요청 허용
+                    .logoutSuccessUrl("/user/loginPage") // 로그아웃 성공 후 리다이렉트 URL
+                    .invalidateHttpSession(true)  // 세션 무효화
+                    .deleteCookies("JSESSIONID")  // 쿠키 삭제
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .headers()

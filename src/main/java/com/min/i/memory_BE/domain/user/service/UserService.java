@@ -176,11 +176,17 @@ public class UserService {
     // 로그인 시도 횟수를 증가시키고 계정을 잠그는 메서드
     public int incrementLoginAttempts(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
-        if (user != null) {
-            user = user.toBuilder()
-                    .loginAttempts(user.getLoginAttempts() + 1)
-                    .lastLoginAttempt(LocalDateTime.now())  // 로그인 시도 시간 갱신
-                    .build();
+
+        // 이메일이 존재하지 않으면 로그인 실패 처리를 하고, 새로운 사용자 추가는 하지 않음
+        if (user == null) {
+            return 0;  // 이메일이 존재하지 않으면 로그인 실패 처리만 하고, 시도 횟수 증가하지 않음
+        }
+
+        // 로그인 시도 횟수 증가 및 로그인 시도 시간 갱신
+        user = user.toBuilder()
+                .loginAttempts(user.getLoginAttempts() + 1)
+                .lastLoginAttempt(LocalDateTime.now())  // 로그인 시도 시간 갱신
+                .build();
 
             // 로그인 시도 횟수가 5번 이상이면 계정 잠금
             if (user.getLoginAttempts() >= 5) {
@@ -190,8 +196,7 @@ public class UserService {
             }
 
             return user.getLoginAttempts();  // 로그인 시도 횟수 반환
-        }
-        return 0;
+
     }
 
     // 계정을 잠그는 메서드
