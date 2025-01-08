@@ -22,12 +22,12 @@ public class JWTAuthenticationFilter  extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;  // JwtTokenProvider를 주입받음
 
-    @Autowired //각 요청마다 한 번만 실행되도록 보장
+    @Autowired
     public JWTAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider; //JWT 토큰을 발급하고 검증
     }
 
-    @Override
+    @Override //HTTP 요청을 처리
     public void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
@@ -46,7 +46,7 @@ public class JWTAuthenticationFilter  extends OncePerRequestFilter {
         if (token != null && jwtTokenProvider.validateToken(token)) {
             String username = jwtTokenProvider.getUsernameFromToken(token);
 
-            //추출한 사용자 정보로 UsernamePasswordAuthenticationToken 생성,
+            //추출한 사용자 정보로 UsernamePasswordAuthenticationToken 생성
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     username, null, Collections.singletonList(new SimpleGrantedAuthority("USER"))
             );

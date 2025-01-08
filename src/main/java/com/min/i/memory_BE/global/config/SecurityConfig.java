@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -51,27 +52,34 @@ public class SecurityConfig {
         http
                 .csrf().disable()  // CSRF 보호 비활성화
                 .authorizeRequests()
-                .requestMatchers("/h2-console/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api/v1/mock/**", "/register/send-verification-code", "/user/loginPage")  // 로그인 및 회원가입 URL은 인증 없이 접근 허용
-                .permitAll()
-                .requestMatchers("/oauth/callback").permitAll()
-                .requestMatchers("/oauth/login").permitAll() // 로그인 URL을 인증 없이 접근 허용
-                .requestMatchers("/auth/login").permitAll()
-                .requestMatchers("/register/verify-email", "/register/complete-register").permitAll() // 이메일 인증 및 회원가입은 인증이 필요
-                .requestMatchers("/user/home").authenticated() // 홈 페이지는 로그인한 사용자만 접근 가능
-                .requestMatchers("/user/my-page").authenticated()  // 마이 페이지도 로그인한 사용자만 접근 가능
-                .anyRequest().authenticated()  // 그 외 모든 요청은 인증 필요
+                .requestMatchers(
+                        "/h2-console/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/v3/api-docs/**",
+                        "/api/v1/mock/**",
+                        "/register/send-verification-code",
+                        "/register/verify-email",
+                        "/register/complete-register",
+                        "/user/loginPage",
+                        "/oauth/callback",
+                        "/oauth/login",
+                        "/oauth/logout",
+                        "/auth/login",
+                        "/auth/logout"
+
+                ).permitAll() // 인증 없이 접근 허용
+                .anyRequest().authenticated() // 나머지 요청은 인증 필요
                 .and()
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)  // JWT 필터 추가
                 .logout()
-                .logoutUrl("/logout")
-                .logoutSuccessUrl("/login?logout")
+                .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET")) // GET 요청 허용
+                .logoutSuccessUrl("/user/loginPage") // 로그아웃 성공 후 리다이렉트 URL
                 .invalidateHttpSession(true)  // 세션 무효화
                 .deleteCookies("JSESSIONID")  // 쿠키 삭제
-                .permitAll()
                 .and()
-                // X-Frame-Options를 허용하도록 설정
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .headers()
-                .frameOptions().sameOrigin();  // H2 콘솔이 iframe 안에서 실행되도록 설정
+                .frameOptions().sameOrigin(); // H2 콘솔 허용
 
         return http.build();
     }

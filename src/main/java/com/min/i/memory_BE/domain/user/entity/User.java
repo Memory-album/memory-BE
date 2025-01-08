@@ -26,7 +26,8 @@ public class User extends BaseEntity {
   
   @Column(nullable = false)
   private String name;
-  
+
+  @Column(nullable = false)
   private String profileImgUrl;
 
   @Column(nullable = false)
