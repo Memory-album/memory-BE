@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
 import com.min.i.memory_BE.global.config.MailConfig;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,7 +14,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Base64;
 
 @Service
 public class EmailService {
@@ -48,7 +48,7 @@ public class EmailService {
                     .claim("emailVerificationCode", verificationCode)
                     .claim("expirationTime", expirationTime.toString())
                     .claim("isEmailVerified", false)  // 이메일 인증 여부는 false로 설정
-                    .signWith(SignatureAlgorithm.HS256, getSecretKey())
+                    .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS256)
                     .compact();
 
             // 이메일 전송
@@ -120,11 +120,6 @@ public class EmailService {
         } else {
             throw new IllegalArgumentException("지원되지 않는 이메일 도메인입니다.");
         }
-    }
-
-    // JWT 비밀키를 Base64 URL-safe로 인코딩
-    private String getSecretKey() {
-        return Base64.getEncoder().encodeToString(secretKey.getBytes());
     }
 }
 

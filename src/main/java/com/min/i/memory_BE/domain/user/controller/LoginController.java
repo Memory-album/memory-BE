@@ -11,7 +11,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -91,54 +89,52 @@ public class LoginController {
                         .body("계정이 잠겼습니다. " + minutesLeft + "분 후에 다시 시도해 주세요.");
             }
 
-            // 이메일과 비밀번호 검증
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
-            );
+            try {
+                // 인증 시도
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
+                );
+                
+                // 인증 성공 시 토큰 생성 및 쿠키 설정
+                JwtAuthenticationResponse tokens = userService.generateTokens(loginDto.getEmail());
+                
+                // JWT 쿠키 설정
+                ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", tokens.getAccessToken())
+                        .httpOnly(true)
+                        .secure(true)
+                        .path("/")
+                        .maxAge(60 * 60)
+                        .sameSite("Strict")
+                        .build();
 
-            // JWT 토큰 생성
-            JwtAuthenticationResponse tokens = userService.generateTokens(loginDto.getEmail());
+                ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
+                        .httpOnly(true)
+                        .secure(true)
+                        .path("/")
+                        .maxAge(60 * 60 * 24 * 30)
+                        .sameSite("Strict")
+                        .build();
 
-            // JWT를 HttpOnly 쿠키에 저장 (ResponseCookie 사용)
-            ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", tokens.getAccessToken())
-                    .httpOnly(true)
-                    .secure(true)  // HTTPS에서만 유효
-                    .path("/")  // 쿠키가 유효한 경로
-                    .maxAge(60 * 60)  // 만료 시간 1시간
-                    .sameSite("Strict")  // CSRF 방지를 위한 SameSite 설정
-                    .build();
-
-            ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
-                    .httpOnly(true)
-                    .secure(true)
-                    .path("/")
-                    .maxAge(60 * 60 * 24 * 30)
-                    .sameSite("Strict")
-                    .build();
-
-            // 쿠키에 추가
-            response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-            response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+                response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
+                response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
 
             logger.debug("생성된 액세스 토큰: {}", tokens.getAccessToken());
             logger.debug("생성된 리프레시 토큰: {}", tokens.getRefreshToken());
 
             return ResponseEntity.ok("로그인 성공");
 
-        } catch (BadCredentialsException e) {
-            // 비밀번호가 틀리면 로그인 실패 시 로그인 시도 횟수 증가
-            int loginAttempts = userService.incrementLoginAttempts(loginDto.getEmail());
-
-            // 로그인 시도 횟수 반환
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("비밀번호가 틀렸습니다. 현재 로그인 시도 횟수: " + loginAttempts + "회");
+            } catch (BadCredentialsException e) {
+                // 비밀번호가 틀린 경우에만 로그인 시도 횟수 증가
+                int attempts = userService.incrementLoginAttempts(loginDto.getEmail());
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("비밀번호가 틀렸습니다. 현재 로그인 시도 횟수: " + attempts + "회");
+            }
 
         } catch (Exception e) {
             logger.error("로그인 실패: {}", e.getMessage());
             // 기타 예외 처리
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("로그인 처리 중 오류가 발생했습니다.");
-
         }
     }
 
@@ -154,23 +150,25 @@ public class LoginController {
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpServletResponse response) {
 
-        // 클라이언트가 JWT 쿠키를 삭제하도록 알림
-        Cookie cookie = new Cookie("jwtToken", null);
-        cookie.setHttpOnly(true); // 자바스크립트에서 접근 불가
-        cookie.setSecure(true); // HTTPS에서만 유효하도록 설정
-        cookie.setPath("/"); // 쿠키가 유효한 경로 설정
-        cookie.setMaxAge(0); // 쿠키 만료
-        cookie.setComment("SameSite=Strict"); // CSRF 방지를 위한 SameSite 설정
+        // JWT 쿠키 삭제를 위한 ResponseCookie 사용
+        ResponseCookie cookie = ResponseCookie.from("jwtToken", null)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
 
-        Cookie refreshCookie = new Cookie("refreshToken", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(0);
-        cookie.setComment("SameSite=Strict");
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", null)
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
 
-        response.addCookie(cookie);
-        response.addCookie(refreshCookie);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
         return ResponseEntity.ok("로그아웃 성공");
     }
