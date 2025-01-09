@@ -1,4 +1,4 @@
-package com.min.i.memory_BE.domain.user.service;
+package com.min.i.memory_BE.global.security.jwt;
 
 import com.min.i.memory_BE.global.config.SecurityConfig;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -8,17 +8,28 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class JwtTokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
-    private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+    @Value("${jwt.secret}")
+    private String secretKeyString;
+    
+    private Key secretKey;
+    
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = secretKeyString.getBytes();
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+    }
 
     private final long EXPIRATION_TIME = 86400000; // 24시간
     private final long REFRESH_EXPIRATION_TIME = 2592000000L; // 30일

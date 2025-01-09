@@ -1,7 +1,7 @@
 package com.min.i.memory_BE.global.config;
 
-import com.min.i.memory_BE.domain.user.service.JwtTokenProvider;
 import com.min.i.memory_BE.domain.user.service.MyUserDetailsService;
+import com.min.i.memory_BE.global.security.jwt.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,56 +40,58 @@ public class SecurityConfig {
 
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        return http.getSharedObject(AuthenticationManagerBuilder.class)
-                .userDetailsService(myUserDetailsService)
-                .passwordEncoder(passwordEncoder)
-                .and()
-                .build();
+        AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
+        builder
+            .userDetailsService(myUserDetailsService)
+            .passwordEncoder(passwordEncoder);
+        return builder.build();
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf().disable()  // CSRF 보호 비활성화
-                .authorizeRequests()
+            .securityMatcher("/**")
+            .csrf(csrf -> csrf.disable())
+            .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
-                        "/h2-console/**",
-                        "/swagger-ui/**",
-                        "/swagger-ui.html",
-                        "/v3/api-docs/**",
-                        "/api/v1/mock/**",
-                        "/register/send-verification-code",
-                        "/register/verify-email",
-                        "/register/complete-register",
-                        "/user/loginPage",
-                        "/oauth/callback",
-                        "/oauth/login",
-                        "/auth/login"
-                ).permitAll() // 인증 없이 접근 허용
+                    "/h2-console/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                    "/api/v1/mock/**",
+                    "/register/send-verification-code",
+                    "/register/verify-email",
+                    "/register/complete-register",
+                    "/user/loginPage",
+                    "/oauth/callback",
+                    "/oauth/login",
+                    "/auth/login"
+                ).permitAll()
                 .requestMatchers("/user/update", "/user/delete", 
-                        "/user/activate", "/user/deactivate",
-                        "/auth/logout", "/oauth/logout").authenticated() // 인증된 사용자만 접근 가능
-                .anyRequest().authenticated() // 나머지 요청은 인증 필요
-                .and()
-                    .logout()
-                    .logoutUrl("/auth/logout") // 일반 로그아웃 URL
-                    .logoutSuccessUrl("/user/loginPage") // 일반 로그아웃 성공 후 리다이렉트 URL
-                    .invalidateHttpSession(true) // 세션 무효화
-                    .deleteCookies("JSESSIONID", "jwtToken", "refreshToken") // 쿠키 삭제
-                    .permitAll()
-                .and()
-                    .logout()
-                    .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET")) // GET 메서드 허용
-                    .logoutSuccessHandler((request, response, authentication) -> {
-                        response.setStatus(HttpServletResponse.SC_OK);
-                        response.getWriter().write("OAuth logout success");
-                    })
-                    .invalidateHttpSession(true)
-                    .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
-                .and()
-                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-                .headers()
-                .frameOptions().sameOrigin(); // H2 콘솔 허용
+                    "/user/activate", "/user/deactivate",
+                    "/auth/logout", "/oauth/logout").authenticated()
+                .anyRequest().authenticated()
+            )
+            .logout(logout -> logout
+                .logoutUrl("/auth/logout")
+                .logoutSuccessUrl("/user/loginPage")
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
+                .permitAll()
+            )
+            .logout(logout -> logout
+                .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET"))
+                .logoutSuccessHandler((request, response, authentication) -> {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.getWriter().write("OAuth logout success");
+                })
+                .invalidateHttpSession(true)
+                .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
+            )
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.sameOrigin())
+            );
 
         return http.build();
     }
