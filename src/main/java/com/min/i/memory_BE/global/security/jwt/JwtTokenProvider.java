@@ -1,4 +1,4 @@
-package com.min.i.memory_BE.domain.user.service;
+package com.min.i.memory_BE.global.security.jwt;
 
 import com.min.i.memory_BE.global.config.SecurityConfig;
 import io.jsonwebtoken.ExpiredJwtException;

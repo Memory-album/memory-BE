@@ -1,6 +1,6 @@
 package com.min.i.memory_BE.global.config;
 
-import com.min.i.memory_BE.domain.user.service.JwtTokenProvider;
+import com.min.i.memory_BE.global.security.jwt.JwtTokenProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

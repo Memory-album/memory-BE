@@ -1,0 +1,10 @@
+# src/main/resources/bootstrap.yml
+spring:
+  application:
+    name: memory-be
+  cloud:
+    config:
+      uri: http://localhost:8888
+      fail-fast: true
+
+#설정 값을 제공하는 별도의 서버 - GitHub에서 설정을 가져와서 클라이언트에 제공
