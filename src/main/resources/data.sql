@@ -1,3 +1,4 @@
+-- 비밀번호 전부 test1234
 INSERT INTO users (id, email, name, profile_img_url, password, email_verified, account_locked, login_attempts, status, created_at, updated_at)
 VALUES
 -- 시니어 케어 중심 가족
