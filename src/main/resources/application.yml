@@ -129,15 +129,3 @@ google:
     auth-url: https://accounts.google.com/o/oauth2/v2/auth
     token-url: https://oauth2.googleapis.com/token
     redirect-uri: http://localhost:8080/oauth/callback?provider=google
-
----
-server:
-  port: 8888
-
-spring:
-  cloud:
-    config:
-      server:
-        git:
-          uri: https://github.com/Memory-album/memory-config
-          search-paths: config
