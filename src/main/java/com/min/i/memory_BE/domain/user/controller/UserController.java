@@ -74,16 +74,32 @@ public class UserController {
     // 사용자 정보 수정
     @Operation(
             summary = "사용자 정보 수정",
-            description = "사용자가 비밀번호, 이름, 프로필 사진 링크, 이메일을 수정합니다."
+            description = "현재 비밀번호 확인 후 새 비밀번호, 이름, 프로필 이미지 URL을 수정합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "200",
+                    responseCode = "200", 
                     description = "사용자 정보 수정 성공"
             ),
             @ApiResponse(
                     responseCode = "400",
-                    description = "잘못된 요청"
+                    description = "잘못된 요청 (현재 비밀번호가 일치하지 않거나 새 비밀번호가 현재 비밀번호와 동일한 경우)"
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "로그인이 필요합니다"
+            ),
+            @ApiResponse(
+                    responseCode = "403", 
+                    description = "자신의 정보만 수정할 수 있습니다"
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "사용자를 찾을 수 없습니다"
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "서버 오류가 발생했습니다"
             )
     })
     @PutMapping("/update")
@@ -101,8 +117,8 @@ public class UserController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("자신의 정보만 수정할 수 있습니다.");
             }
 
-            if (userService.updateUser(userUpdateDto.getEmail(), userUpdateDto.getPassword(), 
-                    userUpdateDto.getName(), userUpdateDto.getProfileImgUrl()) == null) {
+            if (userService.updateUser(userUpdateDto.getEmail(), userUpdateDto.getCurrentPassword(), 
+                    userUpdateDto.getNewPassword(), userUpdateDto.getName(), userUpdateDto.getProfileImgUrl()) == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("사용자를 찾을 수 없습니다.");
             }
             
