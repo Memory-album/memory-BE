@@ -21,7 +21,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -73,22 +72,15 @@ public class LoginController {
                                         HttpServletResponse response) {
         try {
 
-            // 이메일이 존재하는지 확인
-            User user = userService.getUserByEmail(loginDto.getEmail());
-            if (user == null) {
-                // 이메일이 존재하지 않으면 로그인 실패 처리
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("없는 이메일입니다.");
-            }
-
-            // 로그인 실패 횟수 체크 - Brute-force attack (무차별 대입 공격) 방지
+            // 로그인 실패 횟수 체크 (예시) - Brute-force attack (무차별 대입 공격) 방지
             if (userService.isAccountLocked(loginDto.getEmail())) {
                 // 계정 잠금 상태가 있고, 잠금 시간이 남아있다면 그 정보를 함께 반환
+                User user = userService.getUserByEmail(loginDto.getEmail());
                 LocalDateTime lockedUntil = user.getLockedUntil();
                 long minutesLeft = Duration.between(LocalDateTime.now(), lockedUntil).toMinutes();
 
                 return ResponseEntity.status(HttpStatus.LOCKED)
-                        .body("계정이 잠겼습니다. " + minutesLeft + "분 후에 다시 시도해 주세요.");
+                        .body("계정이 잠겼습니다. " + minutesLeft + "분 후에 다시 시도해 주세요. 현재 로그인 시도 횟수: " + user.getLoginAttempts() + "회");
             }
 
             // 이메일과 비밀번호 검증
@@ -125,20 +117,12 @@ public class LoginController {
 
             return ResponseEntity.ok("로그인 성공");
 
-        } catch (BadCredentialsException e) {
-            // 비밀번호가 틀리면 로그인 실패 시 로그인 시도 횟수 증가
-            int loginAttempts = userService.incrementLoginAttempts(loginDto.getEmail());
-
-            // 로그인 시도 횟수 반환
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("비밀번호가 틀렸습니다. 현재 로그인 시도 횟수: " + loginAttempts + "회");
-
         } catch (Exception e) {
             logger.error("로그인 실패: {}", e.getMessage());
-            // 기타 예외 처리
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("로그인 처리 중 오류가 발생했습니다.");
 
+            // 로그인 실패 시 로그인 시도 횟수 증가
+            userService.incrementLoginAttempts(loginDto.getEmail());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패");
         }
     }
 
@@ -159,7 +143,7 @@ public class LoginController {
         cookie.setHttpOnly(true); // 자바스크립트에서 접근 불가
         cookie.setSecure(true); // HTTPS에서만 유효하도록 설정
         cookie.setPath("/"); // 쿠키가 유효한 경로 설정
-        cookie.setMaxAge(0); // 쿠키 만료
+        cookie.setMaxAge(0); // 쿠키 삭제
         cookie.setComment("SameSite=Strict"); // CSRF 방지를 위한 SameSite 설정
 
         Cookie refreshCookie = new Cookie("refreshToken", null);
