@@ -64,11 +64,11 @@ public class SecurityConfig {
                         "/user/loginPage",
                         "/oauth/callback",
                         "/oauth/login",
-                        "/oauth/logout",
-                        "/auth/login",
-                        "/auth/logout"
-
+                        "/auth/login"
                 ).permitAll() // 인증 없이 접근 허용
+                .requestMatchers("/user/update", "/user/delete", 
+                        "/user/activate", "/user/deactivate",
+                        "/auth/logout", "/oauth/logout").authenticated() // 인증된 사용자만 접근 가능
                 .anyRequest().authenticated() // 나머지 요청은 인증 필요
                 .and()
                     .logout()
@@ -79,10 +79,13 @@ public class SecurityConfig {
                     .permitAll()
                 .and()
                     .logout()
-                    .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET")) // GET 요청 허용
-                    .logoutSuccessUrl("/user/loginPage") // 로그아웃 성공 후 리다이렉트 URL
-                    .invalidateHttpSession(true)  // 세션 무효화
-                    .deleteCookies("JSESSIONID")  // 쿠키 삭제
+                    .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET")) // GET 메서드 허용
+                    .logoutSuccessHandler((request, response, authentication) -> {
+                        response.setStatus(HttpServletResponse.SC_OK);
+                        response.getWriter().write("OAuth logout success");
+                    })
+                    .invalidateHttpSession(true)
+                    .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
                 .headers()

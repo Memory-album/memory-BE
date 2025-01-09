@@ -16,7 +16,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Base64;
 
 @Service
 public class UserService {
@@ -46,54 +45,34 @@ public class UserService {
     // 이메일 인증 확인 및 코드 검증 (JWT 사용)
     public String verifyEmail(String jwtToken, String inputVerificationCode) {
         try {
-            // JWT 파싱하여 email, 인증 코드, 만료 시간 추출
-            String email = Jwts.parserBuilder()
-                    .setSigningKey(secretKey.getBytes())
+            // JWT 파싱하여 claims 추출
+            var claims = Jwts.parserBuilder()
+                    .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes()))
                     .build()
                     .parseClaimsJws(jwtToken)
-                    .getBody()
-                    .get("email", String.class);
+                    .getBody();
 
-            String verificationCode = Jwts.parserBuilder()
-                    .setSigningKey(secretKey.getBytes())
-                    .build()
-                    .parseClaimsJws(jwtToken)
-                    .getBody()
-                    .get("emailVerificationCode", String.class);
-
-            LocalDateTime expirationTime = LocalDateTime.parse(Jwts.parserBuilder()
-                    .setSigningKey(secretKey.getBytes())
-                    .build()
-                    .parseClaimsJws(jwtToken)
-                    .getBody()
-                    .get("expirationTime", String.class));
+            String email = claims.get("email", String.class);
+            String verificationCode = claims.get("emailVerificationCode", String.class);
+            LocalDateTime expirationTime = LocalDateTime.parse(claims.get("expirationTime", String.class));
 
             // 인증 코드 검증
             if (inputVerificationCode.equals(verificationCode) && LocalDateTime.now().isBefore(expirationTime)) {
-
-                // 기존 JWT를 기반으로 새 JWT를 생성하고, 이메일 인증 상태를 true로 변경
-                String newJwt = Jwts.builder()
+                // 새 JWT 생성
+                return Jwts.builder()
                         .claim("email", email)
                         .claim("emailVerificationCode", verificationCode)
                         .claim("expirationTime", expirationTime.toString())
-                        .claim("isEmailVerified", true)  // 이메일 인증 완료 상태로 변경
-                        .signWith(Keys.hmacShaKeyFor(getSecretKey().getBytes()), SignatureAlgorithm.HS256)
+                        .claim("isEmailVerified", true)
+                        .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS256)
                         .compact();
-
-                return newJwt;
             }
-
-            // 인증 실패 (만료된 인증 코드)
-            if (LocalDateTime.now().isAfter(expirationTime)) {
-                throw new IllegalArgumentException("인증 기한이 만료되었습니다.");
-            }
-
+            
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;  // JWT 파싱 오류나 검증 실패 시
+            return null;
         }
-
-        return null;  // 인증 실패
     }
 
     // 회원가입을 위한 최종 처리
@@ -147,11 +126,6 @@ public class UserService {
         return result;
     }
 
-    // JWT 비밀키를 Base64 URL-safe로 인코딩
-    private String getSecretKey() {
-        return Base64.getEncoder().encodeToString(secretKey.getBytes());
-    }
-
     // 이메일로 유저 조회
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email).orElse(null);  // 이메일로 유저 조회, 없으면 null 반환
@@ -176,43 +150,30 @@ public class UserService {
 
     // 로그인 시도 횟수를 증가시키고 계정을 잠그는 메서드
     public int incrementLoginAttempts(String email) {
-        User user = userRepository.findByEmail(email).orElse(null);
+        return userRepository.findByEmail(email)
+                .map(existingUser -> {
+                    // 로그인 시도 횟수 증가 및 시간 갱신
+                    int newAttempts = existingUser.getLoginAttempts() + 1;
+                    
+                    // 기존 사용자의 모든 필드를 유지하면서 필요한 필드만 업데이트
+                    User updatedUser = existingUser.toBuilder()
+                            .id(existingUser.getId())
+                            .loginAttempts(newAttempts)
+                            .lastLoginAttempt(LocalDateTime.now())
+                            .accountLocked(newAttempts >= 5)
+                            .lockedUntil(newAttempts >= 5 ? LocalDateTime.now().plusMinutes(30) : existingUser.getLockedUntil())
+                            .build();
 
-        // 이메일이 존재하지 않으면 로그인 실패 처리를 하고, 새로운 사용자 추가는 하지 않음
-        if (user == null) {
-            return 0;  // 이메일이 존재하지 않으면 로그인 실패 처리만 하고, 시도 횟수 증가하지 않음
-        }
+                    // BaseEntity 필드들 복사
+                    updatedUser.setCreatedAt(existingUser.getCreatedAt());
+                    updatedUser.setUpdatedAt(LocalDateTime.now());
 
-        // 로그인 시도 횟수 증가 및 로그인 시도 시간 갱신
-        user = user.toBuilder()
-                .loginAttempts(user.getLoginAttempts() + 1)
-                .lastLoginAttempt(LocalDateTime.now())  // 로그인 시도 시간 갱신
-                .build();
-
-            // 로그인 시도도 횟수가 5번 이상이면 계정 잠금
-            if (user.getLoginAttempts() >= 5) {
-                lockAccount(user);
-            } else {
-                userRepository.save(user);  // 로그인 시도 횟수 증가 후 저장
-            }
-
-            return user.getLoginAttempts();  // 로그인 시도 횟수 반환
-
+                    userRepository.save(updatedUser);
+                    return newAttempts;
+                })
+                .orElse(0);
     }
 
-    // 계정을 잠그는 메서드
-    private void lockAccount(User user) {
-        // 기존 값을 기반으로 새 User 객체 생성하여 계정 잠금 처리
-        User lockedUser = user.toBuilder()
-                .accountLocked(true)
-                .lockedUntil(LocalDateTime.now().plusMinutes(30))  // 30분 후 잠금 해제
-                .build();
-
-        userRepository.save(lockedUser);  // 계정 잠금 상태 저장
-
-        // 서버 로그로 계정 잠금 정보 출력
-        System.out.println("계정이 잠겼습니다. 30분 동안 다시 시도할 수 없습니다.");
-    }
 
     // 계정 잠금 해제
     public void unlockAccount(String email) {
@@ -230,16 +191,30 @@ public class UserService {
     }
 
     // 사용자 정보 수정
-    public User updateUser(String email, String password, String name, String profileImgUrl) {
+    public User updateUser(String email, String currentPassword, String newPassword, String name, String profileImgUrl) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
+        // 현재 비밀번호 확인
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        // 새 비밀번호가 현재 비밀번호와 같은지 확인
+        if (newPassword != null && passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
+        }
+
         // 기존 사용자 정보를 바탕으로 변경할 부분만 수정하여 새로운 User 객체를 생성
         User updatedUser = user.toBuilder()
-                .password(password != null ? password : user.getPassword())  // 비밀번호 수정
-                .name(name != null ? name : user.getName())  // 이름 수정
-                .profileImgUrl(profileImgUrl != null ? profileImgUrl : user.getProfileImgUrl())  // 프로필 사진 수정
-                .build();  // toBuilder로 새로운 객체 생성
+                .id(user.getId())
+                .password(newPassword != null ? passwordEncoder.encode(newPassword) : user.getPassword())
+                .name(name != null ? name : user.getName())
+                .profileImgUrl(profileImgUrl != null ? profileImgUrl : user.getProfileImgUrl())
+                .build();
+
+        updatedUser.setCreatedAt(user.getCreatedAt());
+        updatedUser.setUpdatedAt(LocalDateTime.now());
 
         return userRepository.save(updatedUser);  // 수정된 사용자 정보 저장
     }
@@ -251,10 +226,13 @@ public class UserService {
 
         // 상태를 '비활성'으로 변경
         User updatedUser = user.toBuilder()
-                .status(UserStatus.INACTIVE)  // 사용자 상태를 '비활성'으로 변경
+                .id(user.getId())
+                .status(UserStatus.INACTIVE)
                 .build();
 
-        //비활성화 상태로 변경된 사용자 정보 저장
+        updatedUser.setCreatedAt(user.getCreatedAt());
+        updatedUser.setUpdatedAt(LocalDateTime.now());
+
         userRepository.save(updatedUser);
     }
 
@@ -269,8 +247,12 @@ public class UserService {
         }
 
         User updatedUser = user.toBuilder()
-                .status(UserStatus.ACTIVE)  // 상태를 'ACTIVE'로 변경
+                .id(user.getId())
+                .status(UserStatus.ACTIVE)
                 .build();
+
+        updatedUser.setCreatedAt(user.getCreatedAt());
+        updatedUser.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(updatedUser);
     }
