@@ -9,13 +9,17 @@ import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.EventListener;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import com.min.i.memory_BE.domain.user.event.EmailVerificationEvent;
 
 import java.time.LocalDateTime;
 
 @Service
+@Transactional
 public class EmailService {
 
     @Autowired
@@ -164,6 +168,12 @@ public class EmailService {
         } else {
             throw new IllegalArgumentException("지원되지 않는 이메일 도메인입니다.");
         }
+    }
+
+    @EventListener
+    public void handleEmailVerification(EmailVerificationEvent event) {
+        String verificationCode = generateVerificationCode();
+        sendEmail(event.getEmail(), verificationCode);
     }
 }
 
