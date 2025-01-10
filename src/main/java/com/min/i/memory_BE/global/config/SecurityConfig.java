@@ -17,6 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.config.http.SessionCreationPolicy;
 
 @Configuration
 @EnableWebSecurity
@@ -52,6 +53,8 @@ public class SecurityConfig {
         http
             .securityMatcher("/**")
             .csrf(csrf -> csrf.disable())
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(
                     "/h2-console/**",
@@ -62,6 +65,9 @@ public class SecurityConfig {
                     "/register/send-verification-code",
                     "/register/verify-email",
                     "/register/complete-register",
+                    "/user/password/reset-request",
+                    "/user/password/verify-code",
+                    "/user/password/reset",
                     "/user/loginPage",
                     "/oauth/callback",
                     "/oauth/login",
@@ -74,10 +80,13 @@ public class SecurityConfig {
             )
             .logout(logout -> logout
                 .logoutUrl("/auth/logout")
-                .logoutSuccessUrl("/user/loginPage")
+                .logoutSuccessHandler((request, response, authentication) -> {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"message\":\"로그아웃 되었습니다.\",\"status\":\"success\"}");
+                })
                 .invalidateHttpSession(true)
                 .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
-                .permitAll()
             )
             .logout(logout -> logout
                 .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET"))

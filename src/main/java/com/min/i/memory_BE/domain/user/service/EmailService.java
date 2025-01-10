@@ -6,6 +6,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import jakarta.mail.internet.MimeMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +23,8 @@ import java.time.LocalDateTime;
 @Service
 @Transactional
 public class EmailService {
+    
+    private static final Logger logger = LoggerFactory.getLogger(EmailService.class);
 
     @Autowired
     @Qualifier("gmailMailSender")
@@ -172,8 +176,92 @@ public class EmailService {
 
     @EventListener
     public void handleEmailVerification(EmailVerificationEvent event) {
-        String verificationCode = generateVerificationCode();
-        sendEmail(event.getEmail(), verificationCode);
+        switch (event.getType()) {
+            case WELCOME:
+                sendWelcomeEmail(event.getEmail(), event.getName());
+                break;
+            case PASSWORD_RESET:
+                String resetCode = generateVerificationCode();
+                String jwt = sendPasswordResetEmail(event.getEmail(), resetCode);
+                event.setJwtToken(jwt);
+                break;
+            default:
+                String verificationCode = generateVerificationCode();
+                sendEmail(event.getEmail(), verificationCode);
+        }
+    }
+    
+    private void sendWelcomeEmail(String email, String name) {
+        try {
+            MimeMessage message = getMailSender(email).createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(mailConfig.getFromEmail(email));
+            helper.setTo(email);
+            helper.setSubject("Min:i에 오신 것을 환영합니다!");
+            
+            String content = getWelcomeEmailTemplate(name);
+            helper.setText(content, true);
+            
+            getMailSender(email).send(message);
+        } catch (Exception e) {
+            logger.error("환영 이메일 전송 실패: {}", e.getMessage());
+        }
+    }
+    
+    private String getWelcomeEmailTemplate(String name) {
+        return "<div style='max-width: 600px; margin: 20px auto; padding: 20px;'>"
+            + "<h2>Min:i에 오신 것을 환영합니다!</h2>"
+            + "<p>" + name + "님, 회원가입이 완료되었습니다.</p>"
+            + "<p>Min:i와 함께 소중한 추억을 기록해보세요.</p>"
+            + "</div>";
+    }
+
+    private String sendPasswordResetEmail(String email, String resetCode) {
+        try {
+            // JWT 생성 (이메일, 인증 코드, 만료 시간 포함)
+            LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(15);
+            String jwt = Jwts.builder()
+                    .claim("email", email)
+                    .claim("emailVerificationCode", resetCode)
+                    .claim("expirationTime", expirationTime.toString())
+                    .claim("type", "PASSWORD_RESET")
+                    .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS256)
+                    .compact();
+
+            logger.info("비밀번호 재설정을 위한 메일 전송됨 {}: {}", email, jwt);
+
+            MimeMessage message = getMailSender(email).createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(mailConfig.getFromEmail(email));
+            helper.setTo(email);
+            helper.setSubject("Min:i 비밀번호 재설정");
+            
+            String content = getPasswordResetTemplate(resetCode, jwt);  // JWT도 함께 전달
+            helper.setText(content, true);
+            
+            getMailSender(email).send(message);
+            
+            return jwt;
+        } catch (Exception e) {
+            logger.error("비밀번호 재설정 이메일 전송 실패: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String getPasswordResetTemplate(String resetCode, String jwt) {
+        return "<div style='max-width: 600px; margin: 20px auto; padding: 20px;'>"
+            + "<h2>Min:i 비밀번호 재설정</h2>"
+            + "<p>비밀번호 재설정을 위한 인증 코드입니다:</p>"
+            + "<div style='font-size: 24px; padding: 20px; margin: 20px 0; background: #f8f8f8; text-align: center;'>"
+            + "<strong>" + resetCode + "</strong>"
+            + "</div>"
+            + "<p>이 코드는 15분 동안만 유효합니다.</p>"
+            + "<p>본인이 요청하지 않은 경우 이 메일을 무시하셔도 됩니다.</p>"
+            + "<div style='margin-top: 20px; padding: 10px; background: #f8f8f8;'>"
+            + "</div>"
+            + "</div>";
     }
 }
 
