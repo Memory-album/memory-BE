@@ -43,8 +43,6 @@ public class JwtTokenProvider {
                 .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
 
-        logger.debug("생성된 JWT Token: {}", token); // Token 생성 로그 추가
-
         return token;
     }
 
