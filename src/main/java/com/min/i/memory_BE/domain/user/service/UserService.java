@@ -239,6 +239,13 @@ public class UserService {
         updatedUser.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(updatedUser);
+
+        // 비활성화 알림 메일 발송
+        eventPublisher.publishEvent(new EmailVerificationEvent(
+            email, 
+            user.getName(), 
+            EmailVerificationEvent.EventType.ACCOUNT_DEACTIVATED
+        ));
     }
 
     // 사용자 계정 활성화
@@ -260,6 +267,13 @@ public class UserService {
         updatedUser.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(updatedUser);
+
+        // 활성화 알림 메일 발송
+        eventPublisher.publishEvent(new EmailVerificationEvent(
+            email, 
+            user.getName(), 
+            EmailVerificationEvent.EventType.ACCOUNT_ACTIVATED
+        ));
     }
 
     // 사용자 탈퇴 (계정 영구 삭제)

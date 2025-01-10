@@ -185,6 +185,12 @@ public class EmailService {
                 String jwt = sendPasswordResetEmail(event.getEmail(), resetCode);
                 event.setJwtToken(jwt);
                 break;
+            case ACCOUNT_DEACTIVATED:
+                sendDeactivationEmail(event.getEmail(), event.getName());
+                break;
+            case ACCOUNT_ACTIVATED:
+                sendActivationEmail(event.getEmail(), event.getName(), event.isManualLogin());
+                break;
             default:
                 String verificationCode = generateVerificationCode();
                 sendEmail(event.getEmail(), verificationCode);
@@ -260,6 +266,68 @@ public class EmailService {
             + "<p>이 코드는 15분 동안만 유효합니다.</p>"
             + "<p>본인이 요청하지 않은 경우 이 메일을 무시하셔도 됩니다.</p>"
             + "<div style='margin-top: 20px; padding: 10px; background: #f8f8f8;'>"
+            + "</div>"
+            + "</div>";
+    }
+
+    // 계정 비활성화 알림 메일
+    private void sendDeactivationEmail(String email, String name) {
+        try {
+            MimeMessage message = getMailSender(email).createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(mailConfig.getFromEmail(email));
+            helper.setTo(email);
+            helper.setSubject("Min:i 계정이 비활성화되었습니다");
+            
+            String content = getDeactivationEmailTemplate(name);
+            helper.setText(content, true);
+            
+            getMailSender(email).send(message);
+        } catch (Exception e) {
+            logger.error("계정 비활성화 알림 메일 전송 실패: {}", e.getMessage());
+        }
+    }
+
+    // 계정 활성화 알림 메일
+    private void sendActivationEmail(String email, String name, boolean isManualLogin) {
+        try {
+            MimeMessage message = getMailSender(email).createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(mailConfig.getFromEmail(email));
+            helper.setTo(email);
+            helper.setSubject("Min:i 계정이 활성화되었습니다");
+            
+            String content = getActivationEmailTemplate(name);
+            helper.setText(content, true);
+            
+            getMailSender(email).send(message);
+        } catch (Exception e) {
+            logger.error("계정 활성화 알림 메일 전송 실패: {}", e.getMessage());
+        }
+    }
+
+    private String getDeactivationEmailTemplate(String name) {
+        return "<div style='max-width: 600px; margin: 20px auto; padding: 20px;'>"
+            + "<h2>Min:i 계정 비활성화 안내</h2>"
+            + "<p>" + name + "님의 계정이 비활성화되었습니다.</p>"
+            + "<p>계정을 다시 활성화하시려면 로그인 시 '계정 활성화' 버튼을 클릭해주세요.</p>"
+            + "<p>본인이 요청하지 않은 경우, 즉시 비밀번호를 변경하여 주시길 바랍니다.</p>"
+            + "<div style='margin-top: 20px; padding: 10px; background: #f8f8f8;'>"
+            + "<p style='color: #666;'>Min:i 고객센터: support@mini.com</p>"
+            + "</div>"
+            + "</div>";
+    }
+
+    private String getActivationEmailTemplate(String name) {
+        return "<div style='max-width: 600px; margin: 20px auto; padding: 20px;'>"
+            + "<h2>Min:i 계정 활성화 완료</h2>"
+            + "<p>" + name + "님의 계정이 성공적으로 활성화되었습니다.</p>"
+            + "<p>Min:i의 모든 서비스를 다시 이용하실 수 있습니다.</p>"
+            + "<div style='margin-top: 20px; padding: 10px; background: #f8f8f8;'>"
+            + "<p style='color: #666;'>본인이 요청하지 않은 경우 즉시 비밀번호를 변경하여 주시길 바랍니다.</p>"
+            + "<p style='color: #666;'>Min:i 고객센터: support@mini.com</p>"
             + "</div>"
             + "</div>";
     }
