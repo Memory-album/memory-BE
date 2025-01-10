@@ -10,11 +10,14 @@ public class EmailVerificationEvent {
     private final String name;
     private final EventType type;
     private String jwtToken;
+    private boolean manualLogin;
     
     public enum EventType {
         VERIFICATION,
         WELCOME,
-        PASSWORD_RESET
+        PASSWORD_RESET,
+        ACCOUNT_ACTIVATED,
+        ACCOUNT_DEACTIVATED
     }
     
     public EmailVerificationEvent(String email, String name, EventType type) {
