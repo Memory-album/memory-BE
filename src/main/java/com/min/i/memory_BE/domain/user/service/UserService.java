@@ -2,7 +2,6 @@ package com.min.i.memory_BE.domain.user.service;
 
 import com.min.i.memory_BE.domain.user.dto.JwtAuthenticationResponse;
 import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
-import com.min.i.memory_BE.domain.user.dto.UserRegisterResultDto;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.enums.UserStatus;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
@@ -10,27 +9,35 @@ import com.min.i.memory_BE.global.security.jwt.JwtTokenProvider;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.min.i.memory_BE.domain.user.event.EmailVerificationEvent;
+import com.min.i.memory_BE.domain.user.dto.PasswordResetDto;
 
 import java.time.LocalDateTime;
 
 @Service
 @Transactional
 public class UserService {
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Autowired
-    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
+    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, ApplicationEventPublisher eventPublisher) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.eventPublisher = eventPublisher;
     }
 
     @Value("${jwt.secret}")
@@ -77,8 +84,7 @@ public class UserService {
     }
 
     // 회원가입을 위한 최종 처리
-    public UserRegisterResultDto completeRegister(UserRegisterDto userRegisterDto, String jwtToken) {
-
+    public void completeRegister(UserRegisterDto userRegisterDto, String jwtToken) {
         // JWT에서 이메일 가져오기
         String email = Jwts.parserBuilder()
                 .setSigningKey(secretKey.getBytes())
@@ -101,7 +107,6 @@ public class UserService {
 
         // 비밀번호 암호화
         String hashedPassword = passwordEncoder.encode(userRegisterDto.getPassword());
-        userRegisterDto.setPassword(hashedPassword);  // 암호화된 비밀번호로 덮어쓰기
 
         // 최종 사용자로 build (이메일, 암호화된 비밀번호, 이름, 프로필 이미지 등)
         User newUser = User.builder()
@@ -120,11 +125,12 @@ public class UserService {
         // 최종 사용자로 저장
         userRepository.save(newUser);
 
-        // 결과 반환 (DTO 반환)
-        UserRegisterResultDto result = new UserRegisterResultDto();
-        result.setMessage("회원가입 성공");
-        result.setStatus("success");
-        return result;
+        // 환영 이메일 이벤트 발행
+        eventPublisher.publishEvent(new EmailVerificationEvent(
+            email, 
+            userRegisterDto.getName(), 
+            EmailVerificationEvent.EventType.WELCOME
+        ));
     }
 
     // 이메일로 유저 조회
@@ -187,19 +193,17 @@ public class UserService {
                     .lockedUntil(null)  // 잠금 해제
                     .build();
 
+            unlockedUser.setCreatedAt(user.getCreatedAt());
+            unlockedUser.setUpdatedAt(LocalDateTime.now());
+
             userRepository.save(unlockedUser);  // 계정 잠금 해제
         }
     }
 
     // 사용자 정보 수정
-    public User updateUser(String email, String currentPassword, String newPassword, String name, String profileImgUrl) {
+    public User updateUser(String email, String newPassword, String name, String profileImgUrl) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        // 현재 비밀번호 확인
-        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다.");
-        }
 
         // 새 비밀번호가 현재 비밀번호와 같은지 확인
         if (newPassword != null && passwordEncoder.matches(newPassword, user.getPassword())) {
@@ -264,5 +268,75 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         userRepository.delete(user);  // 사용자 계정 삭제
+    }
+
+    public String requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        // 이메일 이벤트 발행하고 JWT 받아오기
+        EmailVerificationEvent event = new EmailVerificationEvent(
+            email, 
+            user.getName(), 
+            EmailVerificationEvent.EventType.PASSWORD_RESET
+        );
+        eventPublisher.publishEvent(event);
+        
+        // EmailService에서 생성한 JWT 반환
+        return event.getJwtToken();
+    }
+    
+    public boolean verifyPasswordResetCode(String email, String verificationCode, String jwtToken) {
+        try {
+            // JWT 토큰을 검증
+            var claims = Jwts.parserBuilder()
+                    .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes()))
+                    .build()
+                    .parseClaimsJws(jwtToken)
+                    .getBody();
+
+            String storedEmail = claims.get("email", String.class);
+            String storedCode = claims.get("emailVerificationCode", String.class);
+            LocalDateTime expirationTime = LocalDateTime.parse(claims.get("expirationTime", String.class));
+            String tokenType = claims.get("type", String.class);
+
+            return email.equals(storedEmail) && 
+                   verificationCode.equals(storedCode) &&
+                   "PASSWORD_RESET".equals(tokenType) && 
+                   LocalDateTime.now().isBefore(expirationTime);
+        } catch (Exception e) {
+            logger.error("비밀번호 재설정 코드 검증 실패: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    public void resetPassword(PasswordResetDto request, String jwtToken) {
+        // JWT 토큰 검증
+        var claims = Jwts.parserBuilder()
+                .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes()))
+                .build()
+                .parseClaimsJws(jwtToken)
+                .getBody();
+
+        String email = claims.get("email", String.class);
+        
+        // 이메일 일치 확인
+        if (!email.equals(request.getEmail())) {
+            throw new IllegalArgumentException("토큰의 이메일 정보가 일치하지 않습니다.");
+        }
+
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        // 새 비밀번호 설정
+        User updatedUser = user.toBuilder()
+            .id(user.getId())
+            .password(passwordEncoder.encode(request.getNewPassword()))
+            .build();
+
+        updatedUser.setCreatedAt(user.getCreatedAt());
+        updatedUser.setUpdatedAt(LocalDateTime.now());
+
+        userRepository.save(updatedUser);
     }
 }
