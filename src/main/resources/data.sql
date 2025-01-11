@@ -2,15 +2,15 @@
 INSERT INTO users (id, email, name, profile_img_url, password, email_verified, account_locked, login_attempts, status, created_at, updated_at)
 VALUES
 -- 시니어 케어 중심 가족
-(1, 'father1@test.com', '김아버지', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(2, 'mother1@test.com', '이어머니', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(3, 'grandfather1@test.com', '김할아버지', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(4, 'grandmother1@test.com', '박할머니', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(5, 'son1@test.com', '김아들', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(1, 'father1@test.com', '김아버지', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 'mother1@test.com', '이어머니', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 'grandfather1@test.com', '김할아버지', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 'grandmother1@test.com', '박할머니', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 'son1@test.com', '김아들', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
 -- 자녀 성장 중심 가족
-(6, 'father2@test.com', '박아버지', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(7, 'mother2@test.com', '최어머니', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-(8, 'daughter2@test.com', '박딸', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2a$10$xn3LI/AjqicFYZFruSwve.681477XaVNaUQbr1gioaWPn4t1KsnmG', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(6, 'father2@test.com', '박아버지', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(7, 'mother2@test.com', '최어머니', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/ping.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(8, 'daughter2@test.com', '박딸', 'https://min-i-album-storage.s3.ap-northeast-2.amazonaws.com/test.png', '$2b$10$JOjRM/aFFVYmwTPcd2qNNuB13QNoC3Bbnp1vhOLRlauGme3DlkC0u', TRUE, FALSE, 0, 'ACTIVE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 INSERT INTO album_groups (id, name, group_description, group_image_url, invite_code, invite_code_expiry_at, is_invite_code_active, created_at, updated_at)
 VALUES
