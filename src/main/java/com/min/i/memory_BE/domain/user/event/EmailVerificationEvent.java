@@ -14,7 +14,9 @@ public class EmailVerificationEvent {
     public enum EventType {
         VERIFICATION,
         WELCOME,
-        PASSWORD_RESET
+        PASSWORD_RESET,
+        ACCOUNT_DEACTIVATED,
+        ACCOUNT_ACTIVATED
     }
     
     public EmailVerificationEvent(String email, String name, EventType type) {
