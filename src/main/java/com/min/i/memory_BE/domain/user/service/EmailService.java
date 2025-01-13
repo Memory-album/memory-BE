@@ -189,7 +189,7 @@ public class EmailService {
                 sendDeactivationEmail(event.getEmail(), event.getName());
                 break;
             case ACCOUNT_ACTIVATED:
-                sendActivationEmail(event.getEmail(), event.getName(), event.isManualLogin());
+                sendActivationEmail(event.getEmail(), event.getName());
                 break;
             default:
                 String verificationCode = generateVerificationCode();
@@ -290,7 +290,7 @@ public class EmailService {
     }
 
     // 계정 활성화 알림 메일
-    private void sendActivationEmail(String email, String name, boolean isManualLogin) {
+    private void sendActivationEmail(String email, String name) {
         try {
             MimeMessage message = getMailSender(email).createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
