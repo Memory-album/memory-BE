@@ -61,56 +61,56 @@ VALUES
 -- 앨범 페이지 데이터 추가
 INSERT INTO album_pages (id, album_id, page_number, layout_type, created_at, updated_at)
 VALUES
-    (1, 1, 1, 'GRID_2X2', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (2, 1, 2, 'GRID_3X3', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (3, 2, 1, 'SINGLE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (4, 4, 1, 'GRID_2X2', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 1, 1, 'GRID_2X2', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 1, 2, 'GRID_3X3', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 2, 1, 'SINGLE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 4, 1, 'GRID_2X2', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- 키워드 데이터 추가
 INSERT INTO keywords (id, name, category, created_at, updated_at)
 VALUES
-    (1, '웃음', 'EMOTION', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (2, '가족', 'EVENT', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (3, '병원', 'PLACE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (4, '학교', 'PLACE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (5, '피아노', 'OBJECT', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, '웃음', 'EMOTION', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, '가족', 'EVENT', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, '병원', 'PLACE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, '학교', 'PLACE', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, '피아노', 'OBJECT', CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- 미디어-키워드 매핑 데이터 추가
 INSERT INTO media_keywords (id, media_id, keyword_id, confidence_score, created_at, updated_at)
 VALUES
-    (1, 1, 1, 0.95, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (2, 1, 2, 0.90, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (3, 5, 3, 0.85, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (4, 7, 4, 0.92, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (5, 10, 5, 0.88, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 1, 1, 0.95, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 1, 2, 0.90, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 5, 3, 0.85, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 7, 4, 0.92, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 10, 5, 0.88, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- 질문 데이터 추가
 INSERT INTO questions (id, media_id, content, theme, keywords_used, is_private, created_at, updated_at)
 VALUES
-    (1, 1, '할아버지의 팔순잔치에서 가장 기억에 남는 순간은 무엇인가요?', 'SENIOR_CARE', '가족,웃음', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (2, 5, '정기 건강검진에서 특별히 신경 쓰신 부분이 있으셨나요?', 'SENIOR_CARE', '병원', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (3, 7, '첫 등교 날 아침에 어떤 기분이셨나요?', 'CHILD_STORY', '학교', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (4, 10, '피아노를 처음 배우게 된 계기가 무엇인가요?', 'CHILD_STORY', '피아노', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 1, '할아버지의 팔순잔치에서 가장 기억에 남는 순간은 무엇인가요?', 'SENIOR_CARE', '가족,웃음', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 5, '정기 건강검진에서 특별히 신경 쓰신 부분이 있으셨나요?', 'SENIOR_CARE', '병원', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 7, '첫 등교 날 아침에 어떤 기분이셨나요?', 'CHILD_STORY', '학교', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 10, '피아노를 처음 배우게 된 계기가 무엇인가요?', 'CHILD_STORY', '피아노', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- 답변 데이터 추가
 INSERT INTO answers (id, question_id, created_by, final_story, voice_text, is_private, created_at, updated_at)
 VALUES
-    (1, 1, 1, '할아버지께서 손주들과 함께 케이크 촛불을 끄시던 모습이 가장 기억에 남습니다. 모두가 환하게 웃으며 축하해드렸죠.', '할아버지께서 손주들과 함께...', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (2, 2, 3, '혈압 체크를 특히 신경 썼습니다. 작년보다 수치가 좋아져서 다행이었어요.', '혈압 체크를 특히...', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (3, 3, 8, '설렘과 긴장이 함께 있었어요. 새로운 친구들을 만날 생각에 가슴이 두근거렸죠.', '설렘과 긴장이...', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 1, 1, '할아버지께서 손주들과 함께 케이크 촛불을 끄시던 모습이 가장 기억에 남습니다. 모두가 환하게 웃으며 축하해드렸죠.', '할아버지께서 손주들과 함께...', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 2, 3, '혈압 체크를 특히 신경 썼습니다. 작년보다 수치가 좋아져서 다행이었어요.', '혈압 체크를 특히...', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 3, 8, '설렘과 긴장이 함께 있었어요. 새로운 친구들을 만날 생각에 가슴이 두근거렸죠.', '설렘과 긴장이...', FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- 좋아요 데이터 추가
 INSERT INTO likes (id, user_id, target_type, target_id, created_at, updated_at)
 VALUES
-    (1, 2, 'ALBUM', 1, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (2, 3, 'MEDIA', 1, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (3, 4, 'MEDIA', 2, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (4, 7, 'ALBUM', 4, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (5, 8, 'MEDIA', 10, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 2, 'ALBUM', 1, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 3, 'MEDIA', 1, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 4, 'MEDIA', 2, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(4, 7, 'ALBUM', 4, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(5, 8, 'MEDIA', 10, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
 
 -- 알림 데이터 추가
 INSERT INTO notifications (id, user_id, title, content, notification_type, reference_id, is_read, created_at, updated_at)
 VALUES
-    (1, 1, '새로운 스토리가 추가되었습니다', '할아버지의 팔순잔치 앨범에 새로운 스토리가 추가되었습니다.', 'NEW_STORY', 1, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (2, 3, '그룹 초대', '김가네 가족 그룹에 초대되었습니다.', 'GROUP_INVITE', 1, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
-    (3, 6, '앨범 업데이트', '첫 학교생활 앨범이 업데이트되었습니다.', 'ALBUM_UPDATE', 4, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
+(1, 1, '새로운 스토리가 추가되었습니다', '할아버지의 팔순잔치 앨범에 새로운 스토리가 추가되었습니다.', 'NEW_STORY', 1, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(2, 3, '그룹 초대', '김가네 가족 그룹에 초대되었습니다.', 'GROUP_INVITE', 1, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()),
+(3, 6, '앨범 업데이트', '첫 학교생활 앨범이 업데이트되었습니다.', 'ALBUM_UPDATE', 4, FALSE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP());
