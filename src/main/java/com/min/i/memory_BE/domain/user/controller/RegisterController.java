@@ -16,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/register")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class RegisterController {
 
     @Autowired

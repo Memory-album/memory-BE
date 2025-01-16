@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true") //응답 헤더에 자동으로 Access-Control-Allow-Credentials: true가 포함
 public class LoginController {
 
     @Autowired
