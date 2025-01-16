@@ -50,7 +50,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return user.getStatus() == UserStatus.ACTIVE;
+        return true;
     }
 
     // User 엔티티의 추가 정보에 접근하기 위한 메서드들
