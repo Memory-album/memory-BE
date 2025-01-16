@@ -1,5 +1,4 @@
 package com.min.i.memory_BE.domain.group.service;
-
 import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;
@@ -41,18 +40,16 @@ public class GroupService {
     
     groupRepository.save(group);
     
-    // sortOrder 계산
     Integer maxSortOrder = userGroupRepository.findMaxSortOrderByUser(user.getId());
     int nextSortOrder = (maxSortOrder != null) ? maxSortOrder + 1 : 1;
     
-    // UserGroup 생성
     UserGroup userGroup = UserGroup.builder()
       .user(user)
       .group(group)
       .role(UserGroupRole.OWNER)
-      .groupNickname(request.getName())  // 초기 닉네임은 그룹 이름으로
-      .groupProfileImgUrl(request.getGroupImageUrl())  // 초기 프로필은 그룹 이미지로
-      .notificationEnabled(true)  // 기본 알림 활성화
+      .groupNickname(request.getName())
+      .groupProfileImgUrl(request.getGroupImageUrl())
+      .notificationEnabled(true)
       .sortOrder(nextSortOrder)
       .lastVisitAt(LocalDateTime.now())
       .build();
