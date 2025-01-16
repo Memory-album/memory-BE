@@ -244,7 +244,7 @@ public class EmailService {
             helper.setTo(email);
             helper.setSubject("Min:i 비밀번호 재설정");
             
-            String content = getPasswordResetTemplate(resetCode, jwt);  // JWT도 함께 전달
+            String content = getPasswordResetTemplate(resetCode);
             helper.setText(content, true);
             
             getMailSender(email).send(message);
@@ -256,7 +256,7 @@ public class EmailService {
         }
     }
 
-    private String getPasswordResetTemplate(String resetCode, String jwt) {
+    private String getPasswordResetTemplate(String resetCode) {
         return "<div style='max-width: 600px; margin: 20px auto; padding: 20px;'>"
             + "<h2>Min:i 비밀번호 재설정</h2>"
             + "<p>비밀번호 재설정을 위한 인증 코드입니다:</p>"
