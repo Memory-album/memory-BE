@@ -136,10 +136,3 @@ google:
     auth-url: https://accounts.google.com/o/oauth2/v2/auth
     token-url: https://oauth2.googleapis.com/token
     redirect-uri: http://localhost:8080/oauth/callback?provider=google
-<<<<<<< HEAD
-=======
-
-sql:
-  init:
-    mode: always
->>>>>>> 4bdc2604e56e1c25c44cd37083e14e195d9c79d9
