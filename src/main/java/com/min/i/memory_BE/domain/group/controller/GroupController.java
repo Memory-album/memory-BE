@@ -23,12 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class GroupController {
   private final GroupService groupService;
   
-  @PostMapping
   @Operation(summary = "그룹 생성")
+  @PostMapping
   public ResponseEntity<ApiResponse<GroupResponseDto>> createGroup(
-    @Valid @RequestBody GroupRequestDto request,
-    @AuthenticationPrincipal User user) {
-    GroupResponseDto response = groupService.createGroup(request, user);
+    @Valid @RequestBody GroupRequestDto.Create request,
+    @AuthenticationPrincipal String email) {
+    
+    GroupResponseDto response = groupService.createGroup(request, email);
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 }
