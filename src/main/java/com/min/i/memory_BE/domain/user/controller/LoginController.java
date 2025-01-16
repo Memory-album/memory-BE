@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.user.dto.JwtAuthenticationResponse;
 import com.min.i.memory_BE.domain.user.dto.UserLoginDto;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.service.UserService;
+import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.config.SecurityConfig;
 import com.min.i.memory_BE.global.security.jwt.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -73,12 +75,14 @@ public class LoginController {
             }
 
             // 실제 인증 수행
-            authenticationManager.authenticate(
+            Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                     loginDto.getEmail(), 
                     loginDto.getPassword()
                 )
             );
+
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
             // 인증 성공 시 토큰 생성
             JwtAuthenticationResponse tokens = userService.generateTokens(loginDto.getEmail());
@@ -106,7 +110,15 @@ public class LoginController {
             return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                .body("로그인 성공");
+                .body(Map.of(
+                    "status", "success",
+                    "message", "로그인 성공",
+                    "user", Map.of(
+                        "email", userDetails.getEmail(),
+                        "name", userDetails.getName(),
+                        "profileImgUrl", userDetails.getProfileImgUrl()
+                    )
+                ));
 
         } catch (BadCredentialsException e) {
             // 로그인 실패 시 시도 횟수 증가
@@ -181,8 +193,8 @@ public class LoginController {
             @CookieValue(name = "refreshToken", required = true) String refreshToken) {
         try {
             if (jwtTokenProvider.validateRefreshToken(refreshToken)) {
-                String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
-                String newAccessToken = jwtTokenProvider.generateToken(username);
+                String email = jwtTokenProvider.getEmailFromToken(refreshToken);
+                String newAccessToken = jwtTokenProvider.generateToken(email);
 
                 // 새로운 액세스 토큰을 쿠키에 설정
                 ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", newAccessToken)

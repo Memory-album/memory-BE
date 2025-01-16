@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.user.service.UserService;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.dto.UserUpdateDto;
 import com.min.i.memory_BE.domain.user.dto.PasswordResetDto;
+import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -71,12 +72,20 @@ public class UserController {
             )
     })
     @GetMapping("/my-page")
-    public ResponseEntity<String> myPage(Authentication auth) {
-        if (auth != null && auth.isAuthenticated()) {
-            return ResponseEntity.ok("마이 페이지: " + auth.getName());
-        } else {
-            return ResponseEntity.status(401).body("로그인 필요");
+    public ResponseEntity<?> myPage(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+            
+            return ResponseEntity.ok()
+                .body(Map.of(
+                    "email", userDetails.getEmail(),
+                    "name", userDetails.getName(),
+                    "profileImgUrl", userDetails.getProfileImgUrl(),
+                    "status", userDetails.getStatus()
+                ));
         }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(Map.of("message", "로그인이 필요합니다."));
     }
 
     // 사용자 정보 수정
@@ -93,6 +102,13 @@ public class UserController {
     public ResponseEntity<?> updateUser(
             @RequestBody UserUpdateDto updateDto,
             Authentication authentication) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        
+        // 기존 정보와 비교하여 변경된 필드만 업데이트
+        if (updateDto.getName() == null) {
+            updateDto.setName(userDetails.getName());
+        }
+        
         // 인증 확인
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
