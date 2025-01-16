@@ -13,7 +13,6 @@ import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -30,6 +29,7 @@ public class GroupService {
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new EntityNotFoundException("User not found"));
     
+    // 그룹 생성
     Group group = Group.builder()
       .name(request.getName())
       .groupDescription(request.getGroupDescription())
@@ -41,15 +41,25 @@ public class GroupService {
     
     groupRepository.save(group);
     
+    // sortOrder 계산
+    Integer maxSortOrder = userGroupRepository.findMaxSortOrderByUser(user.getId());
+    int nextSortOrder = (maxSortOrder != null) ? maxSortOrder + 1 : 1;
+    
+    // UserGroup 생성
     UserGroup userGroup = UserGroup.builder()
       .user(user)
       .group(group)
       .role(UserGroupRole.OWNER)
+      .groupNickname(request.getName())  // 초기 닉네임은 그룹 이름으로
+      .groupProfileImgUrl(request.getGroupImageUrl())  // 초기 프로필은 그룹 이미지로
+      .notificationEnabled(true)  // 기본 알림 활성화
+      .sortOrder(nextSortOrder)
+      .lastVisitAt(LocalDateTime.now())
       .build();
     
-    userGroupRepository.save(userGroup);
+    UserGroup savedUserGroup = userGroupRepository.save(userGroup);
     
-    return GroupResponseDto.from(group);
+    return GroupResponseDto.from(group, savedUserGroup);
   }
   
   private String generateInviteCode() {
