@@ -63,11 +63,12 @@ public class UserGroup extends BaseEntity {
   
   @Builder
   public UserGroup(User user, Group group, UserGroupRole role,
-    String groupNickname, String groupProfileImgUrl, boolean notificationEnabled, Integer sortOrder) {
+    String groupNickname, String groupProfileImgUrl, boolean notificationEnabled,LocalDateTime lastVisitAt, Integer sortOrder) {
     this.user = user;
     this.group = group;
     this.role = role;
     this.groupNickname = groupNickname;
+    this.lastVisitAt = lastVisitAt;
     this.groupProfileImgUrl = groupProfileImgUrl;
     this.notificationEnabled = notificationEnabled;
     this.sortOrder = sortOrder;
