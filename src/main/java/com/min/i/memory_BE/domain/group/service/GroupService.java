@@ -53,6 +53,6 @@ public class GroupService {
   }
   
   private String generateInviteCode() {
-    return UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+    return UUID.randomUUID().toString().substring(0, 6).toUpperCase();
   }
 }
