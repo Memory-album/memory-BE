@@ -35,9 +35,9 @@ public class JwtTokenProvider {
     private final long REFRESH_EXPIRATION_TIME = 2592000000L; // 30일
 
     // JWT 토큰 생성
-    public String generateToken(String username) {
+    public String generateToken(String email) {
         String token = Jwts.builder()
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(secretKey, SignatureAlgorithm.HS512)
@@ -47,9 +47,9 @@ public class JwtTokenProvider {
     }
 
     // Refresh Token 생성
-    public String generateRefreshToken(String username) {
+    public String generateRefreshToken(String email) {
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION_TIME))
                 .signWith(secretKey, SignatureAlgorithm.HS512)
@@ -57,8 +57,8 @@ public class JwtTokenProvider {
     }
 
 
-    // JWT에서 사용자 이름 가져오기
-    public String getUsernameFromToken(String token) {
+    // JWT에서 이메일 가져오기
+    public String getEmailFromToken(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
                 .build()

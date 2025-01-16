@@ -46,16 +46,16 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
             // 토큰이 있고 유효한 경우에만 인증 처리
             if (jwtToken != null && jwtTokenProvider.validateToken(jwtToken)) {
-                String username = jwtTokenProvider.getUsernameFromToken(jwtToken);
+                String email = jwtTokenProvider.getEmailFromToken(jwtToken);
                 
                 // 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication = 
-                    new UsernamePasswordAuthenticationToken(username, null, new ArrayList<>());
+                    new UsernamePasswordAuthenticationToken(email, null, new ArrayList<>());
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 
                 // SecurityContext에 인증 객체 설정
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.debug("Security Context에 '{}' 인증 정보를 저장했습니다", username);
+                logger.debug("Security Context에 '{}' 인증 정보를 저장했습니다", email);
             }
 
             filterChain.doFilter(request, response);
