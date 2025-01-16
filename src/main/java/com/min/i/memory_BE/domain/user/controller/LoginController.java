@@ -32,7 +32,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true") //응답 헤더에 자동으로 Access-Control-Allow-Credentials: true가 포함
 public class LoginController {
 
     @Autowired
