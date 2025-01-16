@@ -1,10 +1,7 @@
 package com.min.i.memory_BE.domain.group.dto.response;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.min.i.memory_BE.domain.group.entity.Group;
-import com.min.i.memory_BE.mock.dto.response.AlbumResponseDto.UserSimpleDto;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,26 +13,21 @@ public class GroupResponseDto {
   private String name;
   private String groupDescription;
   private String groupImageUrl;
+  private String inviteCode;
   private LocalDateTime createdAt;
-  private UserSimpleDto owner;
-  private List<UserSimpleDto> members;
+  private boolean isInviteCodeActive;
+  private LocalDateTime inviteCodeExpiryAt;
   
-  
-  public static GroupResponseDto from(Group entity) {
+  public static GroupResponseDto from(Group group) {
     return GroupResponseDto.builder()
-      .id(entity.getId())
-      .name(entity.getName())
-      .groupDescription(entity.getGroupDescription())
-      .groupImageUrl(entity.getGroupImageUrl())
-      .createdAt(entity.getCreatedAt())
-      .build();
-  }
-  
-  public Group toEntity() {
-    return Group.builder()
-      .name(this.name)
-      .groupDescription(this.groupDescription)
-      .groupImageUrl(this.groupImageUrl)
+      .id(group.getId())
+      .name(group.getName())
+      .groupDescription(group.getGroupDescription())
+      .groupImageUrl(group.getGroupImageUrl())
+      .inviteCode(group.getInviteCode())
+      .createdAt(group.getCreatedAt())
+      .isInviteCodeActive(group.isInviteCodeActive())
+      .inviteCodeExpiryAt(group.getInviteCodeExpiryAt())
       .build();
   }
 }
