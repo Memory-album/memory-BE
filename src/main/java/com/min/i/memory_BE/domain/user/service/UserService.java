@@ -200,7 +200,7 @@ public class UserService {
                 .orElse(0);
     }
 
-
+    
     // 계정 잠금 해제
     public void unlockAccount(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
@@ -371,5 +371,34 @@ public class UserService {
         updatedUser.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(updatedUser);
+    }
+    
+    @Transactional
+    public User updateProfileImage(String email, MultipartFile file) {
+        User user = userRepository.findByEmail(email)
+          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        try {
+            // 기존 프로필 이미지가 있다면 삭제
+            if (user.getProfileImgUrl() != null && !user.getProfileImgUrl().isEmpty()) {
+                s3Service.deleteImage(user.getProfileImgUrl());
+            }
+            
+            // 새 프로필 이미지 업로드
+            String imageUrl = s3Service.uploadProfileImage(file, String.valueOf(user.getId()));
+            
+            // 사용자 정보 업데이트
+            User updatedUser = user.toBuilder()
+              .profileImgUrl(imageUrl)
+              .build();
+            
+            updatedUser.setCreatedAt(user.getCreatedAt());
+            updatedUser.setUpdatedAt(LocalDateTime.now());
+            
+            return userRepository.save(updatedUser);
+        } catch (Exception e) {
+            logger.error("프로필 이미지 업데이트 실패: {}", e.getMessage());
+            throw new IllegalArgumentException("프로필 이미지 업데이트에 실패했습니다: " + e.getMessage());
+        }
     }
 }

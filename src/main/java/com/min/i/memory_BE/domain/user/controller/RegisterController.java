@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseCookie;
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 @RestController
 @RequestMapping("/register")
@@ -117,35 +119,35 @@ public class RegisterController {
             @ApiResponse(responseCode = "200", description = "회원가입 완료"),
             @ApiResponse(responseCode = "400", description = "회원가입 실패")
     })
-    @PostMapping("/complete-register")
+    @PostMapping(value = "/complete-register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> completeRegister(
-            @Parameter(description = "회원가입 정보") 
-            @RequestBody UserRegisterDto userRegisterDto,
-            @CookieValue(name = "verificationToken", required = true) String jwtToken) {
+      @ModelAttribute UserRegisterDto userRegisterDto,
+      @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
+      @CookieValue(name = "verificationToken", required = true) String jwtToken) {
         try {
-            userService.completeRegister(userRegisterDto, jwtToken);
+            userService.completeRegister(userRegisterDto, profileImage, jwtToken);
             
             // 인증 완료 후 verificationToken 쿠키 삭제
             ResponseCookie deleteCookie = ResponseCookie.from("verificationToken", "")
-                .httpOnly(true)
-                .secure(true)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Strict")
-                .build();
-
+              .httpOnly(true)
+              .secure(true)
+              .path("/")
+              .maxAge(0)
+              .sameSite("Strict")
+              .build();
+            
             return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
-                .body(Map.of(
-                    "message", "회원가입이 완료되었습니다.",
-                    "status", "success"
-                ));
+              .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+              .body(Map.of(
+                "message", "회원가입이 완료되었습니다.",
+                "status", "success"
+              ));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
-                .body(Map.of(
-                    "message", e.getMessage(),
-                    "status", "error"
-                ));
+              .body(Map.of(
+                "message", e.getMessage(),
+                "status", "error"
+              ));
         }
     }
 }
