@@ -102,6 +102,37 @@ public class S3Service {
     }
   }
   
+    public String uploadGroupImage(MultipartFile file, Long groupId) {
+      validateImageFile(file);
+      
+      String fileName = generateFileName(file.getOriginalFilename());
+      String key = String.format("groups/%d/image/%s", groupId, fileName);
+      
+      try {
+        log.info("그룹 이미지 업로드 시작 - groupId: {}, fileName: {}",
+          groupId, fileName);
+        
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+          .bucket(bucketName)
+          .key(key)
+          .contentType(file.getContentType())
+          .build();
+        
+        s3Client.putObject(putObjectRequest,
+          RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+        
+        String fileUrl = getFileUrl(key);
+        log.info("그룹 이미지 업로드 성공 - groupId: {}, fileUrl: {}", groupId, fileUrl);
+        return fileUrl;
+        
+      } catch (Exception e) {
+        log.error("그룹 이미지 업로드 실패 - groupId: {}, error: {}",
+          groupId, e.getMessage(), e);
+        throw new S3Exception("그룹 이미지 업로드 중 오류 발생: " + e.getMessage());
+      }
+    }
+  
+  
   // 프로필 이미지 업데이트
   public String updateProfileImage(MultipartFile file, String userId, String oldFileUrl) {
     try {
