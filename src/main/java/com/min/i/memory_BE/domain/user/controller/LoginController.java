@@ -3,6 +3,7 @@ package com.min.i.memory_BE.domain.user.controller;
 import com.min.i.memory_BE.domain.user.dto.JwtAuthenticationResponse;
 import com.min.i.memory_BE.domain.user.dto.UserLoginDto;
 import com.min.i.memory_BE.domain.user.entity.User;
+import com.min.i.memory_BE.domain.user.enums.UserStatus;
 import com.min.i.memory_BE.domain.user.service.UserService;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.config.SecurityConfig;
@@ -48,11 +49,24 @@ public class LoginController {
     @Autowired
     private UserService userService;
 
-    @Operation(summary = "로그인", description = "이메일과 비밀번호로 로그인합니다.")
+    @Operation(
+        summary = "로그인", 
+        description = "이메일과 비밀번호로 로그인합니다. 자동 로그인 옵션을 선택하면 리프레시 토큰의 유효기간이 30일로 설정됩니다."
+    )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "로그인 성공"),
-            @ApiResponse(responseCode = "401", description = "로그인 실패"),
-            @ApiResponse(responseCode = "423", description = "계정이 잠김")
+        @ApiResponse(
+            responseCode = "200", 
+            description = "로그인 성공. 응답에는 사용자 정보와 함께 JWT 토큰이 쿠키로 전달됩니다. " +
+                         "자동 로그인 선택 시 리프레시 토큰은 30일, 미선택 시 7일간 유효합니다."
+        ),
+        @ApiResponse(
+            responseCode = "401", 
+            description = "로그인 실패 (잘못된 이메일 또는 비밀번호)"
+        ),
+        @ApiResponse(
+            responseCode = "423", 
+            description = "계정이 잠김 (5회 이상 로그인 실패)"
+        )
     })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLoginDto loginDto) {
@@ -87,9 +101,6 @@ public class LoginController {
             // 인증 성공 시 토큰 생성
             JwtAuthenticationResponse tokens = userService.generateTokens(loginDto.getEmail());
 
-            // 로그인 성공 시 로그인 시도 횟수 초기화
-            userService.unlockAccount(loginDto.getEmail());
-
             // JWT 쿠키 설정
             ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", tokens.getAccessToken())
                 .httpOnly(true)
@@ -106,6 +117,37 @@ public class LoginController {
                 .maxAge(60 * 60 * 24 * 7) // 7일
                 .sameSite("Strict")
                 .build();
+
+            // 자동 로그인 설정
+            if (loginDto.isRememberMe()) {
+                refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(60 * 60 * 24 * 30) // 30일
+                    .sameSite("Strict")
+                    .build();
+            }
+
+            // 사용자 상태 확인
+            if (userDetails.getStatus() == UserStatus.INACTIVE) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                    .body(Map.of(
+                        "status", "warning",
+                        "message", "계정이 비활성화 상태입니다. 활성화가 필요합니다.",
+                        "user", Map.of(
+                            "email", userDetails.getEmail(),
+                            "name", userDetails.getName(),
+                            "profileImgUrl", userDetails.getProfileImgUrl(),
+                            "status", userDetails.getStatus()
+                        )
+                    ));
+            }
+
+            // 로그인 성공 시 로그인 시도 횟수 초기화
+            userService.unlockAccount(loginDto.getEmail());
 
             return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
@@ -211,13 +253,12 @@ public class LoginController {
                         "message", "새로운 액세스 토큰이 발급되었습니다.",
                         "status", "success"
                     ));
-            } else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of(
-                        "message", "리프레시 토큰이 유효하지 않습니다.",
-                        "status", "error"
-                    ));
             }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                    "message", "리프레시 토큰이 유효하지 않습니다.",
+                    "status", "error"
+                ));
         } catch (Exception e) {
             logger.error("리프레시 토큰 처리 중 오류 발생: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
