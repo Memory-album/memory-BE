@@ -30,23 +30,23 @@ import org.springframework.web.multipart.support.StandardServletMultipartResolve
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-
+    
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
-
+    
     @Autowired
     private MyUserDetailsService myUserDetailsService;
-
+    
     @Autowired
     private PasswordEncoder passwordEncoder;
-
+    
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
-
+    
     @Bean
     public JWTAuthenticationFilter jwtAuthenticationFilter() {
         return new JWTAuthenticationFilter(jwtTokenProvider);  // JWTAuthenticationFilter를 빈으로 등록
     }
-
+    
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
@@ -56,7 +56,7 @@ public class SecurityConfig {
         return builder.build();
         
     }
-
+    
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -65,11 +65,11 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true); // withCredentials 허용
         configuration.setMaxAge(3600L);
-
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
-
+        
     }
     
     @Bean
@@ -77,70 +77,71 @@ public class SecurityConfig {
         StandardServletMultipartResolver resolver = new StandardServletMultipartResolver();
         return resolver;
     }
-
+    
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/h2-console/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/v3/api-docs/**",
-                    "/api/v1/mock/**",
-                    "/register/send-verification-code",
-                    "/register/verify-email",
-                    "/register/complete-register",
-                    "/user/password/reset-request",
-                    "/user/password/verify-code",
-                    "/user/password/reset",
-                    "/user/loginPage",
-                    "/oauth/callback",
-                    "/oauth/login",
-                    "/auth/login"
-                ).permitAll()
-              .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/user/update", "/user/delete", 
-                    "/user/activate", "/user/deactivate",
-                    "/auth/logout", "/oauth/logout").authenticated()
-                .anyRequest().authenticated()
-            )
-            .logout(logout -> logout
-                .logoutUrl("/auth/logout")
-                .logoutSuccessHandler((request, response, authentication) -> {
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    response.setContentType("application/json;charset=UTF-8");
-                    response.getWriter().write("{\"message\":\"로그아웃 되었습니다.\",\"status\":\"success\"}");
-                })
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
-            )
-            .logout(logout -> logout
-                .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET"))
-                .logoutSuccessHandler((request, response, authentication) -> {
-                    response.setStatus(HttpServletResponse.SC_OK);
-                    response.getWriter().write("OAuth logout success");
-                })
-                .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
-            )
-            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
-            .headers(headers -> headers
-                .frameOptions(frame -> frame.sameOrigin())
-            );
-
+          .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+          .csrf(csrf -> csrf.disable())
+          .sessionManagement(session -> session
+            .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+          .authorizeHttpRequests(auth -> auth
+            .requestMatchers(
+              "/h2-console/**",
+              "/swagger-ui/**",
+              "/swagger-ui.html",
+              "/v3/api-docs/**",
+              "/api/v1/mock/**",
+              "/register/send-verification-code",
+              "/register/verify-email",
+              "/register/complete-register",
+              "/user/password/reset-request",
+              "/user/password/verify-code",
+              "/user/password/reset",
+              "/user/loginPage",
+              "/oauth/callback",
+              "/oauth/login",
+              "/auth/login",
+              "/api/v1/group/**"
+            ).permitAll()
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+            .requestMatchers("/user/update", "/user/delete",
+              "/user/activate", "/user/deactivate",
+              "/auth/logout", "/oauth/logout").authenticated()
+            .anyRequest().authenticated()
+          )
+          .logout(logout -> logout
+            .logoutUrl("/auth/logout")
+            .logoutSuccessHandler((request, response, authentication) -> {
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.setContentType("application/json;charset=UTF-8");
+                response.getWriter().write("{\"message\":\"로그아웃 되었습니다.\",\"status\":\"success\"}");
+            })
+            .invalidateHttpSession(true)
+            .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
+          )
+          .logout(logout -> logout
+            .logoutRequestMatcher(new AntPathRequestMatcher("/oauth/logout", "GET"))
+            .logoutSuccessHandler((request, response, authentication) -> {
+                response.setStatus(HttpServletResponse.SC_OK);
+                response.getWriter().write("OAuth logout success");
+            })
+            .invalidateHttpSession(true)
+            .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
+          )
+          .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+          .headers(headers -> headers
+            .frameOptions(frame -> frame.sameOrigin())
+          );
+        
         return http.build();
     }
-
+    
     @Autowired
     public void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(myUserDetailsService).passwordEncoder(passwordEncoder);  // PasswordEncoder를 사용
     }
-
+    
     @Bean
     public AuthenticationFailureHandler authenticationFailureHandler() {
         return (request, response, exception) -> {
@@ -149,5 +150,5 @@ public class SecurityConfig {
             response.getWriter().write("로그인에 실패했습니다. 다시 시도해 주세요.");
         };
     }
-
+    
 }
