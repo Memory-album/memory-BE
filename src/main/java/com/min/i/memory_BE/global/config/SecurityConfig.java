@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -22,6 +23,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
+import org.springframework.web.multipart.MultipartResolver;
+import org.springframework.web.multipart.support.StandardServletMultipartResolver;
 
 
 @Configuration
@@ -68,6 +71,12 @@ public class SecurityConfig {
         return source;
 
     }
+    
+    @Bean
+    public MultipartResolver filterMultipartResolver() {
+        StandardServletMultipartResolver resolver = new StandardServletMultipartResolver();
+        return resolver;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -94,6 +103,7 @@ public class SecurityConfig {
                     "/oauth/login",
                     "/auth/login"
                 ).permitAll()
+              .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/user/update", "/user/delete", 
                     "/user/activate", "/user/deactivate",
                     "/auth/logout", "/oauth/logout").authenticated()
