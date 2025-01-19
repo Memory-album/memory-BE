@@ -133,15 +133,20 @@ public class UserService {
                 String imageUrl = s3Service.uploadProfileImage(profileImage,
                   String.valueOf(savedUser.getId()));
                 
-                savedUser = savedUser.toBuilder()
+                User updatedUser = savedUser.toBuilder()
                   .profileImgUrl(imageUrl)
                   .build();
-                userRepository.save(savedUser);
+                
+                // BaseEntity 시간 정보 복사
+                updatedUser.setCreatedAt(savedUser.getCreatedAt());
+                updatedUser.setUpdatedAt(LocalDateTime.now());
+                
+                userRepository.save(updatedUser);
             } catch (Exception e) {
                 logger.error("프로필 이미지 업로드 실패: {}", e.getMessage());
-                // 이미지 업로드 실패해도 회원가입은 진행
             }
         }
+    
         
         // 환영 이메일 이벤트 발행
         eventPublisher.publishEvent(new EmailVerificationEvent(
