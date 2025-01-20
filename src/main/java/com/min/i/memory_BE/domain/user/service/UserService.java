@@ -23,6 +23,7 @@ import com.min.i.memory_BE.domain.user.event.EmailVerificationEvent;
 import com.min.i.memory_BE.domain.user.dto.PasswordResetDto;
 import java.time.LocalDateTime;
 import org.springframework.web.multipart.MultipartFile;
+import com.min.i.memory_BE.domain.user.dto.UserUpdateDto;
 
 @Service
 @Transactional
@@ -225,21 +226,35 @@ public class UserService {
     }
 
     // 사용자 정보 수정
-    public User updateUser(String email, String newPassword, String name, String profileImgUrl) {
+    public User updateUser(String email, UserUpdateDto updateDto, MultipartFile profileImage) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
         // 새 비밀번호가 현재 비밀번호와 같은지 확인
-        if (newPassword != null && passwordEncoder.matches(newPassword, user.getPassword())) {
+        if (updateDto.getNewPassword() != null && 
+            passwordEncoder.matches(updateDto.getNewPassword(), user.getPassword())) {
             throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
         }
 
-        // 기존 사용자 정보를 바탕으로 변경할 부분만 수정하여 새로운 User 객체를 생성
+        // 프로필 이미지 처리
+        String profileImgUrl = user.getProfileImgUrl();
+        if (profileImage != null && !profileImage.isEmpty()) {
+            profileImgUrl = s3Service.updateProfileImage(
+                profileImage, 
+                String.valueOf(user.getId()), 
+                user.getProfileImgUrl()
+            );
+        }
+
+        // 사용자 정보 업데이트
         User updatedUser = user.toBuilder()
-                .id(user.getId())
-                .password(newPassword != null ? passwordEncoder.encode(newPassword) : user.getPassword())
-                .name(name != null ? name : user.getName())
-                .profileImgUrl(profileImgUrl != null ? profileImgUrl : user.getProfileImgUrl())
+                .password(updateDto.getNewPassword() != null ? 
+                         passwordEncoder.encode(updateDto.getNewPassword()) : 
+                         user.getPassword())
+                .name(updateDto.getName() != null ? 
+                      updateDto.getName() : 
+                      user.getName())
+                .profileImgUrl(profileImgUrl)
                 .build();
 
         updatedUser.setCreatedAt(user.getCreatedAt());
@@ -376,34 +391,5 @@ public class UserService {
         updatedUser.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(updatedUser);
-    }
-    
-    @Transactional
-    public User updateProfileImage(String email, MultipartFile file) {
-        User user = userRepository.findByEmail(email)
-          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        
-        try {
-            // 기존 프로필 이미지가 있다면 삭제
-            if (user.getProfileImgUrl() != null && !user.getProfileImgUrl().isEmpty()) {
-                s3Service.deleteImage(user.getProfileImgUrl());
-            }
-            
-            // 새 프로필 이미지 업로드
-            String imageUrl = s3Service.uploadProfileImage(file, String.valueOf(user.getId()));
-            
-            // 사용자 정보 업데이트
-            User updatedUser = user.toBuilder()
-              .profileImgUrl(imageUrl)
-              .build();
-            
-            updatedUser.setCreatedAt(user.getCreatedAt());
-            updatedUser.setUpdatedAt(LocalDateTime.now());
-            
-            return userRepository.save(updatedUser);
-        } catch (Exception e) {
-            logger.error("프로필 이미지 업데이트 실패: {}", e.getMessage());
-            throw new IllegalArgumentException("프로필 이미지 업데이트에 실패했습니다: " + e.getMessage());
-        }
     }
 }
