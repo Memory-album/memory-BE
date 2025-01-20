@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -87,7 +89,47 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(Map.of("message", "로그인이 필요합니다."));
     }
-
+    
+    @Operation(summary = "프로필 이미지 업데이트")
+    @ApiResponses({
+      @ApiResponse(responseCode = "200", description = "프로필 이미지 업데이트 성공"),
+      @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+      @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @PutMapping(value = "/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateProfileImage(
+      @RequestParam("file") MultipartFile file,
+      Authentication authentication) {
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+              .body(Map.of(
+                "message", "로그인이 필요합니다.",
+                "status", "error"
+              ));
+        }
+        
+        try {
+            String email = authentication.getName();
+            User updatedUser = userService.updateProfileImage(email, file);
+            
+            return ResponseEntity.ok()
+              .body(Map.of(
+                "message", "프로필 이미지가 업데이트되었습니다.",
+                "status", "success",
+                "data", Map.of(
+                  "profileImgUrl", updatedUser.getProfileImgUrl()
+                )
+              ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+              .body(Map.of(
+                "message", e.getMessage(),
+                "status", "error"
+              ));
+        }
+    }
+    
     // 사용자 정보 수정
     @Operation(
             summary = "사용자 정보 수정",

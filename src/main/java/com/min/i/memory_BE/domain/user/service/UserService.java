@@ -6,6 +6,7 @@ import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.enums.UserStatus;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.global.security.jwt.JwtTokenProvider;
+import com.min.i.memory_BE.global.service.S3Service;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -20,8 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.min.i.memory_BE.domain.user.event.EmailVerificationEvent;
 import com.min.i.memory_BE.domain.user.dto.PasswordResetDto;
-
 import java.time.LocalDateTime;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @Transactional
@@ -31,13 +32,15 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
     private final ApplicationEventPublisher eventPublisher;
+    private final S3Service s3Service;
 
     @Autowired
-    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, ApplicationEventPublisher eventPublisher) {
+    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider, ApplicationEventPublisher eventPublisher, S3Service s3Service) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
         this.eventPublisher = eventPublisher;
+        this.s3Service = s3Service;
     }
 
     @Value("${jwt.secret}")
@@ -84,7 +87,7 @@ public class UserService {
     }
 
     // 회원가입을 위한 최종 처리
-    public void completeRegister(UserRegisterDto userRegisterDto, String jwtToken) {
+    public void completeRegister(UserRegisterDto userRegisterDto, MultipartFile profileImage, String jwtToken) {
         // JWT에서 이메일 가져오기
         String email = Jwts.parserBuilder()
                 .setSigningKey(secretKey.getBytes())
@@ -113,7 +116,6 @@ public class UserService {
                 .email(email)  // JWT에서 가져온 이메일 사용
                 .password(hashedPassword)  // 암호화된 비밀번호
                 .name(userRegisterDto.getName())  // 사용자가 입력한 이름
-                .profileImgUrl(userRegisterDto.getProfileImgUrl())  // 사용자가 입력한 프로필 이미지 URL
                 .emailVerified(true)  // 이메일 인증 완료
                 .loginAttempts(0)  // 로그인 시도 횟수 초기화 (기본값 0이지만 명시적으로 설정 가능)
                 .accountLocked(false)  // 계정 잠금 초기화
@@ -123,15 +125,37 @@ public class UserService {
                 .build();
 
         // 최종 사용자로 저장
-        userRepository.save(newUser);
-
+        User savedUser = userRepository.save(newUser);
+        
+        // 프로필 이미지 처리
+        if (profileImage != null && !profileImage.isEmpty()) {
+            try {
+                String imageUrl = s3Service.uploadProfileImage(profileImage,
+                  String.valueOf(savedUser.getId()));
+                
+                User updatedUser = savedUser.toBuilder()
+                  .profileImgUrl(imageUrl)
+                  .build();
+                
+                // BaseEntity 시간 정보 복사
+                updatedUser.setCreatedAt(savedUser.getCreatedAt());
+                updatedUser.setUpdatedAt(LocalDateTime.now());
+                
+                userRepository.save(updatedUser);
+            } catch (Exception e) {
+                logger.error("프로필 이미지 업로드 실패: {}", e.getMessage());
+            }
+        }
+    
+        
         // 환영 이메일 이벤트 발행
         eventPublisher.publishEvent(new EmailVerificationEvent(
-            email, 
-            userRegisterDto.getName(), 
-            EmailVerificationEvent.EventType.WELCOME
+          email,
+          userRegisterDto.getName(),
+          EmailVerificationEvent.EventType.WELCOME
         ));
     }
+    
 
     // 이메일로 유저 조회
     public User getUserByEmail(String email) {
@@ -181,7 +205,7 @@ public class UserService {
                 .orElse(0);
     }
 
-
+    
     // 계정 잠금 해제
     public void unlockAccount(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
@@ -352,5 +376,34 @@ public class UserService {
         updatedUser.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(updatedUser);
+    }
+    
+    @Transactional
+    public User updateProfileImage(String email, MultipartFile file) {
+        User user = userRepository.findByEmail(email)
+          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        try {
+            // 기존 프로필 이미지가 있다면 삭제
+            if (user.getProfileImgUrl() != null && !user.getProfileImgUrl().isEmpty()) {
+                s3Service.deleteImage(user.getProfileImgUrl());
+            }
+            
+            // 새 프로필 이미지 업로드
+            String imageUrl = s3Service.uploadProfileImage(file, String.valueOf(user.getId()));
+            
+            // 사용자 정보 업데이트
+            User updatedUser = user.toBuilder()
+              .profileImgUrl(imageUrl)
+              .build();
+            
+            updatedUser.setCreatedAt(user.getCreatedAt());
+            updatedUser.setUpdatedAt(LocalDateTime.now());
+            
+            return userRepository.save(updatedUser);
+        } catch (Exception e) {
+            logger.error("프로필 이미지 업데이트 실패: {}", e.getMessage());
+            throw new IllegalArgumentException("프로필 이미지 업데이트에 실패했습니다: " + e.getMessage());
+        }
     }
 }

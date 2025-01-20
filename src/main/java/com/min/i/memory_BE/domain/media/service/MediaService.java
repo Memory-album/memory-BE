@@ -10,7 +10,6 @@ import com.min.i.memory_BE.domain.media.repository.MediaRepository;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.global.service.S3Service;
-import java.nio.file.AccessDeniedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
