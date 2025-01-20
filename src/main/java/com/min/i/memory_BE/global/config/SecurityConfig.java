@@ -86,6 +86,7 @@ public class SecurityConfig {
           .sessionManagement(session -> session
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
           .authorizeHttpRequests(auth -> auth
+            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers(
               "/h2-console/**",
               "/swagger-ui/**",
@@ -104,7 +105,6 @@ public class SecurityConfig {
               "/auth/login",
               "/api/v1/group/**"
             ).permitAll()
-            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
             .requestMatchers("/user/update", "/user/delete",
               "/user/activate", "/user/deactivate",
               "/auth/logout", "/oauth/logout").authenticated()
