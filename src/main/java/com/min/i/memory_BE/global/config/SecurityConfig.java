@@ -41,7 +41,7 @@ public class SecurityConfig {
 
     @Bean
     public JWTAuthenticationFilter jwtAuthenticationFilter() {
-        return new JWTAuthenticationFilter(jwtTokenProvider);  // JWTAuthenticationFilter를 빈으로 등록
+        return new JWTAuthenticationFilter(jwtTokenProvider, myUserDetailsService);  // JWTAuthenticationFilter를 빈으로 등록
     }
 
     @Bean
@@ -95,7 +95,7 @@ public class SecurityConfig {
                     "/auth/login"
                 ).permitAll()
                 .requestMatchers("/user/update", "/user/delete", 
-                    "/user/activate", "/user/deactivate",
+                    "/user/activate", "/user/deactivate","/user/home", "/user/my-page",
                     "/auth/logout", "/oauth/logout").authenticated()
                 .anyRequest().authenticated()
             )

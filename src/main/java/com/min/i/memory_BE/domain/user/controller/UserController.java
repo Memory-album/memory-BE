@@ -47,48 +47,64 @@ public class UserController {
 
     @Operation(
             summary = "홈 페이지로 이동",
-            description = "사용자를 홈 페이지로 리디렉션합니다. 로그인된 사용자만 홈 페이지로 이동할 수 있습니다."
+            description = "로그인된 사용자의 홈 페이지 정보를 반환합니다."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "홈 페이지로 이동"
-    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "홈 페이지 정보 반환 성공"),
+            @ApiResponse(responseCode = "401", description = "로그인 필요")
+    })
     @GetMapping("/home")
-    public ResponseEntity<String> homePage() {
-        return ResponseEntity.ok("홈으로 이동");
+    public ResponseEntity<?> homePage(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                    "message", "로그인이 필요합니다.",
+                    "status", "error"
+                ));
+        }
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok()
+            .body(Map.of(
+                "status", "success",
+                "user", Map.of(
+                    "email", userDetails.getEmail(),
+                    "name", userDetails.getName(),
+                    "profileImgUrl", userDetails.getProfileImgUrl()
+                )
+            ));
     }
 //
 
     @Operation(
             summary = "마이 페이지로 이동",
-            description = "사용자를 마이 페이지로 리디렉션합니다. 로그인된 사용자만 마이 페이지로 이동할 수 있습니다."
+            description = "로그인된 사용자의 상세 정보를 반환합니다."
     )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "마이 페이지로 이동",
-                    content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json")
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "로그인 필요"
-            )
+            @ApiResponse(responseCode = "200", description = "사용자 정보 반환 성공"),
+            @ApiResponse(responseCode = "401", description = "로그인 필요")
     })
     @GetMapping("/my-page")
     public ResponseEntity<?> myPage(Authentication authentication) {
-        if (authentication != null && authentication.isAuthenticated()) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            
-            return ResponseEntity.ok()
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(
+                    "message", "로그인이 필요합니다.",
+                    "status", "error"
+                ));
+        }
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok()
+            .body(Map.of(
+                "status", "success",
+                "user", Map.of(
                     "email", userDetails.getEmail(),
                     "name", userDetails.getName(),
                     "profileImgUrl", userDetails.getProfileImgUrl(),
                     "status", userDetails.getStatus()
-                ));
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(Map.of("message", "로그인이 필요합니다."));
+                )
+            ));
     }
     
     @Operation(
