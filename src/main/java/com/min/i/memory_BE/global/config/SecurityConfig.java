@@ -33,28 +33,28 @@ import lombok.RequiredArgsConstructor;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
-    
+
     @Autowired
     private MyUserDetailsService myUserDetailsService;
-    
+
     @Autowired
     private PasswordEncoder passwordEncoder;
-    
+
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
-    
+
     @Bean
     public JWTAuthenticationFilter jwtAuthenticationFilter() {
         return new JWTAuthenticationFilter(jwtTokenProvider, myUserDetailsService);  // JWTAuthenticationFilter를 빈으로 등록
     }
-    
+
     @Bean
     public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
         AuthenticationManagerBuilder builder = http.getSharedObject(AuthenticationManagerBuilder.class);
         builder
-            .userDetailsService(myUserDetailsService)
+                .userDetailsService(myUserDetailsService)
             .passwordEncoder(passwordEncoder);
         return builder.build();
         
@@ -89,7 +89,7 @@ public class SecurityConfig {
         StandardServletMultipartResolver resolver = new StandardServletMultipartResolver();
         return resolver;
     }
-    
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -99,22 +99,22 @@ public class SecurityConfig {
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
           .authorizeHttpRequests(auth -> auth
             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-            .requestMatchers(
-              "/h2-console/**",
-              "/swagger-ui/**",
-              "/swagger-ui.html",
-              "/v3/api-docs/**",
-              "/api/v1/mock/**",
-              "/register/send-verification-code",
-              "/register/verify-email",
-              "/register/complete-register",
+                .requestMatchers(
+                        "/h2-console/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html",
+                        "/v3/api-docs/**",
+                        "/api/v1/mock/**",
+                        "/register/send-verification-code",
+                        "/register/verify-email",
+                        "/register/complete-register",
               "/user/password/reset-request",
               "/user/password/verify-code",
               "/user/password/reset",
-              "/user/loginPage",
-              "/oauth/callback",
-              "/oauth/login",
-              "/auth/login",
+                        "/user/loginPage",
+                        "/oauth/callback",
+                        "/oauth/login",
+                        "/auth/login",
               "/api/v1/group/**"
             ).permitAll()
             .requestMatchers("/user/update", "/user/delete",
@@ -141,18 +141,34 @@ public class SecurityConfig {
             .invalidateHttpSession(true)
             .deleteCookies("JSESSIONID", "jwtToken", "refreshToken")
           )
-          .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
           .headers(headers -> headers
             .frameOptions(frame -> frame.sameOrigin())
+          )
+          .exceptionHandling(ex -> ex
+            .authenticationEntryPoint((request, response, authException) -> {
+                response.setContentType("application/json;charset=UTF-8");
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write(
+                    "{\"message\":\"로그인이 필요한 서비스입니다.\",\"status\":\"error\"}"
+                );
+            })
+            .accessDeniedHandler((request, response, accessDeniedException) -> {
+                response.setContentType("application/json;charset=UTF-8");
+                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                response.getWriter().write(
+                    "{\"message\":\"접근 권한이 없습니다.\",\"status\":\"error\"}"
+                );
+            })
           );
         return http.build();
     }
-    
+
     @Autowired
     public void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(myUserDetailsService).passwordEncoder(passwordEncoder);  // PasswordEncoder를 사용
     }
-    
+
     @Bean
     public AuthenticationFailureHandler authenticationFailureHandler() {
         return (request, response, exception) -> {
@@ -161,5 +177,5 @@ public class SecurityConfig {
             response.getWriter().write("로그인에 실패했습니다. 다시 시도해 주세요.");
         };
     }
-    
+
 }
