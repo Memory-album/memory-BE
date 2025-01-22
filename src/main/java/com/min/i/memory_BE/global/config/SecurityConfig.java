@@ -23,12 +23,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
+
 import org.springframework.web.multipart.MultipartResolver;
 import org.springframework.web.multipart.support.StandardServletMultipartResolver;
+import lombok.RequiredArgsConstructor;
 
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
     
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
@@ -44,7 +47,7 @@ public class SecurityConfig {
     
     @Bean
     public JWTAuthenticationFilter jwtAuthenticationFilter() {
-        return new JWTAuthenticationFilter(jwtTokenProvider);  // JWTAuthenticationFilter를 빈으로 등록
+        return new JWTAuthenticationFilter(jwtTokenProvider, myUserDetailsService);  // JWTAuthenticationFilter를 빈으로 등록
     }
     
     @Bean
@@ -59,17 +62,26 @@ public class SecurityConfig {
     
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000")); // 프론트엔드 도메인
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true); // withCredentials 허용
-        configuration.setMaxAge(3600L);
-        
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-        
+      CorsConfiguration configuration = new CorsConfiguration();
+      configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+      configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+      configuration.setAllowedHeaders(Arrays.asList(
+        "Authorization",
+        "Content-Type",
+        "Access-Control-Allow-Origin",
+        "Access-Control-Allow-Credentials",
+        "X-Requested-With"
+      ));
+      configuration.setExposedHeaders(Arrays.asList(
+        "Authorization",
+        "Set-Cookie"
+      ));
+      configuration.setAllowCredentials(true);
+      configuration.setMaxAge(3600L);
+      
+      UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+      source.registerCorsConfiguration("/**", configuration);
+      return source;
     }
     
     @Bean
@@ -133,7 +145,6 @@ public class SecurityConfig {
           .headers(headers -> headers
             .frameOptions(frame -> frame.sameOrigin())
           );
-        
         return http.build();
     }
     

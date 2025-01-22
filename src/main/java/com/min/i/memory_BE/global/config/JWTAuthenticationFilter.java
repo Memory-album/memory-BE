@@ -9,24 +9,25 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
+import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
+import com.min.i.memory_BE.domain.user.service.MyUserDetailsService;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
+@Component
+@RequiredArgsConstructor
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
     //JWT를 사용하여 요청이 들어올 때마다 인증을 처리하는 필터 - 인증된 사용자인지 확인하고, 그에 맞는 권한을 부여함.
 
     private final JwtTokenProvider jwtTokenProvider;  // JwtTokenProvider를 주입받음
+    private final MyUserDetailsService userDetailsService;
     private static final Logger logger = LoggerFactory.getLogger(JWTAuthenticationFilter.class);
-
-    public JWTAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
-        this.jwtTokenProvider = jwtTokenProvider; //JWT 토큰을 발급하고 검증
-    }
 
     @Override //HTTP 요청을 처리
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -48,12 +49,16 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
             if (jwtToken != null && jwtTokenProvider.validateToken(jwtToken)) {
                 String email = jwtTokenProvider.getEmailFromToken(jwtToken);
                 
-                // 인증 객체 생성
-                UsernamePasswordAuthenticationToken authentication = 
-                    new UsernamePasswordAuthenticationToken(email, null, new ArrayList<>());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                // CustomUserDetails 객체 생성
+                CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(email);
                 
-                // SecurityContext에 인증 객체 설정
+                // Authentication 객체 생성 시 CustomUserDetails 사용
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                    userDetails,
+                    null,
+                    userDetails.getAuthorities()
+                );
+                
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 logger.debug("Security Context에 '{}' 인증 정보를 저장했습니다", email);
             }

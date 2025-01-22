@@ -19,6 +19,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.http.MediaType;
 import org.springframework.web.multipart.MultipartFile;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Map;
 
@@ -46,112 +47,14 @@ public class UserController {
 
     @Operation(
             summary = "홈 페이지로 이동",
-            description = "사용자를 홈 페이지로 리디렉션합니다. 로그인된 사용자만 홈 페이지로 이동할 수 있습니다."
+            description = "로그인된 사용자의 홈 페이지 정보를 반환합니다."
     )
-    @ApiResponse(
-            responseCode = "200",
-            description = "홈 페이지로 이동"
-    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "홈 페이지 정보 반환 성공"),
+            @ApiResponse(responseCode = "401", description = "로그인 필요")
+    })
     @GetMapping("/home")
-    public ResponseEntity<String> homePage() {
-        return ResponseEntity.ok("홈으로 이동");
-    }
-//
-
-    @Operation(
-            summary = "마이 페이지로 이동",
-            description = "사용자를 마이 페이지로 리디렉션합니다. 로그인된 사용자만 마이 페이지로 이동할 수 있습니다."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "마이 페이지로 이동",
-                    content = @io.swagger.v3.oas.annotations.media.Content(mediaType = "application/json")
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "로그인 필요"
-            )
-    })
-    @GetMapping("/my-page")
-    public ResponseEntity<?> myPage(Authentication authentication) {
-        if (authentication != null && authentication.isAuthenticated()) {
-            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-            
-            return ResponseEntity.ok()
-                .body(Map.of(
-                    "email", userDetails.getEmail(),
-                    "name", userDetails.getName(),
-                    "profileImgUrl", userDetails.getProfileImgUrl(),
-                    "status", userDetails.getStatus()
-                ));
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-            .body(Map.of("message", "로그인이 필요합니다."));
-    }
-    
-    @Operation(summary = "프로필 이미지 업데이트")
-    @ApiResponses({
-      @ApiResponse(responseCode = "200", description = "프로필 이미지 업데이트 성공"),
-      @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-      @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
-    })
-    @PutMapping(value = "/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateProfileImage(
-      @RequestParam("file") MultipartFile file,
-      Authentication authentication) {
-        
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-              .body(Map.of(
-                "message", "로그인이 필요합니다.",
-                "status", "error"
-              ));
-        }
-        
-        try {
-            String email = authentication.getName();
-            User updatedUser = userService.updateProfileImage(email, file);
-            
-            return ResponseEntity.ok()
-              .body(Map.of(
-                "message", "프로필 이미지가 업데이트되었습니다.",
-                "status", "success",
-                "data", Map.of(
-                  "profileImgUrl", updatedUser.getProfileImgUrl()
-                )
-              ));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest()
-              .body(Map.of(
-                "message", e.getMessage(),
-                "status", "error"
-              ));
-        }
-    }
-    
-    // 사용자 정보 수정
-    @Operation(
-            summary = "사용자 정보 수정",
-            description = "로그인된 사용자의 정보를 수정합니다."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "정보 수정 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
-    })
-    @PutMapping("/update")
-    public ResponseEntity<?> updateUser(
-            @RequestBody UserUpdateDto updateDto,
-            Authentication authentication) {
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
-        
-        // 기존 정보와 비교하여 변경된 필드만 업데이트
-        if (updateDto.getName() == null) {
-            updateDto.setName(userDetails.getName());
-        }
-        
-        // 인증 확인
+    public ResponseEntity<?> homePage(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(
@@ -160,17 +63,79 @@ public class UserController {
                 ));
         }
 
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok()
+            .body(Map.of(
+                "status", "success",
+                "user", Map.of(
+                    "email", userDetails.getEmail(),
+                    "name", userDetails.getName(),
+                    "profileImgUrl", userDetails.getProfileImgUrl()
+                )
+            ));
+    }
+//
+
+    @Operation(
+            summary = "마이 페이지로 이동",
+            description = "로그인된 사용자의 상세 정보를 반환합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "사용자 정보 반환 성공"),
+            @ApiResponse(responseCode = "401", description = "로그인 필요")
+    })
+    @GetMapping("/my-page")
+    public ResponseEntity<?> myPage(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                    "message", "로그인이 필요합니다.",
+                    "status", "error"
+                ));
+        }
+
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+        return ResponseEntity.ok()
+            .body(Map.of(
+                "status", "success",
+                "user", Map.of(
+                    "email", userDetails.getEmail(),
+                    "name", userDetails.getName(),
+                    "profileImgUrl", userDetails.getProfileImgUrl(),
+                    "status", userDetails.getStatus()
+                )
+            ));
+    }
+    
+    @Operation(
+            summary = "사용자 정보 수정",
+            description = "로그인된 사용자의 정보(이름, 비밀번호, 프로필 이미지)를 수정합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "정보 수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "401", description = "인증되지 않은 사용자")
+    })
+    @PutMapping(value = "/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updateUser(
+            @RequestPart(value = "userUpdateDto") String userUpdateDtoJson,
+            @RequestPart(value = "profileImage", required = false) MultipartFile profileImage,
+            Authentication authentication) {
         try {
-            // 현재 로그인된 사용자의 이메일 가져오기
-            String email = authentication.getName();
+            // JSON 문자열을 DTO로 변환
+            ObjectMapper objectMapper = new ObjectMapper();
+            UserUpdateDto updateDto = objectMapper.readValue(userUpdateDtoJson, UserUpdateDto.class);
             
-            // 정보 수정
-            User updatedUser = userService.updateUser(
-                email,
-                updateDto.getNewPassword(),
-                updateDto.getName(),
-                updateDto.getProfileImgUrl()
-            );
+            if (authentication == null || !authentication.isAuthenticated()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of(
+                        "message", "로그인이 필요합니다.",
+                        "status", "error"
+                    ));
+            }
+
+            String email = authentication.getName();
+            User updatedUser = userService.updateUser(email, updateDto, profileImage);
 
             return ResponseEntity.ok()
                 .body(Map.of(
@@ -182,7 +147,7 @@ public class UserController {
                         "profileImgUrl", updatedUser.getProfileImgUrl()
                     )
                 ));
-        } catch (IllegalArgumentException e) {
+        } catch (Exception e) {
             return ResponseEntity.badRequest()
                 .body(Map.of(
                     "message", e.getMessage(),

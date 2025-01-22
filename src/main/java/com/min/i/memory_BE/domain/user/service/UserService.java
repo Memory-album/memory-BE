@@ -3,14 +3,14 @@ package com.min.i.memory_BE.domain.user.service;
 import com.min.i.memory_BE.domain.user.dto.JwtAuthenticationResponse;
 import com.min.i.memory_BE.domain.user.dto.PasswordResetDto;
 import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
+import com.min.i.memory_BE.domain.user.dto.UserUpdateDto;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.enums.UserStatus;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.domain.user.event.EmailVerificationEvent;
-import com.min.i.memory_BE.global.error.exception.S3Exception;
 import com.min.i.memory_BE.global.security.jwt.JwtTokenProvider;
+import com.min.i.memory_BE.global.service.S3Service;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -25,7 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import com.min.i.memory_BE.global.service.S3Service;
+
 import java.time.LocalDateTime;
 
 @Service
@@ -54,13 +54,14 @@ public class UserService {
         this.s3Service = s3Service;
     }
     
+    // 인증 관련 메서드
     public JwtAuthenticationResponse generateTokens(String email) {
         String token = jwtTokenProvider.generateToken(email);
         String refreshToken = jwtTokenProvider.generateRefreshToken(email);
         return new JwtAuthenticationResponse(token, refreshToken);
     }
     
-    // verifyEmail 메서드에서 signWith 부분 수정
+    // 이메일 인증 관련 메서드
     public String verifyEmail(String jwtToken, String inputVerificationCode) {
         try {
             Claims claims = validateRegistrationToken(jwtToken);
@@ -74,7 +75,7 @@ public class UserService {
                   .claim("emailVerificationCode", verificationCode)
                   .claim("expirationTime", expirationTime.toString())
                   .claim("isEmailVerified", true)
-                  .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS512)  // 수정된 부분
+                  .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS512)
                   .compact();
             }
             return null;
@@ -84,7 +85,146 @@ public class UserService {
         }
     }
     
-    // 비밀번호 재설정 관련 메서드들 추가
+    // 회원가입 완료
+    @Transactional
+    public void completeRegister(UserRegisterDto userRegisterDto, MultipartFile profileImage, String jwtToken) {
+        try {
+            Claims claims = validateRegistrationToken(jwtToken);
+            String email = claims.get("email", String.class);
+            Boolean isEmailVerified = claims.get("isEmailVerified", Boolean.class);
+            
+            if (!isEmailVerified) {
+                throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
+            }
+            
+            if (userRepository.findByEmail(email).isPresent()) {
+                throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+            }
+            
+            User newUser = User.builder()
+              .email(email)
+              .password(passwordEncoder.encode(userRegisterDto.getPassword()))
+              .name(userRegisterDto.getName())
+              .emailVerified(true)
+              .loginAttempts(0)
+              .accountLocked(false)
+              .lastLoginAttempt(LocalDateTime.now())
+              .status(UserStatus.ACTIVE)
+              .build();
+            
+            if (profileImage != null && !profileImage.isEmpty()) {
+                String imageUrl = s3Service.uploadProfileImage(profileImage, email);
+                newUser = newUser.toBuilder()
+                  .profileImgUrl(imageUrl)
+                  .build();
+            }
+            
+            User savedUser = userRepository.save(newUser);
+            
+            eventPublisher.publishEvent(new EmailVerificationEvent(
+              email,
+              savedUser.getName(),
+              EmailVerificationEvent.EventType.WELCOME
+            ));
+        } catch (JwtException e) {
+            throw new IllegalArgumentException("유효하지 않은 인증 토큰입니다.");
+        }
+    }
+    
+    // 사용자 조회 및 계정 잠금 관련 메서드
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+    
+    public boolean isAccountLocked(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return false;
+        }
+        
+        if (user.isAccountLocked() && user.getLockedUntil() != null && LocalDateTime.now().isAfter(user.getLockedUntil())) {
+            unlockAccount(email);
+            return false;
+        }
+        
+        return user.isAccountLocked();
+    }
+    
+    public int incrementLoginAttempts(String email) {
+        return userRepository.findByEmail(email)
+          .map(existingUser -> {
+              int newAttempts = existingUser.getLoginAttempts() + 1;
+              
+              User updatedUser = existingUser.toBuilder()
+                .id(existingUser.getId())
+                .loginAttempts(newAttempts)
+                .lastLoginAttempt(LocalDateTime.now())
+                .accountLocked(newAttempts >= 5)
+                .lockedUntil(newAttempts >= 5 ? LocalDateTime.now().plusMinutes(30) : existingUser.getLockedUntil())
+                .build();
+              
+              updatedUser.setCreatedAt(existingUser.getCreatedAt());
+              updatedUser.setUpdatedAt(LocalDateTime.now());
+              
+              userRepository.save(updatedUser);
+              return newAttempts;
+          })
+          .orElse(0);
+    }
+    
+    public void unlockAccount(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user != null) {
+            User unlockedUser = user.toBuilder()
+              .accountLocked(false)
+              .loginAttempts(0)
+              .lockedUntil(null)
+              .build();
+            
+            unlockedUser.setCreatedAt(user.getCreatedAt());
+            unlockedUser.setUpdatedAt(LocalDateTime.now());
+            
+            userRepository.save(unlockedUser);
+        }
+    }
+    
+    // 사용자 정보 수정 관련 메서드
+    @Transactional
+    public User updateUser(String email, UserUpdateDto updateDto, MultipartFile profileImage) {
+        User user = userRepository.findByEmail(email)
+          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        
+        if (updateDto.getNewPassword() != null &&
+          passwordEncoder.matches(updateDto.getNewPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("새 비밀번호는 현재 비밀번호와 달라야 합니다.");
+        }
+        
+        String profileImgUrl = user.getProfileImgUrl();
+        if (profileImage != null && !profileImage.isEmpty()) {
+            profileImgUrl = s3Service.updateProfileImage(
+              profileImage,
+              String.valueOf(user.getId()),
+              user.getProfileImgUrl()
+            );
+        }
+        
+        User updatedUser = user.toBuilder()
+          .password(updateDto.getNewPassword() != null ?
+            passwordEncoder.encode(updateDto.getNewPassword()) :
+            user.getPassword())
+          .name(updateDto.getName() != null ?
+            updateDto.getName() :
+            user.getName())
+          .profileImgUrl(profileImgUrl)
+          .build();
+        
+        updatedUser.setCreatedAt(user.getCreatedAt());
+        updatedUser.setUpdatedAt(LocalDateTime.now());
+        
+        return userRepository.save(updatedUser);
+    }
+    
+    // 비밀번호 재설정 관련 메서드
     public String requestPasswordReset(String email) {
         User user = userRepository.findByEmail(email)
           .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -149,146 +289,7 @@ public class UserService {
         userRepository.save(updatedUser);
     }
     
-    @Transactional
-    public void completeRegister(UserRegisterDto userRegisterDto, MultipartFile profileImage, String jwtToken) {
-        try {
-            Claims claims = validateRegistrationToken(jwtToken);
-            String email = claims.get("email", String.class);
-            Boolean isEmailVerified = claims.get("isEmailVerified", Boolean.class);
-            
-            if (!isEmailVerified) {
-                throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
-            }
-            
-            if (userRepository.findByEmail(email).isPresent()) {
-                throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-            }
-            
-            User newUser = User.builder()
-              .email(email)
-              .password(passwordEncoder.encode(userRegisterDto.getPassword()))
-              .name(userRegisterDto.getName())
-              .emailVerified(true)
-              .loginAttempts(0)
-              .accountLocked(false)
-              .lastLoginAttempt(LocalDateTime.now())
-              .status(UserStatus.ACTIVE)
-              .build();
-            
-            if (profileImage != null && !profileImage.isEmpty()) {
-                String imageUrl = s3Service.uploadProfileImage(profileImage, email);
-                newUser = newUser.toBuilder()
-                  .profileImgUrl(imageUrl)
-                  .build();
-            }
-            
-            User savedUser = userRepository.save(newUser);
-            
-            eventPublisher.publishEvent(new EmailVerificationEvent(
-              email,
-              savedUser.getName(),
-              EmailVerificationEvent.EventType.WELCOME
-            ));
-        } catch (JwtException e) {
-            throw new IllegalArgumentException("유효하지 않은 인증 토큰입니다.");
-        }
-    }
-    
-    public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email).orElse(null);
-    }
-    
-    public boolean isAccountLocked(String email) {
-        User user = getUserByEmail(email);
-        if (user == null) return false;
-        
-        if (user.isAccountLocked() && user.getLockedUntil() != null &&
-          LocalDateTime.now().isAfter(user.getLockedUntil())) {
-            unlockAccount(email);
-            return false;
-        }
-        
-        return user.isAccountLocked();
-    }
-    
-    public int incrementLoginAttempts(String email) {
-        return userRepository.findByEmail(email)
-          .map(user -> {
-              int newAttempts = user.getLoginAttempts() + 1;
-              User updatedUser = user.toBuilder()
-                .loginAttempts(newAttempts)
-                .lastLoginAttempt(LocalDateTime.now())
-                .accountLocked(newAttempts >= 5)
-                .lockedUntil(newAttempts >= 5 ? LocalDateTime.now().plusMinutes(30) : null)
-                .build();
-              
-              updatedUser.setCreatedAt(user.getCreatedAt());
-              updatedUser.setUpdatedAt(LocalDateTime.now());
-              
-              userRepository.save(updatedUser);
-              return newAttempts;
-          })
-          .orElse(0);
-    }
-    
-    public void unlockAccount(String email) {
-        userRepository.findByEmail(email).ifPresent(user -> {
-            User unlockedUser = user.toBuilder()
-              .accountLocked(false)
-              .loginAttempts(0)
-              .lockedUntil(null)
-              .build();
-            
-            unlockedUser.setCreatedAt(user.getCreatedAt());
-            unlockedUser.setUpdatedAt(LocalDateTime.now());
-            
-            userRepository.save(unlockedUser);
-        });
-    }
-    
-    @Transactional
-    public User updateUser(String email, String newPassword, String name, String profileImgUrl) {
-        User user = userRepository.findByEmail(email)
-          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        
-        User updatedUser = user.toBuilder()
-          .password(newPassword != null ? passwordEncoder.encode(newPassword) : user.getPassword())
-          .name(name != null ? name : user.getName())
-          .profileImgUrl(profileImgUrl != null ? profileImgUrl : user.getProfileImgUrl())
-          .build();
-        
-        updatedUser.setCreatedAt(user.getCreatedAt());
-        updatedUser.setUpdatedAt(LocalDateTime.now());
-        
-        return userRepository.save(updatedUser);
-    }
-    
-    @Transactional
-    public User updateProfileImage(String email, MultipartFile file) {
-        User user = userRepository.findByEmail(email)
-          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        
-        try {
-            if (user.getProfileImgUrl() != null && !user.getProfileImgUrl().isEmpty()) {
-                s3Service.deleteImage(user.getProfileImgUrl());
-            }
-            
-            String imageUrl = s3Service.uploadProfileImage(file, email);
-            
-            User updatedUser = user.toBuilder()
-              .profileImgUrl(imageUrl)
-              .build();
-            
-            updatedUser.setCreatedAt(user.getCreatedAt());
-            updatedUser.setUpdatedAt(LocalDateTime.now());
-            
-            return userRepository.save(updatedUser);
-        } catch (Exception e) {
-            logger.error("프로필 이미지 업데이트 실패", e);
-            throw new S3Exception("프로필 이미지 업데이트에 실패했습니다: " + e.getMessage());
-        }
-    }
-    
+    // 계정 상태 관리 메서드
     public void deactivateUser(String email) {
         User user = userRepository.findByEmail(email)
           .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
@@ -339,6 +340,7 @@ public class UserService {
         userRepository.delete(user);
     }
     
+    // 유틸리티 메서드
     private Claims validateRegistrationToken(String token) {
         return Jwts.parserBuilder()
           .setSigningKey(secretKey.getBytes())
