@@ -1,4 +1,4 @@
-package com.min.i.memory_BE.domain.user.service;
+package com.min.i.memory_BE.global.security.jwt;
 
 import com.min.i.memory_BE.global.config.SecurityConfig;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -8,50 +8,60 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import jakarta.annotation.PostConstruct;
 
 @Component
 public class JwtTokenProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(SecurityConfig.class);
 
-    private final Key secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+    @Value("${jwt.secret}")
+    private String secretKeyString;
+    
+    private Key secretKey;
+    
+    @PostConstruct
+    public void init() {
+        byte[] keyBytes = secretKeyString.getBytes();
+        this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+    }
 
     private final long EXPIRATION_TIME = 86400000; // 24시간
     private final long REFRESH_EXPIRATION_TIME = 2592000000L; // 30일
 
     // JWT 토큰 생성
-    public String generateToken(String username) {
+    public String generateToken(String email) {
         String token = Jwts.builder()
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
-
-        logger.debug("생성된 JWT Token: {}", token); // Token 생성 로그 추가
 
         return token;
     }
 
     // Refresh Token 생성
-    public String generateRefreshToken(String username) {
+    public String generateRefreshToken(String email) {
         return Jwts.builder()
-                .setSubject(username)
+                .setSubject(email)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION_TIME))
-                .signWith(SignatureAlgorithm.HS512, secretKey)
+                .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
     }
 
 
-    // JWT에서 사용자 이름 가져오기
-    public String getUsernameFromToken(String token) {
-        return Jwts.parser()
+    // JWT에서 이메일 가져오기
+    public String getEmailFromToken(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
+                .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
@@ -60,7 +70,10 @@ public class JwtTokenProvider {
     // 토큰 유효성 검사
     public boolean validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
+            Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException e) {
             logger.error("유효하지 않은 토큰입니다. (만료됨): {}. 이 토큰은 {} 시간 전에 만료되었습니다.",
@@ -75,7 +88,10 @@ public class JwtTokenProvider {
     // 리프레시 토큰 검사
     public boolean validateRefreshToken(String refreshToken) {
         try {
-            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(refreshToken);
+            Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(refreshToken);
             return true;
         } catch (ExpiredJwtException e) {
             logger.error("리프레시 토큰이 만료되었습니다: {}. 만료 시간: {}",

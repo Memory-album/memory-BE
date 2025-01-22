@@ -3,16 +3,14 @@ package com.min.i.memory_BE.domain.user.controller;
 import com.min.i.memory_BE.domain.user.dto.JwtAuthenticationResponse;
 import com.min.i.memory_BE.domain.user.dto.UserLoginDto;
 import com.min.i.memory_BE.domain.user.entity.User;
-import com.min.i.memory_BE.domain.user.service.JwtTokenProvider;
+import com.min.i.memory_BE.domain.user.enums.UserStatus;
 import com.min.i.memory_BE.domain.user.service.UserService;
+import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.config.SecurityConfig;
+import com.min.i.memory_BE.global.security.jwt.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,18 +19,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.CrossOrigin;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
+@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true") //응답 헤더에 자동으로 Access-Control-Allow-Credentials: true가 포함
 public class LoginController {
 
     @Autowired
@@ -47,116 +50,175 @@ public class LoginController {
     private UserService userService;
 
     @Operation(
-            summary = "로그인",
-            description = "사용자의 이메일과 비밀번호를 사용하여 로그인하고 JWT 토큰을 발급합니다."
+        summary = "로그인", 
+        description = "이메일과 비밀번호로 로그인합니다. 자동 로그인 옵션을 선택하면 리프레시 토큰의 유효기간이 30일로 설정됩니다."
     )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "로그인 성공",
-                    content = @Content(mediaType = "application/json")
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "로그인 실패 (잘못된 이메일 또는 비밀번호)"
-            ),
-            @ApiResponse(
-                    responseCode = "423",
-                    description = "계정 잠금 (로그인 시도 횟수 초과)"
-            )
+        @ApiResponse(
+            responseCode = "200", 
+            description = "로그인 성공. 응답에는 사용자 정보와 함께 JWT 토큰이 쿠키로 전달됩니다. " +
+                         "자동 로그인 선택 시 리프레시 토큰은 30일, 미선택 시 7일간 유효합니다."
+        ),
+        @ApiResponse(
+            responseCode = "401", 
+            description = "로그인 실패 (잘못된 이메일 또는 비밀번호)"
+        ),
+        @ApiResponse(
+            responseCode = "423", 
+            description = "계정이 잠김 (5회 이상 로그인 실패)"
+        )
     })
     @PostMapping("/login")
-    public ResponseEntity<String> login(@Parameter(description = "로그인에 필요한 사용자 이메일과 비밀번호")
-                                        @RequestBody UserLoginDto loginDto,
-                                        @Parameter(description = "HTTP 응답에 쿠키를 추가할 수 있도록 제공되는 HttpServletResponse 객체")
-                                        HttpServletResponse response) {
+    public ResponseEntity<?> login(@RequestBody UserLoginDto loginDto) {
         try {
+            // 이메일이 존재하는지 확인
+            User user = userService.getUserByEmail(loginDto.getEmail());
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("없는 이메일입니다.");
+            }
 
-            // 로그인 실패 횟수 체크 (예시) - Brute-force attack (무차별 대입 공격) 방지
+            // 로그인 실패 횟수 체크 - Brute-force attack (무차별 대입 공격) 방지
             if (userService.isAccountLocked(loginDto.getEmail())) {
                 // 계정 잠금 상태가 있고, 잠금 시간이 남아있다면 그 정보를 함께 반환
-                User user = userService.getUserByEmail(loginDto.getEmail());
                 LocalDateTime lockedUntil = user.getLockedUntil();
                 long minutesLeft = Duration.between(LocalDateTime.now(), lockedUntil).toMinutes();
 
                 return ResponseEntity.status(HttpStatus.LOCKED)
-                        .body("계정이 잠겼습니다. " + minutesLeft + "분 후에 다시 시도해 주세요. 현재 로그인 시도 횟수: " + user.getLoginAttempts() + "회");
+                        .body("계정이 잠겼습니다. " + minutesLeft + "분 후에 다시 시도해 주세요.");
             }
 
-            // 이메일과 비밀번호 검증
+            // 실제 인증 수행
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
+                new UsernamePasswordAuthenticationToken(
+                    loginDto.getEmail(), 
+                    loginDto.getPassword()
+                )
             );
 
-            // JWT 토큰 생성
+            CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
+
+            // 인증 성공 시 토큰 생성
             JwtAuthenticationResponse tokens = userService.generateTokens(loginDto.getEmail());
 
-            // JWT를 HttpOnly 쿠키에 저장 (ResponseCookie 사용)
+            // JWT 쿠키 설정
             ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", tokens.getAccessToken())
-                    .httpOnly(true)
-                    .secure(true)  // HTTPS에서만 유효
-                    .path("/")  // 쿠키가 유효한 경로
-                    .maxAge(60 * 60)  // 만료 시간 1시간
-                    .sameSite("Strict")  // CSRF 방지를 위한 SameSite 설정
-                    .build();
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(60 * 60) // 1시간
+                .sameSite("Strict")
+                .build();
 
             ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(60 * 60 * 24 * 7) // 7일
+                .sameSite("Strict")
+                .build();
+
+            // 자동 로그인 설정
+            if (loginDto.isRememberMe()) {
+                refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
                     .httpOnly(true)
                     .secure(true)
                     .path("/")
-                    .maxAge(60 * 60 * 24 * 30)
+                    .maxAge(60 * 60 * 24 * 30) // 30일
                     .sameSite("Strict")
                     .build();
+            }
 
-            // 쿠키에 추가
-            response.addHeader(HttpHeaders.SET_COOKIE, accessTokenCookie.toString());
-            response.addHeader(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString());
+            // 사용자 상태 확인
+            if (userDetails.getStatus() == UserStatus.INACTIVE) {
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                    .body(Map.of(
+                        "status", "warning",
+                        "message", "계정이 비활성화 상태입니다. 활성화가 필요합니다.",
+                        "user", Map.of(
+                            "email", userDetails.getEmail(),
+                            "name", userDetails.getName(),
+                            "profileImgUrl", userDetails.getProfileImgUrl(),
+                            "status", userDetails.getStatus()
+                        )
+                    ));
+            }
 
-            logger.debug("생성된 액세스 토큰: {}", tokens.getAccessToken());
-            logger.debug("생성된 리프레시 토큰: {}", tokens.getRefreshToken());
+            // 로그인 성공 시 로그인 시도 횟수 초기화
+            userService.unlockAccount(loginDto.getEmail());
 
-            return ResponseEntity.ok("로그인 성공");
+            return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .body(Map.of(
+                    "status", "success",
+                    "message", "로그인 성공",
+                    "user", Map.of(
+                        "email", userDetails.getEmail(),
+                        "name", userDetails.getName(),
+                        "profileImgUrl", userDetails.getProfileImgUrl()
+                    )
+                ));
 
-        } catch (Exception e) {
-            logger.error("로그인 실패: {}", e.getMessage());
-
-            // 로그인 실패 시 로그인 시도 횟수 증가
-            userService.incrementLoginAttempts(loginDto.getEmail());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인 실패");
+        } catch (BadCredentialsException e) {
+            // 로그인 실패 시 시도 횟수 증가
+            int attempts = userService.incrementLoginAttempts(loginDto.getEmail());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("비밀번호가 틀렸습니다. (로그인 시도 횟수: " + attempts + "/5)");
         }
     }
 
-    @Operation(
-            summary = "로그아웃",
-            description = "로그아웃을 수행하고 JWT 토큰이 저장된 쿠키를 삭제합니다."
-    )
-    @ApiResponse(
-            responseCode = "200",
-            description = "로그아웃 성공",
-            content = @Content(mediaType = "application/json")
-    )
+    @Operation(summary = "로그아웃", description = "현재 로그인된 사용자를 로그아웃합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "로그아웃 성공"),
+            @ApiResponse(responseCode = "401", description = "로그인되어 있지 않음")
+    })
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletResponse response) {
+    public ResponseEntity<?> logout(
+            @CookieValue(name = "jwtToken", required = false) String accessToken) {
+        if (accessToken == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                    "message", "이미 로그아웃 되었거나 로그인되어 있지 않습니다.",
+                    "status", "error"
+                ));
+        }
 
-        // 클라이언트가 JWT 쿠키를 삭제하도록 알림
-        Cookie cookie = new Cookie("jwtToken", null);
-        cookie.setHttpOnly(true); // 자바스크립트에서 접근 불가
-        cookie.setSecure(true); // HTTPS에서만 유효하도록 설정
-        cookie.setPath("/"); // 쿠키가 유효한 경로 설정
-        cookie.setMaxAge(0); // 쿠키 삭제
-        cookie.setComment("SameSite=Strict"); // CSRF 방지를 위한 SameSite 설정
+        // 토큰 검증
+        if (!jwtTokenProvider.validateToken(accessToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                    "message", "유효하지 않은 토큰입니다.",
+                    "status", "error"
+                ));
+        }
 
-        Cookie refreshCookie = new Cookie("refreshToken", null);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(true);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(0);
-        cookie.setComment("SameSite=Strict");
+        // JWT 쿠키 삭제
+        ResponseCookie deleteAccessTokenCookie = ResponseCookie.from("jwtToken", "")
+            .httpOnly(true)
+            .secure(true)
+            .path("/")
+            .maxAge(0)
+            .sameSite("Strict")
+            .build();
 
-        response.addCookie(cookie);
-        response.addCookie(refreshCookie);
+        ResponseCookie deleteRefreshTokenCookie = ResponseCookie.from("refreshToken", "")
+            .httpOnly(true)
+            .secure(true)
+            .path("/")
+            .maxAge(0)
+            .sameSite("Strict")
+            .build();
 
-        return ResponseEntity.ok("로그아웃 성공");
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, deleteAccessTokenCookie.toString())
+            .header(HttpHeaders.SET_COOKIE, deleteRefreshTokenCookie.toString())
+            .body(Map.of(
+                "message", "로그아웃 되었습니다.",
+                "status", "success"
+            ));
     }
 
     @Operation(
@@ -164,34 +226,46 @@ public class LoginController {
             description = "리프레시 토큰을 사용하여 새로운 액세스 토큰을 발급받습니다."
     )
     @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "새로운 액세스 토큰 발급 성공",
-                    content = @Content(mediaType = "application/json")
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "리프레시 토큰이 유효하지 않음"
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "서버 오류"
-            )
+            @ApiResponse(responseCode = "200", description = "새로운 액세스 토큰 발급 성공"),
+            @ApiResponse(responseCode = "401", description = "리프레시 토큰이 유효하지 않음"),
+            @ApiResponse(responseCode = "500", description = "서버 오류")
     })
     @PostMapping("/refresh")
-    public ResponseEntity<JwtAuthenticationResponse> refresh(@Parameter(description = "리프레시 토큰")
-                                                             @RequestBody String refreshToken) {
+    public ResponseEntity<?> refresh(
+            @CookieValue(name = "refreshToken", required = true) String refreshToken) {
         try {
             if (jwtTokenProvider.validateRefreshToken(refreshToken)) {
-                String username = jwtTokenProvider.getUsernameFromToken(refreshToken);
-                String newToken = jwtTokenProvider.generateToken(username);
-                return ResponseEntity.ok(new JwtAuthenticationResponse(newToken, refreshToken));
-            } else {
-                return ResponseEntity.status(401).body(null); // 리프레시 토큰이 유효하지 않으면 401 응답
+                String email = jwtTokenProvider.getEmailFromToken(refreshToken);
+                String newAccessToken = jwtTokenProvider.generateToken(email);
+
+                // 새로운 액세스 토큰을 쿠키에 설정
+                ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", newAccessToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .maxAge(60 * 60) // 1시간
+                    .sameSite("Strict")
+                    .build();
+
+                return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                    .body(Map.of(
+                        "message", "새로운 액세스 토큰이 발급되었습니다.",
+                        "status", "success"
+                    ));
             }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of(
+                    "message", "리프레시 토큰이 유효하지 않습니다.",
+                    "status", "error"
+                ));
         } catch (Exception e) {
             logger.error("리프레시 토큰 처리 중 오류 발생: {}", e.getMessage());
-            return ResponseEntity.status(500).body(null); // 서버 오류 처리
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of(
+                    "message", "토큰 갱신 중 오류가 발생했습니다.",
+                    "status", "error"
+                ));
         }
     }
 

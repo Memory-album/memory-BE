@@ -1,9 +1,21 @@
 spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      resolve-lazily: true
+      file-size-threshold: 0
+
   config:
     import:
       - classpath:application-db.yml
       - classpath:application-key.yml
+
   jpa:
+    defer-datasource-initialization: true
+    hibernate:
+      ddl-auto: create
     properties:
       hibernate:
         default_batch_fetch_size: 100
@@ -12,8 +24,18 @@ spring:
 
   security:
     user:
-      name: admin             # 기본 사용자 이름 설정
-      password: adminpassword  # 기본 비밀번호 설정 (운영 환경에서는 암호화된 비밀번호 사용하는 것이 좋음)
+      name: admin
+      password: adminpassword
+
+  mail:
+    host: smtp.gmail.com
+    port: 465
+    username: ${GMAIL_MAIL_USERNAME}
+    password: ${GMAIL_MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
 
 logging:
   level:
@@ -21,6 +43,46 @@ logging:
     org.hibernate.type: trace
     org.springframework.security: DEBUG
     com.min.i.memory_BE: DEBUG
+    com.min.i.memory_BE.global.service.S3Service: DEBUG
+    com.min.i.memory_BE.domain.user.service.UserService: DEBUG
+    com.amazonaws: DEBUG
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    groups-order: DESC
+    operationsSorter: method
+    disable-swagger-default-url: true
+  api-docs:
+    path: /v3/api-docs
+  show-actuator: true
+
+jwt:
+  secret: ${JWT_SECRET_KEY}
+
+naver:
+  oauth:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
+    redirect-uri: http://localhost:8080/oauth/callback?provider=naver
+    token-url: https://nid.naver.com/oauth2.0/token
+    auth-url: https://nid.naver.com/oauth2.0/authorize
+
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    token-url: https://kauth.kakao.com/oauth/token
+    auth-url: https://kauth.kakao.com/oauth/authorize
+    redirect-uri: http://localhost:8080/oauth/callback?provider=kakao
+
+google:
+  oauth:
+    client-id: ${GOOGLE_CLIENT_ID}
+    client-secret: ${GOOGLE_CLIENT_SECRET}
+    auth-url: https://accounts.google.com/o/oauth2/v2/auth
+    token-url: https://oauth2.googleapis.com/token
+    redirect-uri: http://localhost:8080/oauth/callback?provider=google
 
 ---
 spring.config.activate.on-profile: local
@@ -32,17 +94,22 @@ spring:
     password:
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: create
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+    defer-datasource-initialization: true
   h2:
     console:
       enabled: true
       path: /h2-console
       settings:
         web-allow-others: false
+  sql:
+    init:
+      mode: always
+      platform: h2
 
 ---
 spring.config.activate.on-profile: dev
@@ -63,72 +130,3 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     show-sql: true
-
-springdoc:
-  swagger-ui:
-    path: /swagger-ui.html
-    groups-order: DESC
-    operationsSorter: method
-    disable-swagger-default-url: true
-  api-docs:
-    path: /v3/api-docs
-  show-actuator: true
-
----
-
-spring:
-  mail:
-    host: smtp.naver.com
-    port: 465
-    username:  ${NAVER_MAIL_USERNAME} # 네이버 이메일 주소
-    password:  ${NAVER_MAIL_PASSWORD} # 이메일 비밀번호
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.ssl.enable: true
----
-spring:
-  mail:
-    host: smtp.gmail.com
-    port: 465
-    username: ${GMAIL_MAIL_USERNAME} # Gmail 이메일 주소
-    password: ${GMAIL_MAIL_PASSWORD} # Gmail 앱 비밀번호
-    protocol: smtp
-    properties:
-      mail.smtp.auth: true
-      mail.smtp.ssl.enable: true
-
----
-jwt:
-  secret: ${JWT_SECRET_KEY}
-
----
-naver:
-  oauth:
-    client-id: ${NAVER_CLIENT_ID}
-    client-secret: ${NAVER_CLIENT_SECRET}
-    redirect-uri: http://localhost:8080/oauth/callback?provider=naver
-    token-url: https://nid.naver.com/oauth2.0/token
-    auth-url: https://nid.naver.com/oauth2.0/authorize
-
----
-
-kakao:
-  oauth:
-    client-id: ${KAKAO_CLIENT_ID}
-    client-secret: ${KAKAO_CLIENT_SECRET}
-    token-url: https://kauth.kakao.com/oauth/token
-    auth-url: https://kauth.kakao.com/oauth/authorize
-    redirect-uri: http://localhost:8080/oauth/callback?provider=kakao
-
----
-
-google:
-  oauth:
-    client-id: ${GOOGLE_CLIENT_ID}
-    client-secret: ${GOOGLE_CLIENT_SECRET}
-    auth-url: https://accounts.google.com/o/oauth2/v2/auth
-    token-url: https://oauth2.googleapis.com/token
-    redirect-uri: http://localhost:8080/oauth/callback?provider=google
-
-
-

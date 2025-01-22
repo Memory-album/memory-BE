@@ -1,10 +1,9 @@
 package com.min.i.memory_BE.domain.group.dto.response;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.min.i.memory_BE.domain.group.entity.Group;
-import com.min.i.memory_BE.mock.dto.response.AlbumResponseDto.UserSimpleDto;
+import com.min.i.memory_BE.domain.group.entity.UserGroup;
+import com.min.i.memory_BE.domain.user.enums.UserGroupRole;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -16,26 +15,33 @@ public class GroupResponseDto {
   private String name;
   private String groupDescription;
   private String groupImageUrl;
+  private String inviteCode;
   private LocalDateTime createdAt;
-  private UserSimpleDto owner;
-  private List<UserSimpleDto> members;
   
+  private Long userGroupId;
+  private UserGroupRole role;
+  private String groupNickname;
+  private String groupProfileImgUrl;
+  private boolean notificationEnabled;
+  private Integer sortOrder;
+  private LocalDateTime lastVisitAt;
   
-  public static GroupResponseDto from(Group entity) {
+  public static GroupResponseDto from(Group group, UserGroup userGroup) {
     return GroupResponseDto.builder()
-      .id(entity.getId())
-      .name(entity.getName())
-      .groupDescription(entity.getGroupDescription())
-      .groupImageUrl(entity.getGroupImageUrl())
-      .createdAt(entity.getCreatedAt())
-      .build();
-  }
-  
-  public Group toEntity() {
-    return Group.builder()
-      .name(this.name)
-      .groupDescription(this.groupDescription)
-      .groupImageUrl(this.groupImageUrl)
+      .id(group.getId())
+      .name(group.getName())
+      .groupDescription(group.getGroupDescription())
+      .groupImageUrl(group.getGroupImageUrl())
+      .inviteCode(group.getInviteCode())
+      .createdAt(group.getCreatedAt())
+      // UserGroup 정보
+      .userGroupId(userGroup.getId())
+      .role(userGroup.getRole())
+      .groupNickname(userGroup.getGroupNickname())
+      .groupProfileImgUrl(userGroup.getGroupProfileImgUrl())
+      .notificationEnabled(userGroup.isNotificationEnabled())
+      .sortOrder(userGroup.getSortOrder())
+      .lastVisitAt(userGroup.getLastVisitAt())
       .build();
   }
 }

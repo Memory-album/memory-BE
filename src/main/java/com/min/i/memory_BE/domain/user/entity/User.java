@@ -61,8 +61,9 @@ public class User extends BaseEntity {
   private final List<UserGroup> userGroups = new ArrayList<>();
   
   @Builder(toBuilder = true)  // toBuilder 활성화
-  public User(String email, String password, String name, boolean emailVerified, String profileImgUrl, String emailVerificationCode,
+  public User(Long id, String email, String password, String name, boolean emailVerified, String profileImgUrl, String emailVerificationCode,
     LocalDateTime emailVerificationExpiredAt, int loginAttempts, boolean accountLocked, LocalDateTime lastLoginAttempt, LocalDateTime lockedUntil, UserStatus status) {
+    this.id = id;
     this.email = email;
     this.password = password;
     this.name = name;

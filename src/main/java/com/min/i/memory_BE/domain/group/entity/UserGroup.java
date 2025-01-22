@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
+import javax.swing.SortOrder;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -62,12 +63,14 @@ public class UserGroup extends BaseEntity {
   
   @Builder
   public UserGroup(User user, Group group, UserGroupRole role,
-    String groupNickname, String groupProfileImgUrl, boolean notificationEnabled) {
+    String groupNickname, String groupProfileImgUrl, boolean notificationEnabled,LocalDateTime lastVisitAt, Integer sortOrder) {
     this.user = user;
     this.group = group;
     this.role = role;
     this.groupNickname = groupNickname;
+    this.lastVisitAt = lastVisitAt;
     this.groupProfileImgUrl = groupProfileImgUrl;
     this.notificationEnabled = notificationEnabled;
+    this.sortOrder = sortOrder;
   }
 }

@@ -18,7 +18,27 @@ public class WebConfig implements WebMvcConfigurer {
             .allowedOrigins("http://localhost:3000")
             .allowedMethods("*")
             .allowedHeaders("*");
+
+    // 추가: /user/** 경로에도 CORS 허용
+    registry.addMapping("/register/**")
+            .allowedOrigins("http://localhost:3000")
+            .allowedMethods("*")
+            .allowedHeaders("*");
+
+    // 추가: /user/** 경로에도 CORS 허용
+    registry.addMapping("/auth/**")
+            .allowedOrigins("http://localhost:3000")
+            .allowedMethods("*")
+            .allowedHeaders("*");
+
+    // 추가: /user/** 경로에도 CORS 허용
+    registry.addMapping("/oauth/**")
+            .allowedOrigins("http://localhost:3000")
+            .allowedMethods("*")
+            .allowedHeaders("*");
   }
+
+
 
 
 }

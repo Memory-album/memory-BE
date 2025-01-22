@@ -7,7 +7,6 @@ public class UserRegisterDto {
     private String email;
     private String password;
     private String name;
-    private String profileImgUrl;
     private String emailVerificationCode; // 인증 코드
 }
 
