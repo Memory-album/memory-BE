@@ -70,7 +70,8 @@ public class SecurityConfig {
         "Content-Type",
         "Access-Control-Allow-Origin",
         "Access-Control-Allow-Credentials",
-        "X-Requested-With"
+        "X-Requested-With",
+        "Cookie"
       ));
       configuration.setExposedHeaders(Arrays.asList(
         "Authorization",
@@ -108,18 +109,19 @@ public class SecurityConfig {
                         "/register/send-verification-code",
                         "/register/verify-email",
                         "/register/complete-register",
-              "/user/password/reset-request",
-              "/user/password/verify-code",
-              "/user/password/reset",
+                        "/user/password/reset-request",
+                        "/user/password/verify-code",
+                        "/user/password/reset",
                         "/user/loginPage",
                         "/oauth/callback",
                         "/oauth/login",
                         "/auth/login",
-              "/api/v1/group/**"
+                        "/api/v1/group/**"
             ).permitAll()
             .requestMatchers("/user/update", "/user/delete",
               "/user/activate", "/user/deactivate",
-              "/auth/logout", "/oauth/logout").authenticated()
+              "/auth/logout", "/oauth/logout",
+              "/user/home").authenticated()
             .anyRequest().authenticated()
           )
           .logout(logout -> logout

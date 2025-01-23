@@ -17,18 +17,19 @@ public class WebConfig implements WebMvcConfigurer {
     registry.addMapping("/user/**")
             .allowedOrigins("http://localhost:3000")
             .allowedMethods("*")
+            .allowCredentials(true) // 쿠키 포함 요청 허용
             .allowedHeaders("*");
 
-    // 추가: /user/** 경로에도 CORS 허용
     registry.addMapping("/register/**")
             .allowedOrigins("http://localhost:3000")
             .allowedMethods("*")
+            .allowCredentials(true) // 쿠키 포함 요청 허용
             .allowedHeaders("*");
 
-    // 추가: /user/** 경로에도 CORS 허용
     registry.addMapping("/auth/**")
             .allowedOrigins("http://localhost:3000")
             .allowedMethods("*")
+            .allowCredentials(true) // 쿠키 포함 요청 허용
             .allowedHeaders("*");
 
     // 추가: /user/** 경로에도 CORS 허용
