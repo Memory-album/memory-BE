@@ -4,13 +4,16 @@ import com.min.i.memory_BE.domain.album.entity.Album;
 import com.min.i.memory_BE.domain.album.enums.AlbumTheme;
 import com.min.i.memory_BE.domain.album.service.AlbumService;
 import com.min.i.memory_BE.domain.album.dto.request.AlbumRequestDto;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/albums")
+@RequestMapping("/api/v1/albums")
+@Tag(name = "Group API", description = "그룹 관리 API")
 public class AlbumController {
     
     private final AlbumService albumService;
