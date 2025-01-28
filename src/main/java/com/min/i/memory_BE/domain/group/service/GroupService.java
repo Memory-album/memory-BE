@@ -1,5 +1,5 @@
 package com.min.i.memory_BE.domain.group.service;
-import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
+
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;
 import com.min.i.memory_BE.domain.group.entity.UserGroup;
@@ -27,28 +27,41 @@ public class GroupService {
   private final S3Service s3Service;
   
   @Transactional
-  public GroupResponseDto createGroup(GroupRequestDto.Create request, String email) {
+  public GroupResponseDto createGroup(String name, String groupDescription, MultipartFile groupImageUrl, String email) {
+    // 1. 사용자 조회
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new EntityNotFoundException("User not found"));
     
-    // 그룹 생성
+    // 2. 먼저 Group 엔티티를 생성하고 저장
     Group group = Group.builder()
-      .name(request.getName())
-      .groupDescription(request.getGroupDescription())
-      .groupImageUrl(request.getGroupImageUrl())
+      .name(name)
+      .groupDescription(groupDescription)
       .inviteCode(generateInviteCode())
       .inviteCodeExpiryAt(LocalDateTime.now().plusDays(7))
       .isInviteCodeActive(true)
       .build();
     
-    groupRepository.save(group);
+    Group savedGroup = groupRepository.save(group);
     
+    // 3. 이미지가 제공된 경우 S3에 업로드하고 URL 업데이트
+    String imageUrl = null;
+    if (groupImageUrl != null && !groupImageUrl.isEmpty()) {
+      try {
+        imageUrl = s3Service.uploadGroupImage(groupImageUrl, savedGroup.getId());
+        savedGroup.setGroupImageUrl(imageUrl);
+        savedGroup = groupRepository.save(savedGroup);
+      } catch (Exception e) {
+        throw new RuntimeException("Failed to upload group image", e);
+      }
+    }
+    
+    // 4. UserGroup 생성 및 저장
     Integer maxSortOrder = userGroupRepository.findMaxSortOrderByUser(user.getId());
     int nextSortOrder = (maxSortOrder != null) ? maxSortOrder + 1 : 1;
     
     UserGroup userGroup = UserGroup.builder()
       .user(user)
-      .group(group)
+      .group(savedGroup)
       .role(UserGroupRole.OWNER)
       .groupNickname(user.getName())
       .groupProfileImgUrl(user.getProfileImgUrl())
@@ -59,7 +72,7 @@ public class GroupService {
     
     UserGroup savedUserGroup = userGroupRepository.save(userGroup);
     
-    return GroupResponseDto.from(group, savedUserGroup);
+    return GroupResponseDto.from(savedGroup, savedUserGroup);
   }
   
   private String generateInviteCode() {
@@ -68,40 +81,32 @@ public class GroupService {
   
   @Transactional
   public GroupResponseDto updateGroupImage(Long groupId, MultipartFile file, String email) {
-    // 1. 그룹과 사용자 조회
+    // 그룹과 사용자 조회
     Group group = groupRepository.findById(groupId)
       .orElseThrow(() -> new EntityNotFoundException("Group not found"));
     
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new EntityNotFoundException("User not found"));
     
-    // 2. 권한 체크 (그룹 멤버인지)
+    // 권한 체크 (그룹 멤버인지)
     UserGroup userGroup = userGroupRepository.findByUserAndGroup(user, group)
       .orElseThrow(() -> new IllegalArgumentException("Not a member of this group"));
     
-    // 3. 이전 이미지 URL 저장 (삭제를 위해)
+    // 이전 이미지 URL 저장 (삭제를 위해)
     String oldImageUrl = group.getGroupImageUrl();
     
-    // 4. 새 이미지 업로드
-    String newImageUrl = s3Service.uploadGroupImage(file, groupId);
+    // 새 이미지 업로드
+    String newImageUrl = s3Service.uploadGroupImage(file, group.getId());
     
-    // 5. 그룹 정보 업데이트
-    Group updatedGroup = Group.builder()
-      .name(group.getName())
-      .groupDescription(group.getGroupDescription())
-      .groupImageUrl(newImageUrl)
-      .inviteCode(group.getInviteCode())
-      .inviteCodeExpiryAt(group.getInviteCodeExpiryAt())
-      .isInviteCodeActive(group.isInviteCodeActive())
-      .build();
+    // 그룹 정보 업데이트
+    group.setGroupImageUrl(newImageUrl);
+    groupRepository.save(group);
     
-    groupRepository.save(updatedGroup);
-    
-    // 6. 이전 이미지 삭제
+    // 이전 이미지 삭제
     if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
         s3Service.deleteImage(oldImageUrl);
     }
     
-    return GroupResponseDto.from(updatedGroup, userGroup);
+    return GroupResponseDto.from(group, userGroup);
   }
 }
