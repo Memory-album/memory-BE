@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/albums")
-@Tag(name = "Group API", description = "그룹 관리 API")
+@Tag(name = "Album API", description = "앨범 관리 API")
 public class AlbumController {
     
     private final AlbumService albumService;
