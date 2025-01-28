@@ -27,17 +27,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class RegisterController {
-  
+
   private final UserService userService;
   private final EmailService emailService;
   
   @Operation(summary = "이메일 인증 코드 발송")
-  @ApiResponses(value = {
+    @ApiResponses(value = {
     @ApiResponse(responseCode = "200", description = "인증 코드 전송 성공"),
     @ApiResponse(responseCode = "400", description = "잘못된 요청"),
     @ApiResponse(responseCode = "500", description = "서버 오류")
-  })
-  @PostMapping("/send-verification-code")
+    })
+    @PostMapping("/send-verification-code")
   public ResponseEntity<?> sendVerificationCode(
     @Parameter(description = "사용자 정보", required = true)
     @Valid @RequestBody UserRegisterDto userRegisterDto) {
@@ -51,7 +51,7 @@ public class RegisterController {
           ));
       }
       
-      String jwt = emailService.sendVerificationCode(userRegisterDto);
+        String jwt = emailService.sendVerificationCode(userRegisterDto);
       if (jwt == null) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
           .body(Map.of(
@@ -62,13 +62,13 @@ public class RegisterController {
       
       ResponseCookie jwtCookie = ResponseCookie.from("verificationToken", jwt)
         .httpOnly(true)
-        .secure(true)
+        .secure(false)
         .path("/")
         .maxAge(60 * 15) // 15분
-        .sameSite("Strict")
+        .sameSite("Lax")
         .build();
       
-      return ResponseEntity.ok()
+            return ResponseEntity.ok()
         .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
         .body(Map.of(
           "message", "인증 코드가 이메일로 전송되었습니다.",
@@ -86,12 +86,12 @@ public class RegisterController {
   }
   
   @Operation(summary = "이메일 인증 코드 확인")
-  @ApiResponses(value = {
+    @ApiResponses(value = {
     @ApiResponse(responseCode = "200", description = "인증 성공"),
     @ApiResponse(responseCode = "400", description = "잘못된 인증 코드"),
     @ApiResponse(responseCode = "500", description = "서버 오류")
-  })
-  @PostMapping("/verify-email")
+    })
+    @PostMapping("/verify-email")
   public ResponseEntity<?> verifyEmail(
     @Parameter(description = "인증 코드 정보", required = true)
     @Valid @RequestBody UserRegisterDto userRegisterDto,
@@ -108,10 +108,10 @@ public class RegisterController {
       
       ResponseCookie jwtCookie = ResponseCookie.from("verificationToken", newToken)
         .httpOnly(true)
-        .secure(true)
+        .secure(false)
         .path("/")
         .maxAge(60 * 15)
-        .sameSite("Strict")
+        .sameSite("Lax")
         .build();
       
       return ResponseEntity.ok()
@@ -138,7 +138,7 @@ public class RegisterController {
   }
   
   @Operation(summary = "회원가입 완료")
-  @ApiResponses(value = {
+    @ApiResponses(value = {
     @ApiResponse(responseCode = "200", description = "회원가입 성공"),
     @ApiResponse(responseCode = "400", description = "잘못된 요청"),
     @ApiResponse(responseCode = "500", description = "서버 오류")
@@ -158,10 +158,10 @@ public class RegisterController {
       
       ResponseCookie deleteCookie = ResponseCookie.from("verificationToken", "")
         .httpOnly(true)
-        .secure(true)
+        .secure(false)
         .path("/")
         .maxAge(0)
-        .sameSite("Strict")
+        .sameSite("Lax")
         .build();
       
       return ResponseEntity.ok()
