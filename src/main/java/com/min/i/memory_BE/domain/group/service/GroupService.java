@@ -113,17 +113,6 @@ public class GroupService {
     return GroupResponseDto.from(group, userGroup);
   }
   
-  public List<GroupResponseDto> getGroups(String email) {
-    User user = userRepository.findByEmail(email)
-      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
-    
-    List<UserGroup> userGroups = userGroupRepository.findByUser(user);
-    
-    return userGroups.stream()
-      .map(userGroup -> GroupResponseDto.from(userGroup.getGroup(), userGroup))
-      .collect(Collectors.toList());
-  }
-  
   @Transactional(readOnly = true)
   public List<GroupListResponseDto> getMyGroups(String email) {
     User user = userRepository.findByEmail(email)

@@ -57,15 +57,6 @@ public class GroupController {
     return ResponseEntity.ok(ApiResponse.success(response));
   }
   
-  @GetMapping
-  @Operation(summary = "사용자의 모든 그룹 조회")
-  public ResponseEntity<ApiResponse<List<GroupResponseDto>>> getGroups(
-    @AuthenticationPrincipal CustomUserDetails userDetails
-  ) {
-    List<GroupResponseDto> response = groupService.getGroups(userDetails.getEmail());
-    return ResponseEntity.ok(ApiResponse.success(response));
-  }
-  
   @Operation(summary = "내가 속한 그룹 목록 조회")
   @GetMapping("/my-groups")
   public ResponseEntity<ApiResponse<List<GroupListResponseDto>>> getMyGroups(
