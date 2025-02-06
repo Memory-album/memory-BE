@@ -2,15 +2,18 @@ package com.min.i.memory_BE.domain.group.controller;
 
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.service.GroupService;
+import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -52,6 +55,16 @@ public class GroupController {
     @AuthenticationPrincipal String email
   ) {
     GroupResponseDto response = groupService.updateGroupImage(groupId, file, email);
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+  
+  @Operation(summary = "그룹 상세 조회")
+  @GetMapping("/{groupId}")
+  public ResponseEntity<ApiResponse<GroupResponseDto>> getGroup(
+    @Parameter(description = "그룹 Id") @PathVariable Long groupId,
+    @AuthenticationPrincipal String email
+  ) {
+    GroupResponseDto response = groupService.getGroup(groupId, email);
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 }
