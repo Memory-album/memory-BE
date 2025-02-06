@@ -58,9 +58,12 @@ public class Group extends BaseEntity {
     this.inviteCodeExpiryAt = inviteCodeExpiryAt;
     this.isInviteCodeActive = isInviteCodeActive;
   }
-
-  public void setGroupImageUrl(String groupImageUrl) {
+  
+  public void update(String name, String groupDescription, String groupImageUrl) {
+    this.name = name;
+    this.groupDescription = groupDescription;
     this.groupImageUrl = groupImageUrl;
   }
+  
 }
 

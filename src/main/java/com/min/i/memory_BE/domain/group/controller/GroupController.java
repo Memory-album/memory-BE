@@ -1,5 +1,6 @@
 package com.min.i.memory_BE.domain.group.controller;
 
+import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.service.GroupService;
@@ -45,15 +46,22 @@ public class GroupController {
     );
     return ResponseEntity.ok(ApiResponse.success(response));
   }
-
-  @Operation(summary = "그룹 이미지 업로드/수정")
-  @PutMapping(value = "/{groupId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<ApiResponse<GroupResponseDto>> updateGroupImage(
+  
+  @Operation(summary = "그룹 정보 수정")
+  @PutMapping(value = "/{groupId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<ApiResponse<GroupResponseDto>> updateGroup(
     @Parameter(description = "그룹 ID") @PathVariable Long groupId,
-    @Parameter(description = "그룹 이미지 파일") @RequestPart("file") MultipartFile file,
-    @AuthenticationPrincipal String email
+    @Parameter(description = "그룹 이름") @RequestPart("name") String name,
+    @Parameter(description = "그룹 설명") @RequestPart(value = "groupDescription", required = false) String groupDescription,
+    @Parameter(description = "그룹 이미지") @RequestPart(value = "groupImage", required = false) MultipartFile groupImage,
+    @AuthenticationPrincipal CustomUserDetails userDetails
   ) {
-    GroupResponseDto response = groupService.updateGroupImage(groupId, file, email);
+    GroupRequestDto.Update request = GroupRequestDto.Update.builder()
+      .name(name)
+      .groupDescription(groupDescription)
+      .build();
+    
+    GroupResponseDto response = groupService.updateGroup(groupId, request, groupImage, userDetails.getEmail());
     return ResponseEntity.ok(ApiResponse.success(response));
   }
   
