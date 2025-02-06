@@ -1,15 +1,15 @@
 package com.min.i.memory_BE.domain.group.controller;
 
+import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.service.GroupService;
-import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -47,7 +47,6 @@ public class GroupController {
   }
 
   @Operation(summary = "그룹 이미지 업로드/수정")
-  
   @PutMapping(value = "/{groupId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseEntity<ApiResponse<GroupResponseDto>> updateGroupImage(
     @Parameter(description = "그룹 ID") @PathVariable Long groupId,
@@ -58,13 +57,21 @@ public class GroupController {
     return ResponseEntity.ok(ApiResponse.success(response));
   }
   
-  @Operation(summary = "그룹 상세 조회")
-  @GetMapping("/{groupId}")
-  public ResponseEntity<ApiResponse<GroupResponseDto>> getGroup(
-    @Parameter(description = "그룹 Id") @PathVariable Long groupId,
-    @AuthenticationPrincipal String email
+  @GetMapping
+  @Operation(summary = "사용자의 모든 그룹 조회")
+  public ResponseEntity<ApiResponse<List<GroupResponseDto>>> getGroups(
+    @AuthenticationPrincipal CustomUserDetails userDetails
   ) {
-    GroupResponseDto response = groupService.getGroup(groupId, email);
+    List<GroupResponseDto> response = groupService.getGroups(userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+  
+  @Operation(summary = "내가 속한 그룹 목록 조회")
+  @GetMapping("/my-groups")
+  public ResponseEntity<ApiResponse<List<GroupListResponseDto>>> getMyGroups(
+    @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    List<GroupListResponseDto> response = groupService.getMyGroups(userDetails.getEmail());
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 }

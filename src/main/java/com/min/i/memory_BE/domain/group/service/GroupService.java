@@ -1,5 +1,6 @@
 package com.min.i.memory_BE.domain.group.service;
 
+import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;
 import com.min.i.memory_BE.domain.group.entity.UserGroup;
@@ -10,6 +11,8 @@ import com.min.i.memory_BE.domain.user.enums.UserGroupRole;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.global.service.S3Service;
+import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -110,16 +113,26 @@ public class GroupService {
     return GroupResponseDto.from(group, userGroup);
   }
   
-  public GroupResponseDto getGroup(Long groupId, String email) {
+  public List<GroupResponseDto> getGroups(String email) {
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
     
-    Group group = groupRepository.findById(groupId)
-      .orElseThrow(() -> new EntityNotFoundException("그룹을 찾을 수 없습니다."));
+    List<UserGroup> userGroups = userGroupRepository.findByUser(user);
     
-    UserGroup userGroup = userGroupRepository.findByUserAndGroup(user, group)
-      .orElseThrow(() -> new EntityNotFoundException("해당 그룹에 속해있지 않습니다."));
+    return userGroups.stream()
+      .map(userGroup -> GroupResponseDto.from(userGroup.getGroup(), userGroup))
+      .collect(Collectors.toList());
+  }
+  
+  @Transactional(readOnly = true)
+  public List<GroupListResponseDto> getMyGroups(String email) {
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
     
-    return GroupResponseDto.from(group, userGroup);
+    List<UserGroup> userGroups = userGroupRepository.findByUser(user);
+    
+    return userGroups.stream()
+      .map(userGroup -> GroupListResponseDto.from(userGroup.getGroup()))
+      .collect(Collectors.toList());
   }
 }
