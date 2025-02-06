@@ -65,13 +65,12 @@ public class Album extends BaseEntity {
   
   @Builder
   public Album(String title, String description, String thumbnailUrl,
-    AlbumTheme theme, User user, Group group, AlbumVisibility visibility) {
+    AlbumTheme theme, User user, Group group) {
     this.title = title;
     this.description = description;
     this.thumbnailUrl = thumbnailUrl;
     this.theme = theme;
     this.user = user;
     this.group = group;
-    this.visibility = visibility;
   }
 }
