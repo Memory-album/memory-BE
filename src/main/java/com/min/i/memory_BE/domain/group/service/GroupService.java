@@ -1,6 +1,8 @@
 package com.min.i.memory_BE.domain.group.service;
 
+import com.min.i.memory_BE.domain.group.dto.request.GroupJoinRequestDto;
 import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
+import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;
@@ -116,5 +118,41 @@ public class GroupService {
     return userGroups.stream()
       .map(userGroup -> GroupListResponseDto.from(userGroup.getGroup()))
       .collect(Collectors.toList());
+  }
+  
+  @Transactional
+  public GroupJoinResponseDto joinGroup(GroupJoinRequestDto request, String email) {
+    Group group = groupRepository.findByActiveInviteCode(
+      request.getInviteCode(),
+      LocalDateTime.now()
+    ).orElseThrow(() -> new IllegalArgumentException("초대코드가 틀렸습니당"));
+    
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다.??"));
+    
+    if (userGroupRepository.existsByUserAndGroup(user, group)) {
+      throw new IllegalArgumentException("이미 이 그룹에 가입되어 있습니다.");
+    }
+    
+    Integer maxSortOrder = userGroupRepository.findMaxSortOrderByUser(user.getId());
+    int nextSortOrder = (maxSortOrder != null) ? maxSortOrder + 1 : 1;
+    
+    String nickname = request.getGroupNickname() != null ?
+      request.getGroupNickname() : user.getName();
+    
+    UserGroup userGroup = UserGroup.builder()
+      .user(user)
+      .group(group)
+      .role(UserGroupRole.MEMBER)
+      .groupNickname(nickname)
+      .groupProfileImgUrl(user.getProfileImgUrl())
+      .notificationEnabled(true)
+      .sortOrder(nextSortOrder)
+      .lastVisitAt(LocalDateTime.now())
+      .build();
+    
+    UserGroup savedUserGroup = userGroupRepository.save(userGroup);
+    return GroupJoinResponseDto.of(group.getId());
+    
   }
 }
