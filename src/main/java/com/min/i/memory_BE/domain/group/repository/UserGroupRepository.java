@@ -23,4 +23,9 @@ public interface UserGroupRepository extends JpaRepository<UserGroup, Long> {
   
   @Query("SELECT MAX(ug.sortOrder) FROM UserGroup ug WHERE ug.user.id = :userId")
   Integer findMaxSortOrderByUser(Long userId);
+  
+  @Query("SELECT ug FROM UserGroup ug WHERE ug.group.id = :groupId ORDER BY ug.sortOrder")
+  List<UserGroup> findByGroupIdOrderBySortOrder(Long groupId);
+  
+  long countByGroup(Group group);
 }

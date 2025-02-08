@@ -1,6 +1,8 @@
 package com.min.i.memory_BE.domain.group.controller;
 
+import com.min.i.memory_BE.domain.group.dto.request.GroupJoinRequestDto;
 import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
+import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.service.GroupService;
@@ -9,15 +11,18 @@ import com.min.i.memory_BE.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
@@ -73,5 +78,26 @@ public class GroupController {
     List<GroupListResponseDto> response = groupService.getMyGroups(userDetails.getEmail());
     return ResponseEntity.ok(ApiResponse.success(response));
   }
+  
+  @Operation(summary = "그룹 참여하기")
+  @PostMapping("/join")
+  public ResponseEntity<ApiResponse<GroupJoinResponseDto>> joinGroup(
+    @Valid @RequestBody GroupJoinRequestDto request,
+    @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    GroupJoinResponseDto response = groupService.joinGroup(request, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+  
+  @Operation(summary = "그룹 나가기")
+  @DeleteMapping("/{groupId}/leave")
+  public ResponseEntity<ApiResponse<Void>> leaveGroup(
+    @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+    @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    groupService.leaveGroup(groupId, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(null));
+  }
+  
 }
 

@@ -1,6 +1,8 @@
 package com.min.i.memory_BE.domain.group.service;
 
+import com.min.i.memory_BE.domain.group.dto.request.GroupJoinRequestDto;
 import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
+import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;
@@ -11,6 +13,7 @@ import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.enums.UserGroupRole;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
+import com.min.i.memory_BE.global.error.exception.GroupException;
 import com.min.i.memory_BE.global.service.S3Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,13 +28,15 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class GroupService {
+  
   private final GroupRepository groupRepository;
   private final UserGroupRepository userGroupRepository;
   private final UserRepository userRepository;
   private final S3Service s3Service;
   
   @Transactional
-  public GroupResponseDto createGroup(String name, String groupDescription, MultipartFile groupImageUrl, String email) {
+  public GroupResponseDto createGroup(String name, String groupDescription,
+    MultipartFile groupImageUrl, String email) {
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new EntityNotFoundException("User not found"));
     
@@ -117,4 +122,64 @@ public class GroupService {
       .map(userGroup -> GroupListResponseDto.from(userGroup.getGroup()))
       .collect(Collectors.toList());
   }
+  
+  @Transactional
+  public GroupJoinResponseDto joinGroup(GroupJoinRequestDto request, String email) {
+    Group group = groupRepository.findByActiveInviteCode(
+      request.getInviteCode(),
+      LocalDateTime.now()
+    ).orElseThrow(() -> new IllegalArgumentException("초대코드가 틀렸습니당"));
+    
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다.??"));
+    
+    if (userGroupRepository.existsByUserAndGroup(user, group)) {
+      throw new IllegalArgumentException("이미 이 그룹에 가입되어 있습니다.");
+    }
+    
+    Integer maxSortOrder = userGroupRepository.findMaxSortOrderByUser(user.getId());
+    int nextSortOrder = (maxSortOrder != null) ? maxSortOrder + 1 : 1;
+    
+    String nickname = request.getGroupNickname() != null ?
+      request.getGroupNickname() : user.getName();
+    
+    UserGroup userGroup = UserGroup.builder()
+      .user(user)
+      .group(group)
+      .role(UserGroupRole.MEMBER)
+      .groupNickname(nickname)
+      .groupProfileImgUrl(user.getProfileImgUrl())
+      .notificationEnabled(true)
+      .sortOrder(nextSortOrder)
+      .lastVisitAt(LocalDateTime.now())
+      .build();
+    
+    UserGroup savedUserGroup = userGroupRepository.save(userGroup);
+    return GroupJoinResponseDto.of(group.getId());
+    
+  }
+  
+  @Transactional
+  public void leaveGroup(Long groupId, String email) {
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+    
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(GroupException.GroupNotFoundException::new);
+    
+    UserGroup userGroup = userGroupRepository.findByUserAndGroup(user, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    
+    if (userGroup.getRole() == UserGroupRole.OWNER) {
+      throw new GroupException.OwnerCannotLeaveException();
+    }
+    
+    userGroupRepository.delete(userGroup);
+    
+    long remainingMembers = userGroupRepository.countByGroup(group);
+    if (remainingMembers == 0) {
+      groupRepository.delete(group);
+    }
+  }
+  
 }
