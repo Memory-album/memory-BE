@@ -13,6 +13,7 @@ import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.enums.UserGroupRole;
 import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
+import com.min.i.memory_BE.global.error.exception.GroupException;
 import com.min.i.memory_BE.global.service.S3Service;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,13 +28,15 @@ import org.springframework.web.multipart.MultipartFile;
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
 public class GroupService {
+  
   private final GroupRepository groupRepository;
   private final UserGroupRepository userGroupRepository;
   private final UserRepository userRepository;
   private final S3Service s3Service;
   
   @Transactional
-  public GroupResponseDto createGroup(String name, String groupDescription, MultipartFile groupImageUrl, String email) {
+  public GroupResponseDto createGroup(String name, String groupDescription,
+    MultipartFile groupImageUrl, String email) {
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new EntityNotFoundException("User not found"));
     
@@ -155,4 +158,28 @@ public class GroupService {
     return GroupJoinResponseDto.of(group.getId());
     
   }
+  
+  @Transactional
+  public void leaveGroup(Long groupId, String email) {
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+    
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(GroupException.GroupNotFoundException::new);
+    
+    UserGroup userGroup = userGroupRepository.findByUserAndGroup(user, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    
+    if (userGroup.getRole() == UserGroupRole.OWNER) {
+      throw new GroupException.OwnerCannotLeaveException();
+    }
+    
+    userGroupRepository.delete(userGroup);
+    
+    long remainingMembers = userGroupRepository.countByGroup(group);
+    if (remainingMembers == 0) {
+      groupRepository.delete(group);
+    }
+  }
+  
 }

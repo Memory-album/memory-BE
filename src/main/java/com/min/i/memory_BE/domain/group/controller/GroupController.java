@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -86,6 +87,16 @@ public class GroupController {
   ) {
     GroupJoinResponseDto response = groupService.joinGroup(request, userDetails.getEmail());
     return ResponseEntity.ok(ApiResponse.success(response));
+  }
+  
+  @Operation(summary = "그룹 나가기")
+  @DeleteMapping("/{groupId}/leave")
+  public ResponseEntity<ApiResponse<Void>> leaveGroup(
+    @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+    @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    groupService.leaveGroup(groupId, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(null));
   }
   
 }
