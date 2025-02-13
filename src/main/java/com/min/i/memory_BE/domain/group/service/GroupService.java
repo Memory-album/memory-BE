@@ -183,6 +183,7 @@ public class GroupService {
     }
   }
   
+  @Transactional(readOnly = true)
   public List<UserGroup> getGroupMembers(Long groupId, String email) {
     User user = userRepository.findByEmail(email)
       .orElseThrow(() -> new EntityNotFoundException("유저가 아닙니다.."));
@@ -194,7 +195,31 @@ public class GroupService {
       throw new GroupException.NotGroupMemberException();
     }
     
-    return userGroupRepository.findByGroup(group);
+    return userGroupRepository.findByGroupWithUserAndGroup(group);
   }
   
+  @Transactional
+  public void removeMember(Long groupId, Long memberId, String email) {
+    User requester = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(GroupException.GroupNotFoundException::new);
+    
+    UserGroup targetMembership = userGroupRepository.findByUserIdAndGroupId(memberId, groupId)
+      .orElseThrow(GroupException.GroupMemberNotFoundException::new);
+    
+    UserGroup requesterMembership = userGroupRepository.findByUserAndGroup(requester, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    
+    if (requesterMembership.getRole() != UserGroupRole.OWNER) {
+      throw new GroupException.NotOwnerException();
+    }
+    
+    if (targetMembership.getRole() == UserGroupRole.OWNER) {
+      throw new GroupException.OwnerCannotBeRemovedException();
+    }
+    
+    userGroupRepository.delete(targetMembership);
+  }
 }

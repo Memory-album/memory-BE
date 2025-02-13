@@ -12,6 +12,7 @@ import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -114,6 +115,17 @@ public class GroupController {
       .collect(Collectors.toList());
     
     return ResponseEntity.ok(ApiResponse.success(response));
+  }
+  
+  @DeleteMapping("/{groupId}/members/{memberId}")
+  @Operation(summary = "그룹 멤버 삭제")
+  public ResponseEntity<ApiResponse<Void>> removeMember(
+    @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+    @Parameter(description = "삭제할 멤버 ID") @PathVariable Long memberId,
+    @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    groupService.removeMember(groupId, memberId, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(null));
   }
 }
 
