@@ -6,6 +6,7 @@ import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupMemberResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
+import com.min.i.memory_BE.domain.group.dto.response.GroupDetailResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;
 import com.min.i.memory_BE.domain.group.entity.UserGroup;
 import com.min.i.memory_BE.domain.group.repository.GroupRepository;
@@ -289,5 +290,22 @@ public class GroupService {
     } catch (NoSuchFieldException | IllegalAccessException e) {
       throw new RuntimeException("UserGroup role 업데이트에 실패했습니다.", e);
     }
+  }
+  
+  public GroupDetailResponseDto getGroupDetail(Long groupId, String email) {
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(() -> new IllegalArgumentException("그룹을 찾을 수 없습니다."));
+    
+    UserGroup myUserGroup = group.getUserGroups().stream()
+      .filter(ug -> ug.getUser().getEmail().equals(email))
+      .findFirst()
+      .orElseThrow(() -> new IllegalArgumentException("해당 그룹에 속해 있지 않습니다."));
+    
+    UserGroup ownerUserGroup = group.getUserGroups().stream()
+      .filter(ug -> ug.getRole() == UserGroupRole.OWNER)
+      .findFirst()
+      .orElseThrow(() -> new IllegalStateException("그룹 오너를 찾을 수 없습니다."));
+    
+    return GroupDetailResponseDto.from(group, myUserGroup, ownerUserGroup);
   }
 }
