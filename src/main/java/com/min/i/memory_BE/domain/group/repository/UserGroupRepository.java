@@ -17,6 +17,8 @@ public interface UserGroupRepository extends JpaRepository<UserGroup, Long> {
   
   List<UserGroup> findByGroupAndRole(Group group, UserGroupRole role);
   
+  void deleteByGroup(Group group);
+  
   boolean existsByUserAndGroup(User user, Group group);
   
   @Query("SELECT MAX(ug.sortOrder) FROM UserGroup ug WHERE ug.user.id = :userId")

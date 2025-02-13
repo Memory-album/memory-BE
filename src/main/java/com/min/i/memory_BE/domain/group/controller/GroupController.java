@@ -6,6 +6,7 @@ import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupMemberResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
+import com.min.i.memory_BE.domain.group.dto.response.GroupDetailResponseDto;
 import com.min.i.memory_BE.domain.group.entity.UserGroup;
 import com.min.i.memory_BE.domain.group.service.GroupService;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
@@ -146,5 +147,25 @@ public class GroupController {
     GroupResponseDto response = groupService.appointSenior(groupId, memberId, userDetails.getEmail());
     return ResponseEntity.ok(ApiResponse.success(response));
   }
+  
+  @Operation(summary = "그룹 상세 조회")
+  @GetMapping("/{groupId}")
+  public ResponseEntity<ApiResponse<GroupDetailResponseDto>> getGroupDetail(
+          @PathVariable Long groupId,
+          @AuthenticationPrincipal CustomUserDetails userDetails) {
+      GroupDetailResponseDto response = groupService.getGroupDetail(groupId, userDetails.getEmail());
+      return ResponseEntity.ok(ApiResponse.success(response));
+  }
+  
+  @Operation(summary = "그룹 삭제")
+  @DeleteMapping("/{groupId}")
+  public ResponseEntity<ApiResponse<Void>> deleteGroup(
+    @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+    @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    groupService.deleteGroup(groupId, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(null));
+  }
+  
 }
 
