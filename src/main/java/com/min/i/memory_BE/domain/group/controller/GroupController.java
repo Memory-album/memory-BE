@@ -4,7 +4,9 @@ import com.min.i.memory_BE.domain.group.dto.request.GroupJoinRequestDto;
 import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
+import com.min.i.memory_BE.domain.group.dto.response.GroupMemberResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
+import com.min.i.memory_BE.domain.group.entity.UserGroup;
 import com.min.i.memory_BE.domain.group.service.GroupService;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.response.ApiResponse;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -99,5 +102,18 @@ public class GroupController {
     return ResponseEntity.ok(ApiResponse.success(null));
   }
   
+  @Operation(summary = "그룹 멤버 목록 조회")
+  @GetMapping("/{groupId}/members")
+  public ResponseEntity<ApiResponse<List<GroupMemberResponseDto>>> getGroupMembers(
+    @PathVariable Long groupId,
+    @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    List<UserGroup> members = groupService.getGroupMembers(groupId, userDetails.getEmail());
+    List<GroupMemberResponseDto> response = members.stream()
+      .map(GroupMemberResponseDto::from)
+      .collect(Collectors.toList());
+    
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
 }
 

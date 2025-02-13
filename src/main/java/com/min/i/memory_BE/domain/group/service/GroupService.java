@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.group.dto.request.GroupJoinRequestDto;
 import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
+import com.min.i.memory_BE.domain.group.dto.response.GroupMemberResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;
 import com.min.i.memory_BE.domain.group.entity.UserGroup;
@@ -180,6 +181,20 @@ public class GroupService {
     if (remainingMembers == 0) {
       groupRepository.delete(group);
     }
+  }
+  
+  public List<UserGroup> getGroupMembers(Long groupId, String email) {
+    User user = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("유저가 아닙니다.."));
+    
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(GroupException.GroupNotFoundException::new);
+    
+    if (!userGroupRepository.existsByUserAndGroup(user, group)) {
+      throw new GroupException.NotGroupMemberException();
+    }
+    
+    return userGroupRepository.findByGroup(group);
   }
   
 }
