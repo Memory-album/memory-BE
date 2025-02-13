@@ -16,9 +16,12 @@ public enum ErrorCode {
   NOT_GROUP_MEMBER(400, "G002", "해당 그룹의 멤버가 아닙니다"),
   OWNER_CANNOT_LEAVE(400, "G003", "그룹 소유자는 먼저 다른 멤버에게 소유권을 이전해야 합니다"),
   GROUP_MEMBER_NOT_FOUND(404, "G004", "그룹 멤버를 찾을 수 없습니다"),
-  INVALID_GROUP_OPERATION(400, "G005", "잘못된 그룹 작업입니다");
+  INVALID_GROUP_OPERATION(400, "G005", "잘못된 그룹 작업입니다"),
+  NOT_GROUP_OWNER(403, "G006", "그룹 소유자 권한이 필요합니다"),
+  OWNER_CANNOT_BE_REMOVED(400, "G007", "그룹 소유자는 삭제할 수 없습니다");
   
   private final int status;
   private final String code;
   private final String message;
+  
 }
