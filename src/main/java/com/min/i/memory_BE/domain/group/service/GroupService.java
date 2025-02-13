@@ -16,6 +16,7 @@ import com.min.i.memory_BE.domain.user.repository.UserRepository;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.global.error.exception.GroupException;
 import com.min.i.memory_BE.global.service.S3Service;
+import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -201,7 +202,7 @@ public class GroupService {
   @Transactional
   public void removeMember(Long groupId, Long memberId, String email) {
     User requester = userRepository.findByEmail(email)
-      .orElseThrow(() -> new EntityNotFoundException("User not found"));
+      .orElseThrow(() -> new EntityNotFoundException("유저가 아니에요.."));
     
     Group group = groupRepository.findById(groupId)
       .orElseThrow(GroupException.GroupNotFoundException::new);
@@ -221,5 +222,72 @@ public class GroupService {
     }
     
     userGroupRepository.delete(targetMembership);
+  }
+  
+  @Transactional
+  public GroupResponseDto transferOwnership(Long groupId, Long newOwnerId, String currentUserEmail) {
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(() -> new EntityNotFoundException("그룹을 찾을 수 없습니다."));
+    
+    User currentUser = userRepository.findByEmail(currentUserEmail)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+    
+    UserGroup currentUserGroup = userGroupRepository.findByUserAndGroup(currentUser, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    if (!currentUserGroup.getRole().equals(UserGroupRole.OWNER)) {
+      throw new GroupException.NotOwnerException();
+    }
+    
+    if (newOwnerId.equals(currentUser.getId())) {
+      throw new IllegalArgumentException("새 오너는 현재 오너와 달라야 합니다.");
+    }
+    
+    User newOwner = userRepository.findById(newOwnerId)
+      .orElseThrow(() -> new EntityNotFoundException("새 오너 사용자를 찾을 수 없습니다."));
+    UserGroup newOwnerGroup = userGroupRepository.findByUserAndGroup(newOwner, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    
+    updateUserGroupRole(currentUserGroup, UserGroupRole.MEMBER);
+    updateUserGroupRole(newOwnerGroup, UserGroupRole.OWNER);
+    
+    return GroupResponseDto.from(group, newOwnerGroup);
+  }
+  
+  @Transactional
+  public GroupResponseDto appointSenior(Long groupId, Long memberId, String currentUserEmail) {
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(() -> new EntityNotFoundException("그룹을 찾을 수 없습니다."));
+    
+    User currentUser = userRepository.findByEmail(currentUserEmail)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+    
+    UserGroup currentUserGroup = userGroupRepository.findByUserAndGroup(currentUser, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    if (!currentUserGroup.getRole().equals(UserGroupRole.OWNER)) {
+      throw new GroupException.NotOwnerException();
+    }
+    
+    if (memberId.equals(currentUser.getId())) {
+      throw new IllegalArgumentException("오너는 본인을 시니어로 지정할 수 없습니다.");
+    }
+    
+    User member = userRepository.findById(memberId)
+      .orElseThrow(() -> new EntityNotFoundException("지정할 사용자를 찾을 수 없습니다."));
+    UserGroup memberGroup = userGroupRepository.findByUserAndGroup(member, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    
+    updateUserGroupRole(memberGroup, UserGroupRole.SENIOR);
+    
+    return GroupResponseDto.from(group, memberGroup);
+  }
+  
+  private void updateUserGroupRole(UserGroup userGroup, UserGroupRole role) {
+    try {
+      Field field = UserGroup.class.getDeclaredField("role");
+      field.setAccessible(true);
+      field.set(userGroup, role);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      throw new RuntimeException("UserGroup role 업데이트에 실패했습니다.", e);
+    }
   }
 }
