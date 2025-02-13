@@ -12,7 +12,6 @@ import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -126,6 +125,26 @@ public class GroupController {
   ) {
     groupService.removeMember(groupId, memberId, userDetails.getEmail());
     return ResponseEntity.ok(ApiResponse.success(null));
+  }
+  
+  @Operation(summary = "오너 위임 (소유권 이전): 현재 오너가 다른 구성원을 새 오너로 지정합니다.")
+  @PostMapping("/{groupId}/transfer-ownership/{newOwnerId}")
+  public ResponseEntity<ApiResponse<GroupResponseDto>> transferOwnership(
+    @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+    @Parameter(description = "새 오너의 사용자 ID") @PathVariable Long newOwnerId,
+    @AuthenticationPrincipal CustomUserDetails userDetails) {
+    GroupResponseDto response = groupService.transferOwnership(groupId, newOwnerId, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+  
+  @Operation(summary = "시니어 지정: 오너가 구성원을 시니어로 지정합니다.")
+  @PutMapping("/{groupId}/appoint-senior/{memberId}")
+  public ResponseEntity<ApiResponse<GroupResponseDto>> appointSenior(
+    @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+    @Parameter(description = "시니어로 지정할 구성원 사용자 ID") @PathVariable Long memberId,
+    @AuthenticationPrincipal CustomUserDetails userDetails) {
+    GroupResponseDto response = groupService.appointSenior(groupId, memberId, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(response));
   }
 }
 
