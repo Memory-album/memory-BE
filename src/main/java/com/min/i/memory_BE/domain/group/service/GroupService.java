@@ -308,4 +308,28 @@ public class GroupService {
     
     return GroupDetailResponseDto.from(group, myUserGroup, ownerUserGroup);
   }
+  
+  @Transactional
+  public void deleteGroup(Long groupId, String email) {
+    User owner = userRepository.findByEmail(email)
+      .orElseThrow(() -> new EntityNotFoundException("사용자를 찾을 수 없습니다."));
+    
+    Group group = groupRepository.findById(groupId)
+      .orElseThrow(GroupException.GroupNotFoundException::new);
+    
+    UserGroup userGroup = userGroupRepository.findByUserAndGroup(owner, group)
+      .orElseThrow(GroupException.NotGroupMemberException::new);
+    
+    if (userGroup.getRole() != UserGroupRole.OWNER) {
+      throw new GroupException.NotOwnerException();
+    }
+    
+    if (group.getGroupImageUrl() != null) {
+      s3Service.deleteImage(group.getGroupImageUrl());
+    }
+    
+    userGroupRepository.deleteByGroup(group);
+    groupRepository.delete(group);
+  }
+  
 }

@@ -156,5 +156,16 @@ public class GroupController {
       GroupDetailResponseDto response = groupService.getGroupDetail(groupId, userDetails.getEmail());
       return ResponseEntity.ok(ApiResponse.success(response));
   }
+  
+  @Operation(summary = "그룹 삭제")
+  @DeleteMapping("/{groupId}")
+  public ResponseEntity<ApiResponse<Void>> deleteGroup(
+    @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+    @AuthenticationPrincipal CustomUserDetails userDetails
+  ) {
+    groupService.deleteGroup(groupId, userDetails.getEmail());
+    return ResponseEntity.ok(ApiResponse.success(null));
+  }
+  
 }
 
