@@ -50,23 +50,23 @@ public class LoginController {
     private UserService userService;
 
     @Operation(
-        summary = "로그인", 
+            summary = "로그인",
         description = "이메일과 비밀번호로 로그인합니다. 자동 로그인 옵션을 선택하면 리프레시 토큰의 유효기간이 30일로 설정됩니다."
     )
     @ApiResponses(value = {
-        @ApiResponse(
-            responseCode = "200", 
+            @ApiResponse(
+                    responseCode = "200",
             description = "로그인 성공. 응답에는 사용자 정보와 함께 JWT 토큰이 쿠키로 전달됩니다. " +
                          "자동 로그인 선택 시 리프레시 토큰은 30일, 미선택 시 7일간 유효합니다."
-        ),
-        @ApiResponse(
-            responseCode = "401", 
-            description = "로그인 실패 (잘못된 이메일 또는 비밀번호)"
-        ),
-        @ApiResponse(
-            responseCode = "423", 
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "로그인 실패 (잘못된 이메일 또는 비밀번호)"
+            ),
+            @ApiResponse(
+                    responseCode = "423",
             description = "계정이 잠김 (5회 이상 로그인 실패)"
-        )
+            )
     })
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLoginDto loginDto) {
@@ -103,29 +103,29 @@ public class LoginController {
 
             // JWT 쿠키 설정
             ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", tokens.getAccessToken())
-                .httpOnly(true)
-                .secure(true)
+                    .httpOnly(true)
+                .secure(false)
                 .path("/")
                 .maxAge(60 * 60) // 1시간
-                .sameSite("Strict")
-                .build();
+                .sameSite("Lax")
+                    .build();
 
             ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
                 .httpOnly(true)
-                .secure(true)
+                .secure(false)
                 .path("/")
                 .maxAge(60 * 60 * 24 * 7) // 7일
-                .sameSite("Strict")
+                .sameSite("Lax")
                 .build();
 
             // 자동 로그인 설정
             if (loginDto.isRememberMe()) {
                 refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(false)
                     .path("/")
                     .maxAge(60 * 60 * 24 * 30) // 30일
-                    .sameSite("Strict")
+                    .sameSite("Lax")
                     .build();
             }
 
@@ -198,18 +198,18 @@ public class LoginController {
         // JWT 쿠키 삭제
         ResponseCookie deleteAccessTokenCookie = ResponseCookie.from("jwtToken", "")
             .httpOnly(true)
-            .secure(true)
+            .secure(false)
             .path("/")
             .maxAge(0)
-            .sameSite("Strict")
+            .sameSite("Lax")
             .build();
 
         ResponseCookie deleteRefreshTokenCookie = ResponseCookie.from("refreshToken", "")
             .httpOnly(true)
-            .secure(true)
+            .secure(false)
             .path("/")
             .maxAge(0)
-            .sameSite("Strict")
+            .sameSite("Lax")
             .build();
 
         return ResponseEntity.ok()
@@ -241,10 +241,10 @@ public class LoginController {
                 // 새로운 액세스 토큰을 쿠키에 설정
                 ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", newAccessToken)
                     .httpOnly(true)
-                    .secure(true)
+                    .secure(false)
                     .path("/")
                     .maxAge(60 * 60) // 1시간
-                    .sameSite("Strict")
+                    .sameSite("Lax")
                     .build();
 
                 return ResponseEntity.ok()

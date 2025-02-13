@@ -37,10 +37,10 @@ public class UserService {
     private final JwtTokenProvider jwtTokenProvider;
     private final ApplicationEventPublisher eventPublisher;
     private final S3Service s3Service;
-    
+
     @Value("${jwt.secret}")
     private String secretKey;
-    
+
     @Autowired
     public UserService(UserRepository userRepository,
       @Lazy PasswordEncoder passwordEncoder,
@@ -60,7 +60,7 @@ public class UserService {
         String refreshToken = jwtTokenProvider.generateRefreshToken(email);
         return new JwtAuthenticationResponse(token, refreshToken);
     }
-    
+
     // 이메일 인증 관련 메서드
     public String verifyEmail(String jwtToken, String inputVerificationCode) {
         try {
@@ -71,12 +71,12 @@ public class UserService {
             
             if (inputVerificationCode.equals(verificationCode) && LocalDateTime.now().isBefore(expirationTime)) {
                 return Jwts.builder()
-                  .claim("email", email)
-                  .claim("emailVerificationCode", verificationCode)
-                  .claim("expirationTime", expirationTime.toString())
+                        .claim("email", email)
+                        .claim("emailVerificationCode", verificationCode)
+                        .claim("expirationTime", expirationTime.toString())
                   .claim("isEmailVerified", true)
                   .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS512)
-                  .compact();
+                        .compact();
             }
             return null;
         } catch (Exception e) {
@@ -92,8 +92,8 @@ public class UserService {
             Claims claims = validateRegistrationToken(jwtToken);
             String email = claims.get("email", String.class);
             Boolean isEmailVerified = claims.get("isEmailVerified", Boolean.class);
-            
-            if (!isEmailVerified) {
+
+        if (!isEmailVerified) {
                 throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
             }
             
@@ -101,7 +101,7 @@ public class UserService {
                 throw new IllegalArgumentException("이미 가입된 이메일입니다.");
             }
             
-            User newUser = User.builder()
+        User newUser = User.builder()
               .email(email)
               .password(passwordEncoder.encode(userRegisterDto.getPassword()))
               .name(userRegisterDto.getName())
@@ -110,8 +110,8 @@ public class UserService {
               .accountLocked(false)
               .lastLoginAttempt(LocalDateTime.now())
               .status(UserStatus.ACTIVE)
-              .build();
-            
+                .build();
+
             if (profileImage != null && !profileImage.isEmpty()) {
                 String imageUrl = s3Service.uploadProfileImage(profileImage, email);
                 newUser = newUser.toBuilder()
@@ -135,21 +135,21 @@ public class UserService {
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email).orElse(null);
     }
-    
+
     public boolean isAccountLocked(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
         if (user == null) {
             return false;
         }
-        
+
         if (user.isAccountLocked() && user.getLockedUntil() != null && LocalDateTime.now().isAfter(user.getLockedUntil())) {
             unlockAccount(email);
             return false;
         }
-        
+
         return user.isAccountLocked();
     }
-    
+
     public int incrementLoginAttempts(String email) {
         return userRepository.findByEmail(email)
           .map(existingUser -> {
@@ -162,7 +162,7 @@ public class UserService {
                 .accountLocked(newAttempts >= 5)
                 .lockedUntil(newAttempts >= 5 ? LocalDateTime.now().plusMinutes(30) : existingUser.getLockedUntil())
                 .build();
-              
+
               updatedUser.setCreatedAt(existingUser.getCreatedAt());
               updatedUser.setUpdatedAt(LocalDateTime.now());
               
@@ -216,8 +216,8 @@ public class UserService {
             updateDto.getName() :
             user.getName())
           .profileImgUrl(profileImgUrl)
-          .build();
-        
+                    .build();
+
         updatedUser.setCreatedAt(user.getCreatedAt());
         updatedUser.setUpdatedAt(LocalDateTime.now());
         
@@ -277,8 +277,8 @@ public class UserService {
         }
         
         User user = userRepository.findByEmail(email)
-          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         User updatedUser = user.toBuilder()
           .password(passwordEncoder.encode(request.getNewPassword()))
           .build();
@@ -292,12 +292,12 @@ public class UserService {
     // 계정 상태 관리 메서드
     public void deactivateUser(String email) {
         User user = userRepository.findByEmail(email)
-          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         User updatedUser = user.toBuilder()
           .status(UserStatus.INACTIVE)
-          .build();
-        
+                .build();
+
         updatedUser.setCreatedAt(user.getCreatedAt());
         updatedUser.setUpdatedAt(LocalDateTime.now());
         
@@ -312,16 +312,16 @@ public class UserService {
     
     public void activateUser(String email) {
         User user = userRepository.findByEmail(email)
-          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-        
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         if (user.getStatus() != UserStatus.INACTIVE) {
             throw new IllegalArgumentException("비활성화된 계정만 활성화할 수 있습니다.");
         }
-        
+
         User updatedUser = user.toBuilder()
           .status(UserStatus.ACTIVE)
-          .build();
-        
+                .build();
+
         updatedUser.setCreatedAt(user.getCreatedAt());
         updatedUser.setUpdatedAt(LocalDateTime.now());
         
@@ -336,7 +336,7 @@ public class UserService {
     
     public void deleteUser(String email) {
         User user = userRepository.findByEmail(email)
-          .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
         userRepository.delete(user);
     }
     

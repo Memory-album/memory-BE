@@ -138,9 +138,9 @@ public class EmailService {
                 + "  .container { padding: 15px; }"
                 + "  .content { padding: 15px 10px; }"
                 + "}"
-                + "</style></head>"
-                + "<body>"
-                + "<div class='container'>"
+                    + "</style></head>"
+                    + "<body>"
+                    + "<div class='container'>"
                 + "<div class='header'><h2>Min:i 이메일 인증</h2></div>"
                 + "<div class='content'>"
                 + "<p>안녕하세요!</p>"
@@ -149,13 +149,13 @@ public class EmailService {
                 + "<p>위 인증 코드를 입력하여 이메일 인증을 완료해 주세요.</p>"
                 + "<p class='warning'>* 인증 코드는 발급 후 15분 동안만 유효합니다.</p>"
                 + "</div>"
-                + "<div class='footer'>"
+                    + "<div class='footer'>"
                 + "<p>본 메일은 발신 전용입니다.</p>"
                 + "<p>&copy; " + LocalDateTime.now().getYear() + " Min:i. All rights reserved.</p>"
-                + "</div>"
-                + "</div>"
-                + "</body>"
-                + "</html>";
+                    + "</div>"
+                    + "</div>"
+                    + "</body>"
+                    + "</html>";
     }
 
     // 인증 코드 생성

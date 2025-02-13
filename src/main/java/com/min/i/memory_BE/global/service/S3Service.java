@@ -200,4 +200,10 @@ public class S3Service {
   private String extractKeyFromUrl(String fileUrl) {
     return fileUrl.substring(fileUrl.indexOf(".com/") + 5);
   }
+
+  public String uploadThumbnail(MultipartFile file) {
+    // S3에 파일 업로드 로직 구현
+    // 업로드 후 파일의 URL 반환
+    return "uploaded_thumbnail_url"; // 실제 URL로 변경 필요
+  }
 }
