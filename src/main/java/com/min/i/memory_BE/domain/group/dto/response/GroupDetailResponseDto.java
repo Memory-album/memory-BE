@@ -16,6 +16,7 @@ public class GroupDetailResponseDto {
     private String groupImageUrl;
     private LocalDateTime createdAt;
     private Long userGroupId;
+    private String inviteCode;
     private UserGroupRole role;
     private String userName;
     private String groupProfileImgUrl;
@@ -23,6 +24,7 @@ public class GroupDetailResponseDto {
     private Integer sortOrder;
     private LocalDateTime lastVisitAt;
     private String ownerName;
+    private Long ownerUserId;
 
     public static GroupDetailResponseDto from(Group group, UserGroup myUserGroup, UserGroup ownerUserGroup) {
         return GroupDetailResponseDto.builder()
@@ -33,12 +35,14 @@ public class GroupDetailResponseDto {
             .createdAt(group.getCreatedAt())
             .userGroupId(myUserGroup.getId())
             .role(myUserGroup.getRole())
+            .inviteCode(group.getInviteCode())
             .userName(myUserGroup.getUser().getName())
             .groupProfileImgUrl(myUserGroup.getGroupProfileImgUrl())
             .notificationEnabled(myUserGroup.isNotificationEnabled())
             .sortOrder(myUserGroup.getSortOrder())
             .lastVisitAt(myUserGroup.getLastVisitAt())
             .ownerName(ownerUserGroup.getUser().getName())
+            .ownerUserId(ownerUserGroup.getUser().getId())
             .build();
     }
 } 
