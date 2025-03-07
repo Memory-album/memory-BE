@@ -47,6 +47,7 @@ public class Media extends BaseEntity {
   @Column(nullable = false)
   private Long fileSize;
   
+  @Column(columnDefinition = "TEXT")
   private String metadata;
   
   private String thumbnailUrl;
@@ -78,5 +79,21 @@ public class Media extends BaseEntity {
     this.album = album;
     this.page = page;
     this.uploadedBy = uploadedBy;
+  }
+  
+  /**
+   * AI 분석 결과 메타데이터를 저장합니다.
+   * @param analysisResultJson AI 서버에서 분석한 결과 JSON
+   */
+  public void setAnalysisResult(String analysisResultJson) {
+    this.metadata = analysisResultJson;
+  }
+  
+  /**
+   * 미디어에 키워드를 추가합니다.
+   * @param mediaKeyword 미디어 키워드 관계 엔티티
+   */
+  public void addMediaKeyword(MediaKeyword mediaKeyword) {
+    this.mediaKeywords.add(mediaKeyword);
   }
 }
