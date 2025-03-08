@@ -116,7 +116,8 @@ public class SecurityConfig {
                         "/oauth/callback",
                         "/oauth/login",
                         "/auth/login",
-                        "/api/v1/group/**"
+                        "/api/v1/group/**",
+                        "/api/v1/test/**"
             ).permitAll()
             .requestMatchers("/user/update", "/user/delete",
               "/user/activate", "/user/deactivate",

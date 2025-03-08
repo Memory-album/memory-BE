@@ -27,7 +27,7 @@ public class AlbumService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .thumbnailUrl(thumbnailUrl)
-                .theme(AlbumTheme.valueOf(request.getTheme().toUpperCase()))
+                .theme(request.getTheme())
                 .build();
         
         return albumRepository.save(album);
