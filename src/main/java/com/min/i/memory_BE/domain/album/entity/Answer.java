@@ -1,6 +1,5 @@
 package com.min.i.memory_BE.domain.album.entity;
 
-import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,24 +29,15 @@ public class Answer extends BaseEntity {
   private Question question;
   
   @Column(columnDefinition = "TEXT")
-  private String voiceText;
-  
-  @Column(columnDefinition = "TEXT")
-  private String finalStory;
-  
+  private String content;
+
   private boolean isPrivate = false;
   
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "created_by")
-  private User createdBy;
-  
   @Builder
-  public Answer(Question question, String voiceText, String finalStory,
-    boolean isPrivate, User createdBy) {
+  public Answer(Question question, String content,
+    boolean isPrivate) {
     this.question = question;
-    this.voiceText = voiceText;
-    this.finalStory = finalStory;
+    this.content = content;
     this.isPrivate = isPrivate;
-    this.createdBy = createdBy;
   }
 }

@@ -18,9 +18,11 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,11 +30,22 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "media")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Media extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+  
+  @Column(name = "image_url")
+  private String imageUrl;
+  
+  @Column(columnDefinition = "TEXT")
+  private String analysisResult;
+  
+  @Column(nullable = false)
+  private LocalDateTime createdAt;
   
   @Column(nullable = false)
   private String fileUrl;
@@ -47,6 +60,7 @@ public class Media extends BaseEntity {
   @Column(nullable = false)
   private Long fileSize;
   
+  @Column(columnDefinition = "TEXT")
   private String metadata;
   
   private String thumbnailUrl;
@@ -66,17 +80,40 @@ public class Media extends BaseEntity {
   @OneToMany(mappedBy = "media", cascade = CascadeType.ALL)
   private final List<MediaKeyword> mediaKeywords = new ArrayList<>();
   
-  @Builder
-  public Media(String fileUrl, MediaType fileType, String originalFilename, Long fileSize,
-    String metadata, String thumbnailUrl, Album album, AlbumPage page, User uploadedBy) {
+  public void setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
+  }
+  
+  public void setFileUrl(String fileUrl) {
     this.fileUrl = fileUrl;
+  }
+  
+  public void setFileType(MediaType fileType) {
     this.fileType = fileType;
+  }
+  
+  public void setOriginalFilename(String originalFilename) {
     this.originalFilename = originalFilename;
+  }
+  
+  public void setFileSize(Long fileSize) {
     this.fileSize = fileSize;
-    this.metadata = metadata;
-    this.thumbnailUrl = thumbnailUrl;
-    this.album = album;
-    this.page = page;
-    this.uploadedBy = uploadedBy;
+  }
+  
+  /**
+   * AI 분석 결과를 저장합니다.
+   * @param analysisResultJson AI 서버에서 분석한 결과 JSON
+   */
+  public void setAnalysisResult(String analysisResultJson) {
+    this.analysisResult = analysisResultJson;
+    this.metadata = analysisResultJson;
+  }
+  
+  /**
+   * 미디어에 키워드를 추가합니다.
+   * @param mediaKeyword 미디어 키워드 관계 엔티티
+   */
+  public void addMediaKeyword(MediaKeyword mediaKeyword) {
+    this.mediaKeywords.add(mediaKeyword);
   }
 }
