@@ -30,11 +30,11 @@ public class Answer extends BaseEntity {
   private Question question;
   
   @Column(columnDefinition = "TEXT")
-  private String voiceText;
+  private String content;
   
   @Column(columnDefinition = "TEXT")
   private String finalStory;
-  
+
   private boolean isPrivate = false;
   
   @ManyToOne(fetch = FetchType.LAZY)
@@ -42,10 +42,10 @@ public class Answer extends BaseEntity {
   private User createdBy;
   
   @Builder
-  public Answer(Question question, String voiceText, String finalStory,
+  public Answer(Question question, String content, String finalStory,
     boolean isPrivate, User createdBy) {
     this.question = question;
-    this.voiceText = voiceText;
+    this.content = content;
     this.finalStory = finalStory;
     this.isPrivate = isPrivate;
     this.createdBy = createdBy;

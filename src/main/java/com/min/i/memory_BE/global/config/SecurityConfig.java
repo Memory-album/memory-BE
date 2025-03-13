@@ -117,7 +117,8 @@ public class SecurityConfig {
                         "/oauth/login",
                         "/auth/login",
                         "/api/v1/group/**",
-                        "/api/v1/test/**"
+                        "/api/v1/test/**",
+                        "/api/v1/media/analysis/**",
             ).permitAll()
             .requestMatchers("/user/update", "/user/delete",
               "/user/activate", "/user/deactivate",
