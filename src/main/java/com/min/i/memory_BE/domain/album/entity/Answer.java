@@ -1,6 +1,5 @@
 package com.min.i.memory_BE.domain.album.entity;
 
-import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,7 +31,7 @@ public class Answer extends BaseEntity {
   @Column(columnDefinition = "TEXT")
   private String content;
 
-  private boolean isPrivate = false;;
+  private boolean isPrivate = false;
   
   @Builder
   public Answer(Question question, String content,
