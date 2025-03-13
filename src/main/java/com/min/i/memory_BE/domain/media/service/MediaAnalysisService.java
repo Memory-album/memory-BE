@@ -1,6 +1,7 @@
 package com.min.i.memory_BE.domain.media.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.min.i.memory_BE.domain.album.entity.Album;
 import com.min.i.memory_BE.domain.album.entity.Question;
 import com.min.i.memory_BE.domain.album.enums.QuestionTheme;
 import com.min.i.memory_BE.domain.album.repository.QuestionRepository;
@@ -11,12 +12,16 @@ import com.min.i.memory_BE.domain.media.enums.KeywordCategory;
 import com.min.i.memory_BE.domain.media.repository.KeywordRepository;
 import com.min.i.memory_BE.domain.media.repository.MediaKeywordRepository;
 import com.min.i.memory_BE.domain.media.repository.MediaRepository;
+import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
+import com.min.i.memory_BE.domain.media.client.FastApiClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,72 +38,116 @@ public class MediaAnalysisService {
     private final MediaKeywordRepository mediaKeywordRepository;
     private final QuestionRepository questionRepository;
     private final ObjectMapper objectMapper;
+    private final FastApiClient fastApiClient;
 
     /**
-     * AI 분석 결과를 처리합니다.
-     * @param mediaId 미디어 ID
-     * @param analysisResult AI 분석 결과 JSON
+     * 빈 미디어 엔티티 생성
      */
     @Transactional
-    public void processAnalysisResult(Long mediaId, String analysisResult) {
+    public Media createEmptyMedia() {
+        Media media = Media.builder()
+                .createdAt(LocalDateTime.now())
+                .fileSize(0L)
+                .fileUrl("")
+                .fileType(com.min.i.memory_BE.domain.media.enums.MediaType.IMAGE)
+                .originalFilename("empty")
+                .build();
+        return mediaRepository.save(media);
+    }
+    
+    /**
+     * 사용자와 앨범 정보를 포함한 미디어 엔티티 생성
+     */
+    @Transactional
+    public Media createEmptyMedia(User user, Album album) {
+        Media media = Media.builder()
+                .createdAt(LocalDateTime.now())
+                .uploadedBy(user)
+                .album(album)
+                .fileSize(0L)
+                .fileUrl("")
+                .fileType(com.min.i.memory_BE.domain.media.enums.MediaType.IMAGE)
+                .originalFilename("empty")
+                .build();
+        return mediaRepository.save(media);
+    }
+    
+    /**
+     * 미디어 엔티티 업데이트
+     */
+    @Transactional
+    public Media updateMedia(Media media) {
+        return mediaRepository.save(media);
+    }
+    
+    /**
+     * FastAPI로부터 받은 분석 결과 처리
+     */
+    @Transactional
+    public void processAnalysisResult(Long mediaId, Map<String, Object> analysisData) {
         try {
-            // 1. JSON 파싱
-            Map<String, Object> analysisMap = objectMapper.readValue(analysisResult, Map.class);
-            
-            // 2. 미디어 엔티티 조회
+            // 1. 미디어 엔티티 조회
             Media media = mediaRepository.findById(mediaId)
-                    .orElseThrow(() -> new EntityNotFoundException("미디어를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new EntityNotFoundException("미디어를 찾을 수 없습니다: " + mediaId));
             
-            // 3. 분석 결과 메타데이터 저장
-            media.setAnalysisResult(analysisResult);
+            // 2. 전체 분석 결과 저장
+            String analysisJson = objectMapper.writeValueAsString(analysisData);
+            media.setAnalysisResult(analysisJson);
             
-            // 4. 분석 결과에서 키워드 추출 및 저장
-            processKeywords(media, analysisMap);
+            // 3. 분석 결과에서 키워드 추출 및 저장
+            if (analysisData.containsKey("analysis_result")) {
+                Map<String, Object> analysisResult = (Map<String, Object>) analysisData.get("analysis_result");
+                processKeywordsFromAnalysisResult(media, analysisResult);
+            }
             
-            // 5. 분석 결과에서 질문 추출 및 저장
-            processQuestions(media, analysisMap);
+            // 4. 질문 처리
+            if (analysisData.containsKey("questions")) {
+                List<Map<String, Object>> questions = (List<Map<String, Object>>) analysisData.get("questions");
+                processQuestionsFromFastAPI(media, questions, analysisData);
+            }
+            
+            // 5. 미디어 엔티티 저장
+            mediaRepository.save(media);
+            
+            log.info("분석 결과 처리 완료: mediaId={}", mediaId);
             
         } catch (Exception e) {
-            log.error("AI 분석 결과 처리 중 오류 발생", e);
-            throw new RuntimeException("AI 분석 결과 처리 중 오류가 발생했습니다.", e);
+            log.error("분석 결과 처리 중 오류 발생", e);
+            throw new RuntimeException("분석 결과 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
     
     /**
-     * 분석 결과에서 키워드를 추출하여 저장합니다.
+     * FastAPI 분석 결과에서 키워드를 추출하여 저장합니다.
      */
-    private void processKeywords(Media media, Map<String, Object> analysisMap) {
-        if (analysisMap.containsKey("analysis_result")) {
-            Map<String, Object> result = (Map<String, Object>) analysisMap.get("analysis_result");
-            
-            // labels 처리
-            if (result.containsKey("labels")) {
-                List<Map<String, Object>> labels = (List<Map<String, Object>>) result.get("labels");
-                for (Map<String, Object> label : labels) {
-                    String description = (String) label.get("description");
-                    float score = ((Number) label.get("score")).floatValue();
-                    
-                    // 키워드 저장 또는 조회
-                    Keyword keyword = findOrCreateKeyword(description, KeywordCategory.OBJECT);
-                    
-                    // MediaKeyword 저장
-                    createMediaKeyword(media, keyword, score);
-                }
+    private void processKeywordsFromAnalysisResult(Media media, Map<String, Object> analysisResult) {
+        // labels 처리
+        if (analysisResult.containsKey("labels")) {
+            List<Map<String, Object>> labels = (List<Map<String, Object>>) analysisResult.get("labels");
+            for (Map<String, Object> label : labels) {
+                String description = (String) label.get("description");
+                float score = ((Number) label.get("score")).floatValue();
+                
+                // 키워드 저장 또는 조회
+                Keyword keyword = findOrCreateKeyword(description, determineCategory(description));
+                
+                // MediaKeyword 저장
+                createMediaKeyword(media, keyword, score);
             }
-            
-            // objects 처리
-            if (result.containsKey("objects")) {
-                List<Map<String, Object>> objects = (List<Map<String, Object>>) result.get("objects");
-                for (Map<String, Object> object : objects) {
-                    String name = (String) object.get("name");
-                    float score = ((Number) object.get("score")).floatValue();
-                    
-                    // 키워드 저장 또는 조회
-                    Keyword keyword = findOrCreateKeyword(name, KeywordCategory.OBJECT);
-                    
-                    // MediaKeyword 저장
-                    createMediaKeyword(media, keyword, score);
-                }
+        }
+        
+        // objects 처리
+        if (analysisResult.containsKey("objects")) {
+            List<Map<String, Object>> objects = (List<Map<String, Object>>) analysisResult.get("objects");
+            for (Map<String, Object> object : objects) {
+                String name = (String) object.get("name");
+                float score = ((Number) object.get("score")).floatValue();
+                
+                // 키워드 저장 또는 조회
+                Keyword keyword = findOrCreateKeyword(name, KeywordCategory.OBJECT);
+                
+                // MediaKeyword 저장
+                createMediaKeyword(media, keyword, score);
             }
         }
     }
@@ -138,47 +187,79 @@ public class MediaAnalysisService {
     }
     
     /**
-     * 분석 결과에서 질문을 추출하여 저장합니다.
+     * 키워드 카테고리를 결정합니다.
      */
-    private void processQuestions(Media media, Map<String, Object> analysisMap) {
-        if (analysisMap.containsKey("questions")) {
-            List<Map<String, Object>> questions = (List<Map<String, Object>>) analysisMap.get("questions");
-            List<String> keywordsUsed = new ArrayList<>();
+    private KeywordCategory determineCategory(String keyword) {
+        // 간단한 카테고리 결정 로직 (실제로는 더 복잡한 로직이 필요할 수 있음)
+        keyword = keyword.toLowerCase();
+        
+        if (keyword.contains("person") || keyword.contains("people") || keyword.contains("face")) {
+            return KeywordCategory.OBJECT;
+        } else if (keyword.contains("happy") || keyword.contains("sad") || keyword.contains("joy")) {
+            return KeywordCategory.EMOTION;
+        } else if (keyword.contains("walk") || keyword.contains("run") || keyword.contains("play")) {
+            return KeywordCategory.ACTION;
+        } else if (keyword.contains("park") || keyword.contains("house") || keyword.contains("school")) {
+            return KeywordCategory.PLACE;
+        } else if (keyword.contains("birthday") || keyword.contains("wedding") || keyword.contains("party")) {
+            return KeywordCategory.EVENT;
+        }
+        
+        return KeywordCategory.OBJECT; // 기본값
+    }
+    
+    /**
+     * FastAPI에서 받은 질문을 처리합니다.
+     */
+    private void processQuestionsFromFastAPI(Media media, List<Map<String, Object>> questions, Map<String, Object> analysisData) {
+        // 키워드 추출
+        List<String> keywordsUsed = extractKeywordsFromAnalysisResult(analysisData);
+        String keywordsStr = String.join(",", keywordsUsed);
+        
+        for (Map<String, Object> questionMap : questions) {
+            String content = (String) questionMap.get("question");
+            String category = (String) questionMap.get("category");
+            Integer level = (Integer) questionMap.get("level");
             
-            // 사용된 키워드 추출
-            if (analysisMap.containsKey("analysis_result") && 
-                ((Map<String, Object>) analysisMap.get("analysis_result")).containsKey("labels")) {
-                
-                List<Map<String, Object>> labels = (List<Map<String, Object>>) 
-                    ((Map<String, Object>) analysisMap.get("analysis_result")).get("labels");
+            // 질문 테마 결정
+            QuestionTheme theme = mapCategoryToTheme(category);
+            
+            // 질문 저장
+            Question question = Question.builder()
+                    .media(media)
+                    .content(content)
+                    .theme(theme)
+                    .isPrivate(false)
+                    .keywordsUsed(keywordsStr)
+                    .level(level)
+                    .category(category)
+                    .build();
+            
+            questionRepository.save(question);
+            log.info("질문 저장 완료: {}", content);
+        }
+    }
+    
+    /**
+     * 분석 결과에서 키워드를 추출합니다.
+     */
+    private List<String> extractKeywordsFromAnalysisResult(Map<String, Object> analysisData) {
+        List<String> keywordsUsed = new ArrayList<>();
+        
+        if (analysisData.containsKey("analysis_result")) {
+            Map<String, Object> analysisResult = (Map<String, Object>) analysisData.get("analysis_result");
+            
+            if (analysisResult.containsKey("labels")) {
+                List<Map<String, Object>> labels = (List<Map<String, Object>>) analysisResult.get("labels");
                 
                 for (Map<String, Object> label : labels) {
                     keywordsUsed.add((String) label.get("description"));
                     if (keywordsUsed.size() >= 5) break; // 최대 5개 키워드만 사용
                 }
             }
-            
-            String keywordsStr = String.join(",", keywordsUsed);
-            
-            for (Map<String, Object> questionMap : questions) {
-                String content = (String) questionMap.get("question");
-                String category = (String) questionMap.get("category");
-                
-                // 질문 테마 결정
-                QuestionTheme theme = mapCategoryToTheme(category);
-                
-                // 질문 저장
-                Question question = Question.builder()
-                        .media(media)
-                        .content(content)
-                        .theme(theme)
-                        .isPrivate(false)
-                        .keywordsUsed(keywordsStr)
-                        .build();
-                
-                questionRepository.save(question);
-            }
         }
+        
+        return keywordsUsed;
     }
     
     /**
@@ -193,6 +274,24 @@ public class MediaAnalysisService {
                 return QuestionTheme.COUPLE_STORY;
             default:
                 return QuestionTheme.SENIOR_CARE;
+        }
+    }
+
+    /**
+     * 이미지를 분석하고 결과를 저장합니다.
+     */
+    @Transactional
+    public void analyzeAndSaveImage(Long mediaId, MultipartFile image) {
+        try {
+            // 1. FastAPI 서버에 이미지 전송 및 분석 요청
+            Map<String, Object> analysisResult = fastApiClient.analyzeImage(image);
+            
+            // 2. 분석 결과 처리
+            processAnalysisResult(mediaId, analysisResult);
+            
+        } catch (Exception e) {
+            log.error("이미지 분석 중 오류 발생: mediaId={}", mediaId, e);
+            throw new RuntimeException("이미지 분석 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
 } 

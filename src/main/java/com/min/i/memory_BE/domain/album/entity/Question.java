@@ -47,16 +47,22 @@ public class Question extends BaseEntity {
   
   private String keywordsUsed;
   
+  private Integer level;
+  
+  private String category;
+  
   @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)
   private final List<Answer> answers = new ArrayList<>();
   
   @Builder
   public Question(Media media, String content, QuestionTheme theme,
-    boolean isPrivate, String keywordsUsed) {
+    boolean isPrivate, String keywordsUsed, Integer level, String category) {
     this.media = media;
     this.content = content;
     this.theme = theme;
     this.isPrivate = isPrivate;
     this.keywordsUsed = keywordsUsed;
+    this.level = level;
+    this.category = category;
   }
 }

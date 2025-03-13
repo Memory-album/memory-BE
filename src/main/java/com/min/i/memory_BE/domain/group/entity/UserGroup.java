@@ -16,7 +16,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
-import javax.swing.SortOrder;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
