@@ -419,17 +419,32 @@ public class UserController {
     @PutMapping("/password/reset")
     public ResponseEntity<?> resetPassword(
             @RequestBody PasswordResetDto request,
-            @Parameter(description = "Authorization 헤더에 포함된 JWT 토큰")
-            @RequestHeader("Authorization") String authorization) {
+            @CookieValue(name = "passwordResetToken", required = true) String jwtToken) {
         try {
-            // JWT 토큰 추출
-            String jwtToken = authorization.replace("Bearer ", "");
+            if (request.getEmail() == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "message", "이메일 정보가 필요합니다.",
+                    "status", "error"
+                ));
+            }
             
             userService.resetPassword(request, jwtToken);
-            return ResponseEntity.ok().body(Map.of(
-                "message", "비밀번호가 성공적으로 변경되었습니다.",
-                "status", "success"
-            ));
+            
+            // 비밀번호 재설정 후 쿠키 삭제
+            ResponseCookie deleteCookie = ResponseCookie.from("passwordResetToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+                
+            return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body(Map.of(
+                    "message", "비밀번호가 성공적으로 변경되었습니다.",
+                    "status", "success"
+                ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
                 "message", e.getMessage(),
