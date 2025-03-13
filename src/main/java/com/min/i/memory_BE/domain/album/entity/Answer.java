@@ -31,23 +31,14 @@ public class Answer extends BaseEntity {
   
   @Column(columnDefinition = "TEXT")
   private String content;
-  
-  @Column(columnDefinition = "TEXT")
-  private String finalStory;
 
-  private boolean isPrivate = false;
-  
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "created_by")
-  private User createdBy;
+  private boolean isPrivate = false;;
   
   @Builder
-  public Answer(Question question, String content, String finalStory,
-    boolean isPrivate, User createdBy) {
+  public Answer(Question question, String content,
+    boolean isPrivate) {
     this.question = question;
     this.content = content;
-    this.finalStory = finalStory;
     this.isPrivate = isPrivate;
-    this.createdBy = createdBy;
   }
 }
