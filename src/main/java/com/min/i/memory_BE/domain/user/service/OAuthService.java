@@ -114,22 +114,27 @@ public class OAuthService {
 
     public void handleCallback(OAuthProvider provider, String code, String state) {
         String accessToken;
+        Map<String, Object> userProfile;
+        
         switch (provider) {
             case NAVER:
                 accessToken = fetchAccessTokenForNaver(code, state);
-                fetchUserProfileForNaver(accessToken);
+                userProfile = fetchUserProfileForNaver(accessToken);
                 break;
             case KAKAO:
                 accessToken = fetchAccessTokenForKakao(code);
-                fetchUserProfileForKakao(accessToken);
+                userProfile = fetchUserProfileForKakao(accessToken);
                 break;
             case GOOGLE:
                 accessToken = fetchAccessTokenForGoogle(code);
-                fetchUserProfileForGoogle(accessToken);
+                userProfile = fetchUserProfileForGoogle(accessToken);
                 break;
             default:
                 throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
         }
+        
+        // 사용자 정보 저장 또는 업데이트
+        saveOrUpdateUser(userProfile, provider, accessToken);
     }
 
     private String fetchAccessTokenForNaver(String code, String state) {
@@ -216,22 +221,22 @@ public class OAuthService {
         return (String) responseBody.get("access_token");
     }
 
-    private void fetchUserProfileForNaver(String accessToken) {
+    private Map<String, Object> fetchUserProfileForNaver(String accessToken) {
         String profileUrl = "https://openapi.naver.com/v1/nid/me";
-        fetchAndSaveUserProfile(accessToken, profileUrl, OAuthProvider.NAVER);
+        return fetchUserProfile(accessToken, profileUrl);
     }
 
-    private void fetchUserProfileForKakao(String accessToken) {
+    private Map<String, Object> fetchUserProfileForKakao(String accessToken) {
         String profileUrl = "https://kapi.kakao.com/v2/user/me";
-        fetchAndSaveUserProfile(accessToken, profileUrl, OAuthProvider.KAKAO);
+        return fetchUserProfile(accessToken, profileUrl);
     }
 
-    private void fetchUserProfileForGoogle(String accessToken) {
+    private Map<String, Object> fetchUserProfileForGoogle(String accessToken) {
         String profileUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
-        fetchAndSaveUserProfile(accessToken, profileUrl, OAuthProvider.GOOGLE);
+        return fetchUserProfile(accessToken, profileUrl);
     }
 
-    private void fetchAndSaveUserProfile(String accessToken, String profileUrl, OAuthProvider provider) {
+    private Map<String, Object> fetchUserProfile(String accessToken, String profileUrl) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + accessToken);
@@ -247,10 +252,10 @@ public class OAuthService {
 
         Map<String, Object> userProfile = response.getBody();
         if (userProfile == null) {
-            throw new RuntimeException("Failed to fetch user profile for " + provider);
+            throw new RuntimeException("Failed to fetch user profile");
         }
-
-        saveOrUpdateUser(userProfile, provider, accessToken);
+        
+        return userProfile;
     }
 
     private void saveOrUpdateUser(Map<String, Object> userProfile, OAuthProvider provider, String accessToken) {
