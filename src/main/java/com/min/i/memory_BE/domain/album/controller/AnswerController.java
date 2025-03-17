@@ -64,5 +64,41 @@ public class AnswerController {
         }
     }
     
+    /**
+     * 음성 파일을 텍스트로 변환하는 테스트용 엔드포인트
+     */
+    @PostMapping("/speech-to-text")
+    public ResponseEntity<?> testSpeechToText(
+            @RequestParam("audioFile") MultipartFile audioFile) {
+        
+        try {
+            log.info("음성-텍스트 변환 테스트 요청: 파일={}, 크기={}", 
+                audioFile.getOriginalFilename(), 
+                audioFile.getSize());
+            
+            if (audioFile == null || audioFile.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "status", "error",
+                    "message", "음성 파일이 필요합니다."
+                ));
+            }
+            
+            String convertedText = answerService.getSpeechToTextService().convertSpeechToText(audioFile);
+            
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "음성이 성공적으로 텍스트로 변환되었습니다.",
+                "text", convertedText
+            ));
+            
+        } catch (Exception e) {
+            log.error("음성-텍스트 변환 중 오류 발생", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
+        }
+    }
+    
     // 기타 필요한 엔드포인트들...
 }

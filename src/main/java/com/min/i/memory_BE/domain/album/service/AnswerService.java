@@ -52,5 +52,12 @@ public class AnswerService {
         return answerRepository.save(answer);
     }
     
+    /**
+     * SpeechToTextService 인스턴스를 반환합니다.
+     */
+    public SpeechToTextService getSpeechToTextService() {
+        return speechToTextService;
+    }
+    
     // 기타 필요한 메서드들...
 }
