@@ -1,5 +1,6 @@
 package com.min.i.memory_BE.domain.album.entity;
 
+import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -28,15 +29,20 @@ public class Answer extends BaseEntity {
   @JoinColumn(name = "question_id")
   private Question question;
   
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id")
+  private User user;
+  
   @Column(columnDefinition = "TEXT")
   private String content;
 
   private boolean isPrivate = false;
   
   @Builder
-  public Answer(Question question, String content,
+  public Answer(Question question, User user, String content,
     boolean isPrivate) {
     this.question = question;
+    this.user = user;
     this.content = content;
     this.isPrivate = isPrivate;
   }
