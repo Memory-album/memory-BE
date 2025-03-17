@@ -44,3 +44,7 @@ application-key.yml
 
 #Google Cloud API Keys
 /src/main/resources/keys/
+/src/test/resources/keys/
+
+#Audio test files
+/mp4/
