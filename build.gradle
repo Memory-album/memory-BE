@@ -67,6 +67,9 @@ dependencies {
 
 	// SMTP
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
+
+	// Google Cloud Speech-to-Text
+	implementation 'com.google.cloud:google-cloud-speech:4.53.0'
 }
 
 tasks.named('test') {

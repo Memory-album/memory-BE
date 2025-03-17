@@ -41,3 +41,6 @@ application-db.yml
 
 #secret
 application-key.yml
+
+#Google Cloud API Keys
+/src/main/resources/keys/

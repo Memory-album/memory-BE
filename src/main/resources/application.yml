@@ -140,3 +140,9 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     show-sql: true
 
+# Google Cloud Speech 설정
+google:
+  speech:
+    language: ko-KR
+    credentials-file: classpath:keys/google-credentials.json
+
