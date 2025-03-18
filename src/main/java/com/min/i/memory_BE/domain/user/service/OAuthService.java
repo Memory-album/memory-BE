@@ -112,7 +112,7 @@ public class OAuthService {
         return UUID.randomUUID().toString();
     }
 
-    public void handleCallback(OAuthProvider provider, String code, String state) {
+    public String handleCallback(OAuthProvider provider, String code, String state) {
         String accessToken;
         Map<String, Object> userProfile;
         
@@ -134,7 +134,10 @@ public class OAuthService {
         }
         
         // 사용자 정보 저장 또는 업데이트
-        saveOrUpdateUser(userProfile, provider, accessToken);
+        User user = saveOrUpdateUser(userProfile, provider, accessToken);
+        
+        // 사용자 이메일 반환
+        return user.getEmail();
     }
 
     private String fetchAccessTokenForNaver(String code, String state) {
@@ -258,7 +261,7 @@ public class OAuthService {
         return userProfile;
     }
 
-    private void saveOrUpdateUser(Map<String, Object> userProfile, OAuthProvider provider, String accessToken) {
+    private User saveOrUpdateUser(Map<String, Object> userProfile, OAuthProvider provider, String accessToken) {
         String providerUserId;
         String email = null;
         String name;
@@ -307,26 +310,38 @@ public class OAuthService {
         }
 
         Optional<OAuthAccount> existingOAuthAccount = oAuthAccountRepository.findByProviderAndProviderUserId(provider, providerUserId);
+        User user;
 
         if (existingOAuthAccount.isPresent()) {
             OAuthAccount oauthAccount = existingOAuthAccount.get();
             oauthAccount.updateAccessToken(accessToken, LocalDateTime.now().plusHours(1));
             oAuthAccountRepository.save(oauthAccount);
+            user = oauthAccount.getUser();
+            System.out.println("기존 사용자 조회 성공: " + user.getEmail());
         } else {
-            final String finalEmail = email; // final 선언
+            final String finalEmail = email;
             final String finalName = name;
             final String finalProfileImgUrl = profileImgUrl;
 
-            User user = userRepository.findByEmail(email).orElseGet(() -> {
-                User newUser = User.builder()
+            // 이메일로 기존 사용자 찾기
+            Optional<User> existingUser = userRepository.findByEmail(finalEmail);
+            
+            if (existingUser.isPresent()) {
+                user = existingUser.get();
+                System.out.println("이메일로 기존 사용자 찾음: " + user.getEmail());
+            } else {
+                // 새 사용자 생성
+                user = User.builder()
                         .email(finalEmail)
                         .name(finalName)
                         .profileImgUrl(finalProfileImgUrl)
-                        .emailVerified(finalEmail != null && !finalEmail.isEmpty())
+                        .emailVerified(true) // OAuth 로그인의 경우 이메일이 이미 인증됨
                         .build();
-                return userRepository.save(newUser);
-            });
+                user = userRepository.save(user);
+                System.out.println("새 사용자 생성 완료: " + user.getEmail());
+            }
 
+            // OAuth 계정 정보 저장
             OAuthAccount newOAuthAccount = OAuthAccount.builder()
                     .user(user)
                     .provider(provider)
@@ -335,7 +350,16 @@ public class OAuthService {
                     .tokenExpiresAt(LocalDateTime.now().plusHours(1))
                     .build();
             oAuthAccountRepository.save(newOAuthAccount);
+            System.out.println("OAuth 계정 정보 저장 완료: " + provider + ", " + providerUserId);
         }
+        
+        // 최종 확인
+        final String userEmail = user.getEmail();
+        User savedUser = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("사용자 저장 실패: " + userEmail));
+        System.out.println("최종 사용자 확인: " + savedUser.getEmail());
+        
+        return savedUser;
     }
 }
 
