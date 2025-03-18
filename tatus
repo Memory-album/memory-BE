@@ -1,0 +1,18 @@
+[33mcommit 782990ca72ffc0a423ca0507c23f5e6311266c60[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32myj[m[33m, [m[1;31morigin/yj[m[33m)[m
+Author: ittnw39 <ittnw39@gmail.com>
+Date:   Tue Mar 18 14:44:21 2025 +0900
+
+    feat: Google Cloud Speech API를 활용한 음성-텍스트 변환 기능 구현
+
+[33mcommit af5e719fb9f4cf72669ac753f0f993e4f973275a[m
+Author: ittnw39 <ittnw39@gmail.com>
+Date:   Mon Mar 17 19:34:24 2025 +0900
+
+    feat: 음성-텍스트 변환 테스트용 API 엔드포인트 추가
+
+[33mcommit 2c09529d366eb923d80224a6a508a329e19982bc[m
+Merge: b9594a4 b041456
+Author: ittnw39 <ittnw39@gmail.com>
+Date:   Mon Mar 17 19:23:01 2025 +0900
+
+    feat: OAuth 로그인 후 홈 화면으로 리다이렉트
