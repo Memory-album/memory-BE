@@ -118,7 +118,8 @@ public class SecurityConfig {
                         "/auth/login",
                         "/api/v1/group/**",
                         "/api/v1/test/**",
-                        "/api/v1/media/analysis/**"
+                        "/api/v1/media/analysis/**",
+                        "/api/answers/speech-to-text"
             ).permitAll()
             .requestMatchers("/user/update", "/user/delete",
               "/user/activate", "/user/deactivate",
@@ -182,4 +183,8 @@ public class SecurityConfig {
         };
     }
 
+      @Bean(name = "multipartResolver")
+    public StandardServletMultipartResolver multipartResolver() {
+        return new StandardServletMultipartResolver();
+    }
 }
