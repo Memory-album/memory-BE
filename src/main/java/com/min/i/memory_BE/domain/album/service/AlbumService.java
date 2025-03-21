@@ -9,7 +9,6 @@ import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.global.service.S3Service;
 import com.min.i.memory_BE.domain.album.dto.request.AlbumRequestDto;
 import com.min.i.memory_BE.domain.album.entity.Album;
-import com.min.i.memory_BE.domain.album.enums.AlbumTheme;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

@@ -3,14 +3,15 @@ package com.min.i.memory_BE.domain.album.controller;
 import com.min.i.memory_BE.domain.album.dto.request.AlbumRequestDto;
 import com.min.i.memory_BE.domain.album.entity.Album;
 import com.min.i.memory_BE.domain.album.service.AlbumService;
+import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
+import com.min.i.memory_BE.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/albums")
@@ -20,9 +21,18 @@ public class AlbumController {
 
     private final AlbumService albumService;
 
+    @Operation(summary = "앨범 생성", description = "새 앨범을 생성합니다. 로그인한 사용자 정보가 자동으로 적용됩니다.")
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Album> createAlbum(@ModelAttribute AlbumRequestDto request) {
+    public ResponseEntity<ApiResponse<Album>> createAlbum(
+            @ModelAttribute AlbumRequestDto request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        // 로그인한 사용자 ID 설정
+        if (userDetails != null) {
+            request.setUserId(userDetails.getUser().getId());
+        }
+        
         Album album = albumService.createAlbum(request);
-        return ResponseEntity.ok(album);
+        return ResponseEntity.ok(ApiResponse.success(album));
     }
 }
