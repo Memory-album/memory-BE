@@ -2,6 +2,7 @@ package com.min.i.memory_BE.domain.media.entity;
 
 import com.min.i.memory_BE.domain.album.entity.Album;
 import com.min.i.memory_BE.domain.album.entity.AlbumPage;
+import com.min.i.memory_BE.domain.album.entity.Story;
 import com.min.i.memory_BE.domain.media.enums.MediaType;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.entity.BaseEntity;
@@ -78,6 +79,9 @@ public class Media extends BaseEntity {
   
   @OneToMany(mappedBy = "media", cascade = CascadeType.ALL)
   private final List<MediaKeyword> mediaKeywords = new ArrayList<>();
+
+  @OneToMany(mappedBy = "media", cascade = CascadeType.ALL)
+  private final List<Story> stories = new ArrayList<>();
   
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;
