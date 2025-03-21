@@ -142,14 +142,18 @@ public class MediaService {
      * 그룹 내 특정 앨범의 전체 미디어 조회 (페이징) - 권한 검증 포함
      */
     public Page<Media> getAllAlbumMediaWithAuth(Long groupId, Long albumId, Pageable pageable, User user) {
-        // 권한 검증
+        // 그룹 존재 확인
+        Group group = groupRepository.findById(groupId)
+                .orElseThrow(() -> new EntityNotFoundException("Group not found"));
+        
+        // 사용자가 그룹의 멤버인지 확인
         validateGroupMembership(groupId, user);
-
+        
         // 앨범이 해당 그룹에 속하는지 확인
         if (!albumRepository.existsByIdAndGroupId(albumId, groupId)) {
             throw new EntityNotFoundException("Album not found in group");
         }
-
+        
         // 앨범 내 모든 미디어 조회 (페이징)
         return mediaRepository.findByAlbumIdAndGroupId(albumId, groupId, pageable);
     }
@@ -158,10 +162,15 @@ public class MediaService {
      * 사용자 권한 검증 후 앨범의 최근 미디어 조회
      */
     public List<Media> getRecentMediaByAlbumWithAuth(Long albumId, int limit, User user) {
-        // 앨범 존재 확인
+        // 앨범 존재 확인 및 그룹 확인
         Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new EntityNotFoundException("Album not found"));
 
+        // 앨범은 반드시 그룹에 속해야 함
+        if (album.getGroup() == null) {
+            throw new EntityNotFoundException("Album must belong to a group");
+        }
+        
         // 사용자가 앨범이 속한 그룹의 멤버인지 확인
         Long groupId = album.getGroup().getId();
         validateGroupMembership(groupId, user);

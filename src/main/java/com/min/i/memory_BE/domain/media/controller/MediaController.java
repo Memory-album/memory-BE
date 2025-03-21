@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -56,7 +57,7 @@ public class MediaController {
     public ResponseEntity<ApiResponse<PageResponseDto<MediaResponseDto>>> getAlbumMedia(
             @Parameter(description = "그룹 ID") @PathVariable Long groupId,
             @Parameter(description = "앨범 ID") @PathVariable Long albumId,
-            @Parameter(description = "페이징 정보") @PageableDefault(size = 20) Pageable pageable,
+            @Parameter(description = "페이징 정보") @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         // 사용자 인증 및 그룹/앨범 접근 권한 검증은 서비스에서 처리됨

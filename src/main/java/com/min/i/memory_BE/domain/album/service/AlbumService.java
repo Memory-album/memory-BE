@@ -29,17 +29,19 @@ public class AlbumService {
         
         // 사용자와 그룹 조회
         User user = null;
-        Group group = null;
         
         if (request.getUserId() != null) {
             user = userRepository.findById(request.getUserId())
                     .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + request.getUserId()));
         }
         
-        if (request.getGroupId() != null) {
-            group = groupRepository.findById(request.getGroupId())
-                    .orElseThrow(() -> new EntityNotFoundException("Group not found with id: " + request.getGroupId()));
+        // 그룹 ID는 필수
+        if (request.getGroupId() == null) {
+            throw new EntityNotFoundException("Group ID is required");
         }
+        
+        Group group = groupRepository.findById(request.getGroupId())
+                .orElseThrow(() -> new EntityNotFoundException("Group not found with id: " + request.getGroupId()));
         
         // 앨범 생성 시 user와 group 연결
         Album album = Album.builder()
