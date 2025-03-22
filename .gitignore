@@ -49,4 +49,7 @@ application-key.yml
 #Audio test files
 /mp4/
 
+#db files
+/data/memorydb.trace.db
+/data/memorydb.mv.db
 /data
