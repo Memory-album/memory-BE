@@ -15,7 +15,7 @@ spring:
   # 기본 데이터베이스 설정 추가
   datasource:
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:file:/Users/gimdonghyeon/IdeaProjects/memory-BE/data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:./data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password:
   
@@ -117,7 +117,7 @@ spring.config.activate.on-profile: local
 spring:
   datasource:
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:file:/Users/gimdonghyeon/IdeaProjects/memory-BE/data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:./data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password:
   jpa:
