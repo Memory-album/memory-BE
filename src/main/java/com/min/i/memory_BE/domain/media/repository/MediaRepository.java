@@ -14,6 +14,10 @@ public interface MediaRepository extends JpaRepository<Media, Long> {
     @Query("SELECT m FROM Media m JOIN m.album a WHERE a.id = :albumId AND a.group.id = :groupId ORDER BY m.createdAt DESC")
     Page<Media> findByAlbumIdAndGroupId(Long albumId, Long groupId, Pageable pageable);
 
+    @Query(value = "SELECT m.* FROM media m JOIN albums a ON m.album_id = a.id WHERE a.id = :albumId AND a.group_id = :groupId ORDER BY m.created_at DESC", 
+           nativeQuery = true)
+    Page<Media> findByAlbumIdAndGroupIdNative(Long albumId, Long groupId, Pageable pageable);
+
     @Query("SELECT m FROM Media m WHERE m.fileUrl = :fileUrl AND m.album.group.id = :groupId")
     Optional<Media> findByFileUrlAndGroupId(String fileUrl, Long groupId);
 

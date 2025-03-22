@@ -147,28 +147,53 @@ public class MediaService {
      */
     public Page<Media> getAllAlbumMediaWithAuth(Long groupId, Long albumId, Pageable pageable, User user) {
         try {
+            log.info("미디어 조회 시작 - groupId: {}, albumId: {}, 페이지: {}, 사이즈: {}", 
+                    groupId, albumId, pageable.getPageNumber(), pageable.getPageSize());
+            
             // 그룹 존재 확인
             Group group = groupRepository.findById(groupId)
-                    .orElseThrow(() -> new EntityNotFoundException("Group not found with ID: " + groupId));
+                    .orElseThrow(() -> {
+                        log.error("그룹을 찾을 수 없음 - ID: {}", groupId);
+                        return new EntityNotFoundException("Group not found with ID: " + groupId);
+                    });
+            
+            log.info("그룹 조회 성공 - ID: {}, 이름: {}", group.getId(), group.getName());
             
             // 사용자가 그룹의 멤버인지 확인
             boolean isMember = group.getUserGroups().stream()
                     .anyMatch(userGroup -> userGroup.getUser().getId().equals(user.getId()));
             
             if (!isMember) {
+                log.error("사용자가 그룹의 멤버가 아님 - 사용자 ID: {}, 그룹 ID: {}", user.getId(), groupId);
                 throw new EntityNotFoundException("User is not a member of this group");
             }
             
+            log.info("사용자 그룹 멤버십 확인 성공 - 사용자 ID: {}", user.getId());
+            
             // 앨범이 해당 그룹에 속하는지 확인
             Album album = albumRepository.findByIdAndGroupId(albumId, groupId)
-                    .orElseThrow(() -> new EntityNotFoundException("Album not found in group with ID: " + albumId));
+                    .orElseThrow(() -> {
+                        log.error("앨범을 찾을 수 없음 - 앨범 ID: {}, 그룹 ID: {}", albumId, groupId);
+                        return new EntityNotFoundException("Album not found in group with ID: " + albumId);
+                    });
             
-            // 앨범 내 모든 미디어 조회 (페이징)
-            return mediaRepository.findByAlbumIdAndGroupId(albumId, groupId, pageable);
-        } catch (Exception e) {
-            // 로깅 및 예외 처리
-            log.error("Error retrieving album media: {}", e.getMessage());
+            log.info("앨범 조회 성공 - ID: {}, 제목: {}", album.getId(), album.getTitle());
+            
+            try {
+                // 앨범 내 모든 미디어 조회 (페이징) - 첫 번째 API와 동일한 쿼리 사용
+                Page<Media> result = mediaRepository.findByAlbumId(albumId, pageable);
+                log.info("미디어 조회 성공 - 총 {} 개의 미디어 아이템 반환", result.getTotalElements());
+                return result;
+            } catch (Exception e) {
+                log.error("미디어 조회 중 데이터베이스 오류 발생: {}", e.getMessage(), e);
+                throw new RuntimeException("Error querying media from database: " + e.getMessage(), e);
+            }
+        } catch (EntityNotFoundException e) {
+            log.error("엔티티를 찾을 수 없음: {}", e.getMessage());
             throw e;
+        } catch (Exception e) {
+            log.error("미디어 조회 중 일반 오류 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("Error retrieving album media: " + e.getMessage(), e);
         }
     }
 

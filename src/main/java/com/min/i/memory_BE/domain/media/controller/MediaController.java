@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -64,20 +65,62 @@ public class MediaController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         try {
-            // 사용자 인증 및 그룹/앨범 접근 권한 검증은 서비스에서 처리됨
-            Page<Media> mediaPage = mediaService.getAllAlbumMediaWithAuth(groupId, albumId, pageable, userDetails.getUser());
+            // 요청 정보 로깅
+            System.out.println("Requesting album media - groupId: " + groupId + ", albumId: " + albumId + 
+                ", page: " + pageable.getPageNumber() + ", size: " + pageable.getPageSize() + 
+                ", sort: " + (pageable.getSort() != null ? pageable.getSort().toString() : "null"));
             
-            if (mediaPage == null || mediaPage.isEmpty()) {
+            // 사용자 정보 로깅
+            if (userDetails == null || userDetails.getUser() == null) {
+                return ResponseEntity.status(401).body(ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE));
+            }
+
+            // 1. 기본 페이지와 사이즈를 사용한 간단한 Pageable 객체 생성
+            Pageable simplePage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+
+            // 사용자 인증 및 그룹/앨범 접근 권한 검증은 서비스에서 처리됨
+            Page<Media> mediaPage;
+            try {
+                mediaPage = mediaService.getAllAlbumMediaWithAuth(groupId, albumId, simplePage, userDetails.getUser());
+            } catch (Exception e) {
+                System.err.println("Service error: " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
+            }
+            
+            if (mediaPage == null) {
+                System.out.println("Media page is null");
                 // 빈 페이지 생성
-                Page<Media> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+                Page<Media> emptyPage = new PageImpl<>(Collections.emptyList(), simplePage, 0);
                 return ResponseEntity.ok(ApiResponse.success(PageResponseDto.of(emptyPage, MediaResponseDto::from)));
             }
             
-            PageResponseDto<MediaResponseDto> responseDto = PageResponseDto.of(mediaPage, MediaResponseDto::from);
+            if (mediaPage.isEmpty()) {
+                System.out.println("Media page is empty");
+                // 빈 페이지 생성
+                Page<Media> emptyPage = new PageImpl<>(Collections.emptyList(), simplePage, 0);
+                return ResponseEntity.ok(ApiResponse.success(PageResponseDto.of(emptyPage, MediaResponseDto::from)));
+            }
+            
+            System.out.println("Media page has " + mediaPage.getTotalElements() + " elements");
+            
+            PageResponseDto<MediaResponseDto> responseDto;
+            try {
+                responseDto = PageResponseDto.of(mediaPage, MediaResponseDto::from);
+            } catch (Exception e) {
+                System.err.println("Error converting to DTO: " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
+            }
+            
             return ResponseEntity.ok(ApiResponse.success(responseDto));
         } catch (EntityNotFoundException e) {
+            System.err.println("Entity not found: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(404).body(ApiResponse.error(ErrorCode.ENTITY_NOT_FOUND));
         } catch (Exception e) {
+            System.err.println("Error in getAlbumMedia: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
         }
     }
