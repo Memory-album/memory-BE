@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -22,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 @Tag(name = "Media API", description = "미디어 관리 API")
@@ -51,11 +49,11 @@ public class MediaController {
     }
 
     /**
-     * 2. 그룹 내 앨범의 모든 미디어 조회 (story 필드는 우선 null)
+     * 2. 그룹 내 앨범의 모든 미디어 조회 (페이징)
      */
     @Operation(
             summary = "앨범 미디어 목록 조회",
-            description = "그룹 내 특정 앨범의 모든 미디어를 조회합니다. story 필드는 우선 null 값으로 반환됩니다."
+            description = "그룹 내 특정 앨범의 모든 미디어를 페이징하여 조회합니다."
     )
     @GetMapping("/groups/{groupId}/albums/{albumId}/media")
     public ResponseEntity<?> getAlbumMedia(
@@ -65,62 +63,18 @@ public class MediaController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         try {
-            // 요청 정보 로깅
-            System.out.println("Requesting album media - groupId: " + groupId + ", albumId: " + albumId + 
-                ", page: " + pageable.getPageNumber() + ", size: " + pageable.getPageSize() + 
-                ", sort: " + (pageable.getSort() != null ? pageable.getSort().toString() : "null"));
+            // 서비스 호출 - 인증 및 권한 검증은 서비스에서 처리
+            Page<Media> mediaPage = mediaService.getAllAlbumMediaWithAuth(
+                groupId, albumId, pageable, userDetails.getUser()
+            );
             
-            // 사용자 정보 로깅
-            if (userDetails == null || userDetails.getUser() == null) {
-                return ResponseEntity.status(401).body(ApiResponse.error(ErrorCode.INVALID_INPUT_VALUE));
-            }
-
-            // 1. 기본 페이지와 사이즈를 사용한 간단한 Pageable 객체 생성
-            Pageable simplePage = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
-
-            // 사용자 인증 및 그룹/앨범 접근 권한 검증은 서비스에서 처리됨
-            Page<Media> mediaPage;
-            try {
-                mediaPage = mediaService.getAllAlbumMediaWithAuth(groupId, albumId, simplePage, userDetails.getUser());
-            } catch (Exception e) {
-                System.err.println("Service error: " + e.getMessage());
-                e.printStackTrace();
-                return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
-            }
-            
-            if (mediaPage == null) {
-                System.out.println("Media page is null");
-                // 빈 페이지 생성
-                Page<Media> emptyPage = new PageImpl<>(Collections.emptyList(), simplePage, 0);
-                return ResponseEntity.ok(ApiResponse.success(PageResponseDto.of(emptyPage, MediaResponseDto::from)));
-            }
-            
-            if (mediaPage.isEmpty()) {
-                System.out.println("Media page is empty");
-                // 빈 페이지 생성
-                Page<Media> emptyPage = new PageImpl<>(Collections.emptyList(), simplePage, 0);
-                return ResponseEntity.ok(ApiResponse.success(PageResponseDto.of(emptyPage, MediaResponseDto::from)));
-            }
-            
-            System.out.println("Media page has " + mediaPage.getTotalElements() + " elements");
-            
-            PageResponseDto<MediaResponseDto> responseDto;
-            try {
-                responseDto = PageResponseDto.of(mediaPage, MediaResponseDto::from);
-            } catch (Exception e) {
-                System.err.println("Error converting to DTO: " + e.getMessage());
-                e.printStackTrace();
-                return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
-            }
-            
+            // 결과를 DTO로 변환하여 반환
+            PageResponseDto<MediaResponseDto> responseDto = PageResponseDto.of(mediaPage, MediaResponseDto::from);
             return ResponseEntity.ok(ApiResponse.success(responseDto));
+            
         } catch (EntityNotFoundException e) {
-            System.err.println("Entity not found: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(404).body(ApiResponse.error(ErrorCode.ENTITY_NOT_FOUND));
         } catch (Exception e) {
-            System.err.println("Error in getAlbumMedia: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
         }
     }

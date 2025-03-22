@@ -21,8 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageImpl;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -121,10 +123,14 @@ public class MediaService {
                 .orElseThrow(() -> new EntityNotFoundException("Album not found"));
 
         // 최신 미디어 조회 (생성일 기준 내림차순) - uploadedBy를 함께 로드
-        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Media> mediaPage = mediaRepository.findByAlbumIdWithUser(albumId, pageable);
-
-        return mediaPage.getContent();
+        // Use the method that fetches User entity eagerly
+        List<Media> mediaList = mediaRepository.findByAlbumIdWithUserFetch(albumId);
+        
+        // 수동으로 정렬 및 제한
+        return mediaList.stream()
+                .sorted((m1, m2) -> m2.getCreatedAt().compareTo(m1.getCreatedAt())) // 생성일 기준 내림차순 정렬
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -145,6 +151,7 @@ public class MediaService {
     /**
      * 그룹 내 특정 앨범의 전체 미디어 조회 (페이징) - 권한 검증 포함
      */
+    @Transactional  // Adding @Transactional to ensure the session remains open
     public Page<Media> getAllAlbumMediaWithAuth(Long groupId, Long albumId, Pageable pageable, User user) {
         try {
             log.info("미디어 조회 시작 - groupId: {}, albumId: {}, 페이지: {}, 사이즈: {}", 
@@ -180,8 +187,19 @@ public class MediaService {
             log.info("앨범 조회 성공 - ID: {}, 제목: {}", album.getId(), album.getTitle());
             
             try {
-                // 앨범 내 모든 미디어 조회 (페이징) - 첫 번째 API와 동일한 쿼리 사용
-                Page<Media> result = mediaRepository.findByAlbumId(albumId, pageable);
+                // 사용자(User) 정보를 함께 로드하는 쿼리 사용
+                List<Media> mediaList = mediaRepository.findByAlbumIdAndGroupIdWithUserFetch(albumId, groupId);
+                
+                // 수동으로 페이징 처리
+                int start = (int) pageable.getOffset();
+                int end = Math.min((start + pageable.getPageSize()), mediaList.size());
+                
+                List<Media> pageContent = mediaList;
+                if (start <= end) {
+                    pageContent = mediaList.subList(start, end);
+                }
+                
+                Page<Media> result = new PageImpl<>(pageContent, pageable, mediaList.size());
                 log.info("미디어 조회 성공 - 총 {} 개의 미디어 아이템 반환", result.getTotalElements());
                 return result;
             } catch (Exception e) {
