@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MediaRepository extends JpaRepository<Media, Long> {
 
-    @Query("SELECT m FROM Media m WHERE m.album.id = :albumId AND m.album.group.id = :groupId ORDER BY m.createdAt DESC")
+    @Query("SELECT m FROM Media m JOIN m.album a WHERE a.id = :albumId AND a.group.id = :groupId ORDER BY m.createdAt DESC")
     Page<Media> findByAlbumIdAndGroupId(Long albumId, Long groupId, Pageable pageable);
 
     @Query("SELECT m FROM Media m WHERE m.fileUrl = :fileUrl AND m.album.group.id = :groupId")

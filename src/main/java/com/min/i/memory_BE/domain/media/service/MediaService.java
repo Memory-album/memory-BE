@@ -19,6 +19,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -30,6 +32,7 @@ public class MediaService {
     private final AlbumRepository albumRepository;
     private final GroupRepository groupRepository;
     private final S3Service s3Service;
+    private static final Logger log = LoggerFactory.getLogger(MediaService.class);
 
     /**
      * 미디어 업로드
@@ -143,20 +146,30 @@ public class MediaService {
      * 그룹 내 특정 앨범의 전체 미디어 조회 (페이징) - 권한 검증 포함
      */
     public Page<Media> getAllAlbumMediaWithAuth(Long groupId, Long albumId, Pageable pageable, User user) {
-        // 그룹 존재 확인
-        Group group = groupRepository.findById(groupId)
-                .orElseThrow(() -> new EntityNotFoundException("Group not found"));
-        
-        // 사용자가 그룹의 멤버인지 확인
-        validateGroupMembership(groupId, user);
-        
-        // 앨범이 해당 그룹에 속하는지 확인
-        if (!albumRepository.existsByIdAndGroupId(albumId, groupId)) {
-            throw new EntityNotFoundException("Album not found in group");
+        try {
+            // 그룹 존재 확인
+            Group group = groupRepository.findById(groupId)
+                    .orElseThrow(() -> new EntityNotFoundException("Group not found with ID: " + groupId));
+            
+            // 사용자가 그룹의 멤버인지 확인
+            boolean isMember = group.getUserGroups().stream()
+                    .anyMatch(userGroup -> userGroup.getUser().getId().equals(user.getId()));
+            
+            if (!isMember) {
+                throw new EntityNotFoundException("User is not a member of this group");
+            }
+            
+            // 앨범이 해당 그룹에 속하는지 확인
+            Album album = albumRepository.findByIdAndGroupId(albumId, groupId)
+                    .orElseThrow(() -> new EntityNotFoundException("Album not found in group with ID: " + albumId));
+            
+            // 앨범 내 모든 미디어 조회 (페이징)
+            return mediaRepository.findByAlbumIdAndGroupId(albumId, groupId, pageable);
+        } catch (Exception e) {
+            // 로깅 및 예외 처리
+            log.error("Error retrieving album media: {}", e.getMessage());
+            throw e;
         }
-        
-        // 앨범 내 모든 미디어 조회 (페이징)
-        return mediaRepository.findByAlbumIdAndGroupId(albumId, groupId, pageable);
     }
 
     /**

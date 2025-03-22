@@ -6,11 +6,14 @@ import com.min.i.memory_BE.domain.media.service.MediaService;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.dto.PageResponseDto;
 import com.min.i.memory_BE.global.response.ApiResponse;
+import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
+import com.min.i.memory_BE.global.error.ErrorCode;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -18,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @Tag(name = "Media API", description = "미디어 관리 API")
@@ -53,15 +57,28 @@ public class MediaController {
             description = "그룹 내 특정 앨범의 모든 미디어를 조회합니다. story 필드는 우선 null 값으로 반환됩니다."
     )
     @GetMapping("/groups/{groupId}/albums/{albumId}/media")
-    public ResponseEntity<ApiResponse<PageResponseDto<MediaResponseDto>>> getAlbumMedia(
+    public ResponseEntity<?> getAlbumMedia(
             @Parameter(description = "그룹 ID") @PathVariable Long groupId,
             @Parameter(description = "앨범 ID") @PathVariable Long albumId,
             @Parameter(description = "페이징 정보") @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        // 사용자 인증 및 그룹/앨범 접근 권한 검증은 서비스에서 처리됨
-        Page<Media> mediaPage = mediaService.getAllAlbumMediaWithAuth(groupId, albumId, pageable, userDetails.getUser());
-        PageResponseDto<MediaResponseDto> responseDto = PageResponseDto.of(mediaPage, MediaResponseDto::from);
-        return ResponseEntity.ok(ApiResponse.success(responseDto));
+        try {
+            // 사용자 인증 및 그룹/앨범 접근 권한 검증은 서비스에서 처리됨
+            Page<Media> mediaPage = mediaService.getAllAlbumMediaWithAuth(groupId, albumId, pageable, userDetails.getUser());
+            
+            if (mediaPage == null || mediaPage.isEmpty()) {
+                // 빈 페이지 생성
+                Page<Media> emptyPage = new PageImpl<>(Collections.emptyList(), pageable, 0);
+                return ResponseEntity.ok(ApiResponse.success(PageResponseDto.of(emptyPage, MediaResponseDto::from)));
+            }
+            
+            PageResponseDto<MediaResponseDto> responseDto = PageResponseDto.of(mediaPage, MediaResponseDto::from);
+            return ResponseEntity.ok(ApiResponse.success(responseDto));
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body(ApiResponse.error(ErrorCode.ENTITY_NOT_FOUND));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
+        }
     }
 }
