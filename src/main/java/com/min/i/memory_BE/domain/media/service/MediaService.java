@@ -10,6 +10,7 @@ import com.min.i.memory_BE.domain.media.repository.MediaRepository;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.global.service.S3Service;
+import com.min.i.memory_BE.domain.media.dto.response.MediaResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -116,9 +117,9 @@ public class MediaService {
         Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new EntityNotFoundException("Album not found"));
 
-        // 최신 미디어 5개 조회 (생성일 기준 내림차순)
+        // 최신 미디어 조회 (생성일 기준 내림차순) - uploadedBy를 함께 로드
         Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<Media> mediaPage = mediaRepository.findByAlbumId(albumId, pageable);
+        Page<Media> mediaPage = mediaRepository.findByAlbumIdWithUser(albumId, pageable);
 
         return mediaPage.getContent();
     }
@@ -159,9 +160,10 @@ public class MediaService {
     }
 
     /**
-     * 사용자 권한 검증 후 앨범의 최근 미디어 조회
+     * 사용자 권한 검증 후 앨범의 최근 미디어 조회 (DTO로 변환하여 반환)
      */
-    public List<Media> getRecentMediaByAlbumWithAuth(Long albumId, int limit, User user) {
+    @Transactional
+    public List<MediaResponseDto> getRecentMediaDtoByAlbumWithAuth(Long albumId, int limit, User user) {
         // 앨범 존재 확인 및 그룹 확인
         Album album = albumRepository.findById(albumId)
                 .orElseThrow(() -> new EntityNotFoundException("Album not found"));
@@ -175,7 +177,8 @@ public class MediaService {
         Long groupId = album.getGroup().getId();
         validateGroupMembership(groupId, user);
 
-        // 최신 미디어 조회
-        return getRecentMediaByAlbum(albumId, limit);
+        // 최신 미디어 조회 및 DTO로 변환
+        List<Media> mediaList = getRecentMediaByAlbum(albumId, limit);
+        return MediaResponseDto.fromList(mediaList);
     }
 }

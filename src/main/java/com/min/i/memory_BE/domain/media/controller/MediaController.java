@@ -40,9 +40,8 @@ public class MediaController {
             @Parameter(description = "조회할 미디어 개수") @RequestParam(defaultValue = "5") int limit,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        // 사용자 인증 및 앨범 접근 권한 검증은 서비스에서 처리됨
-        List<Media> recentMedia = mediaService.getRecentMediaByAlbumWithAuth(albumId, limit, userDetails.getUser());
-        List<MediaResponseDto> responseDtoList = MediaResponseDto.fromList(recentMedia);
+        // 트랜잭션 내에서 DTO로 변환된 결과를 직접 받아옴
+        List<MediaResponseDto> responseDtoList = mediaService.getRecentMediaDtoByAlbumWithAuth(albumId, limit, userDetails.getUser());
         return ResponseEntity.ok(ApiResponse.success(responseDtoList));
     }
 
