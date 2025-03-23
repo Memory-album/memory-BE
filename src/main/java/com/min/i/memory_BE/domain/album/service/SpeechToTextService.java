@@ -165,6 +165,10 @@ public class SpeechToTextService {
                 return RecognitionConfig.AudioEncoding.LINEAR16;
             } else if (contentType.contains("ogg") || contentType.contains("opus")) {
                 return RecognitionConfig.AudioEncoding.OGG_OPUS;
+            } else if (contentType.contains("webm")) {
+                // WebM은 보통 Opus 코덱을 사용하므로 OGG_OPUS로 처리
+                log.info("WebM 형식 감지, Opus 코덱으로 처리");
+                return RecognitionConfig.AudioEncoding.OGG_OPUS;
             }
         }
         
@@ -181,6 +185,10 @@ public class SpeechToTextService {
             // m4a는 일반적으로 AAC 인코딩이지만, Google Speech API는 직접 지원하지 않음
             // 따라서 명시적인 인코딩을 지정하지 않음
             return RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
+        } else if ("webm".equalsIgnoreCase(extension)) {
+            // WebM 확장자 처리
+            log.info("WebM 확장자 감지, Opus 코덱으로 처리");
+            return RecognitionConfig.AudioEncoding.OGG_OPUS;
         }
         
         log.warn("알 수 없는 오디오 형식: {}({}), 인코딩 미지정", extension, contentType);
