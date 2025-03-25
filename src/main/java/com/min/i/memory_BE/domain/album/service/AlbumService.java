@@ -24,8 +24,11 @@ public class AlbumService {
     
     @Transactional
     public Album createAlbum(AlbumRequestDto request) {
-        // 썸네일 업로드
-        String thumbnailUrl = s3Service.uploadThumbnail(request.getThumbnailFile());
+        // 썸네일 업로드 (있는 경우에만)
+        String thumbnailUrl = null;
+        if (request.getThumbnailFile() != null && !request.getThumbnailFile().isEmpty()) {
+            thumbnailUrl = s3Service.uploadThumbnail(request.getThumbnailFile());
+        }
         
         // 사용자와 그룹 조회
         User user = null;
