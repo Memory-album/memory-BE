@@ -151,7 +151,7 @@ public class MediaService {
     /**
      * 그룹 내 특정 앨범의 전체 미디어 조회 (페이징) - 권한 검증 포함
      */
-    @Transactional  // Adding @Transactional to ensure the session remains open
+    @Transactional
     public Page<Media> getAllAlbumMediaWithAuth(Long groupId, Long albumId, Pageable pageable, User user) {
         try {
             log.info("미디어 조회 시작 - groupId: {}, albumId: {}, 페이지: {}, 사이즈: {}", 

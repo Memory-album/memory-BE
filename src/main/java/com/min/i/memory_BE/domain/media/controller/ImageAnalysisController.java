@@ -39,29 +39,14 @@ public class ImageAnalysisController {
     private final UserRepository userRepository;
     private final AlbumRepository albumRepository;
 
-    @Operation(summary = "이미지 업로드 및 분석")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "분석 성공"),
-            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
-            @ApiResponse(responseCode = "500", description = "서버 오류")
-    })
-    @PostMapping(value = "/analyze", consumes = "multipart/form-data")
+    @PostMapping("/analyze")
+    @Operation(summary = "이미지 분석 요청", description = "이미지를 업로드하여 분석합니다.")
     public ResponseEntity<?> analyzeImage(
-            @Parameter(description = "사용자 ID", required = true)
-            @RequestParam("userId") Long userId,
-
-            @Parameter(description = "앨범 ID", required = true)
-            @RequestParam("albumId") Long albumId,
-
-            @Parameter(
-                    description = "이미지 파일",
-                    required = true,
-                    content = @Content(mediaType = "multipart/form-data")
-            )
             @RequestParam("image") MultipartFile image,
-            
-            @RequestHeader(value = "Authorization", required = false) String authHeader
-    ) {
+            @RequestParam("albumId") Long albumId,
+            @RequestParam("userId") Long userId,
+            @RequestHeader(value = "Authorization", required = false) String authHeader) 
+    {
         try {
             // 인증 토큰 추출 (Bearer 접두사 제거)
             String authToken = null;
@@ -111,7 +96,7 @@ public class ImageAnalysisController {
             log.info("FastAPI 서버로부터 분석 결과 수신 완료");
 
             // 7. 분석 결과 처리
-            mediaAnalysisService.processAnalysisResult(media.getId(), analysisResult);
+            Map<String, Object> processedResult = mediaAnalysisService.processAnalysisResult(media.getId(), analysisResult);
 
             // 8. 응답 구성
             return ResponseEntity.ok(Map.of(
@@ -122,7 +107,7 @@ public class ImageAnalysisController {
                             "imageUrl", imageUrl,
                             "albumId", album.getId(),
                             "userId", user.getId(),
-                            "questions", analysisResult.getOrDefault("questions", "질문이 생성되지 않았습니다")
+                            "questions", processedResult.getOrDefault("questions", "질문이 생성되지 않았습니다")
                     )
             ));
 
@@ -151,12 +136,15 @@ public class ImageAnalysisController {
             log.info("분석 결과 수신: mediaId={}", mediaId);
 
             // 분석 결과 및 질문 저장
-            mediaAnalysisService.processAnalysisResult(mediaId, analysisData);
+            Map<String, Object> processedResult = mediaAnalysisService.processAnalysisResult(mediaId, analysisData);
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "분석 결과가 성공적으로 처리되었습니다",
-                    "data", Map.of("mediaId", mediaId)
+                    "data", Map.of(
+                            "mediaId", mediaId,
+                            "questions", processedResult.getOrDefault("questions", "질문이 생성되지 않았습니다")
+                    )
             ));
 
         } catch (EntityNotFoundException e) {
@@ -193,12 +181,15 @@ public class ImageAnalysisController {
             Long mediaId = Long.valueOf(questionsData.get("mediaId").toString());
 
             // 분석 결과 및 질문 저장
-            mediaAnalysisService.processAnalysisResult(mediaId, questionsData);
+            Map<String, Object> processedResult = mediaAnalysisService.processAnalysisResult(mediaId, questionsData);
 
             return ResponseEntity.ok(Map.of(
                     "status", "success",
                     "message", "질문 생성 결과가 성공적으로 처리되었습니다",
-                    "data", Map.of("mediaId", mediaId)
+                    "data", Map.of(
+                            "mediaId", mediaId,
+                            "questions", processedResult.getOrDefault("questions", "질문이 생성되지 않았습니다")
+                    )
             ));
 
         } catch (EntityNotFoundException e) {
