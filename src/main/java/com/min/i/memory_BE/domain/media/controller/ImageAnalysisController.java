@@ -39,12 +39,31 @@ public class ImageAnalysisController {
     private final UserRepository userRepository;
     private final AlbumRepository albumRepository;
 
-    @PostMapping("/analyze")
-    @Operation(summary = "이미지 분석 요청", description = "이미지를 업로드하여 분석합니다.")
+    @PostMapping(
+        value = "/analyze", 
+        consumes = {"multipart/form-data"}
+    )
+    @Operation(
+        summary = "이미지 분석 요청", 
+        description = "이미지를 업로드하여 분석합니다."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "이미지 분석 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @ApiResponse(responseCode = "404", description = "사용자 또는 앨범을 찾을 수 없음"),
+        @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     public ResponseEntity<?> analyzeImage(
-            @RequestParam("image") MultipartFile image,
+            @Parameter(description = "이미지 파일", required = true)
+            @RequestPart("image") MultipartFile image,
+            
+            @Parameter(description = "앨범 ID", required = true)
             @RequestParam("albumId") Long albumId,
+            
+            @Parameter(description = "사용자 ID", required = true)
             @RequestParam("userId") Long userId,
+            
+            @Parameter(description = "인증 토큰 (Bearer 인증)", required = false)
             @RequestHeader(value = "Authorization", required = false) String authHeader) 
     {
         try {
@@ -128,8 +147,16 @@ public class ImageAnalysisController {
 
     @PostMapping("/analysis/{mediaId}")
     @Operation(summary = "분석 결과 처리", description = "FastAPI로부터 받은 분석 결과를 처리합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "분석 결과 처리 성공"),
+        @ApiResponse(responseCode = "404", description = "미디어를 찾을 수 없음"),
+        @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     public ResponseEntity<?> processAnalysisResult(
+            @Parameter(description = "미디어 ID", required = true)
             @PathVariable Long mediaId,
+            
+            @Parameter(description = "분석 결과 데이터", required = true)
             @RequestBody Map<String, Object> analysisData
     ) {
         try {
@@ -164,7 +191,14 @@ public class ImageAnalysisController {
 
     @PostMapping("/questions/create")
     @Operation(summary = "질문 생성 처리", description = "FastAPI로부터 받은 질문 생성 결과를 처리합니다.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "질문 생성 결과 처리 성공"),
+        @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+        @ApiResponse(responseCode = "404", description = "미디어를 찾을 수 없음"), 
+        @ApiResponse(responseCode = "500", description = "서버 오류")
+    })
     public ResponseEntity<?> processQuestions(
+            @Parameter(description = "질문 생성 결과 데이터", required = true)
             @RequestBody Map<String, Object> questionsData
     ) {
         try {
