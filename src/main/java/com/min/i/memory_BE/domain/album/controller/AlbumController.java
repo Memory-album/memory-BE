@@ -2,18 +2,22 @@ package com.min.i.memory_BE.domain.album.controller;
 
 import com.min.i.memory_BE.domain.album.dto.request.AlbumRequestDto;
 import com.min.i.memory_BE.domain.album.dto.response.AlbumResponseDto;
+import com.min.i.memory_BE.domain.album.dto.response.GroupAlbumListResponseDto;
 import com.min.i.memory_BE.domain.album.entity.Album;
 import com.min.i.memory_BE.domain.album.service.AlbumService;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/albums")
@@ -41,5 +45,24 @@ public class AlbumController {
         
         Album album = albumService.createAlbum(request);
         return ResponseEntity.ok(ApiResponse.success(AlbumResponseDto.fromEntity(album)));
+    }
+    
+    @Operation(
+        summary = "그룹의 앨범 목록 조회", 
+        description = "그룹 ID로 해당 그룹에 속한 앨범 목록을 조회합니다. 각 앨범의 제목, ID와 함께 최근 미디어 썸네일도 함께 제공합니다."
+    )
+    @GetMapping("/group/{groupId}")
+    public ResponseEntity<ApiResponse<List<GroupAlbumListResponseDto>>> getAlbumsByGroup(
+            @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+            @Parameter(description = "썸네일로 표시할 최근 미디어 개수") @RequestParam(defaultValue = "5") int thumbnailCount,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        List<GroupAlbumListResponseDto> albums = albumService.getAlbumsByGroupId(
+            groupId, 
+            thumbnailCount, 
+            userDetails.getUser()
+        );
+        
+        return ResponseEntity.ok(ApiResponse.success(albums));
     }
 }
