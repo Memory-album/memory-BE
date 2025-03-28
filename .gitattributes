@@ -1,7 +1,6 @@
 /gradlew text eol=lf
 *.bat text eol=crlf
 *.jar binary
-
 # ffmpeg 바이너리 실행권한 강제 설정
 /src/main/resources/bin/ffmpeg-mac   eol=lf   text   diff   -merge   chmod=+x
 /src/main/resources/bin/ffmpeg-linux eol=lf   text   diff   -merge   chmod=+x
