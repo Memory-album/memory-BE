@@ -1,32 +1,28 @@
 package com.min.i.memory_BE.domain.album.service;
 
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.speech.v1.RecognitionAudio;
-import com.google.cloud.speech.v1.RecognitionConfig;
-import com.google.cloud.speech.v1.RecognizeResponse;
-import com.google.cloud.speech.v1.SpeechClient;
-import com.google.cloud.speech.v1.SpeechRecognitionAlternative;
-import com.google.cloud.speech.v1.SpeechRecognitionResult;
-import com.google.cloud.speech.v1.SpeechSettings;
+import com.google.cloud.speech.v1.*;
 import com.google.protobuf.ByteString;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ResourceLoader;
-import org.springframework.core.io.Resource;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.FileInputStream;
+import javax.annotation.PostConstruct;
+import java.io.*;
 import java.nio.file.Files;
-import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
-
+/**
+ * Google Speech-to-Text 서비스
+ * - Credentials 캐싱
+ * - sample_rate 자동화 (WAV 오류 해결)
+ * - 변환된 파일, 원본 파일 모두 대응
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,168 +30,148 @@ public class SpeechToTextService {
 
     @Value("${google.speech.language:ko-KR}")
     private String language;
-    
+
     @Value("${google.speech.credentials-file:classpath:keys/google-credentials.json}")
     private String credentialsFilePath;
-    
+
     private final ResourceLoader resourceLoader;
-    
-    // 객체 초기화 시 환경 변수 설정
+    private final AudioFormatConverter audioFormatConverter;
+
+    private GoogleCredentials cachedCredentials;
+    private boolean ffmpegAvailable = false;
+
     @PostConstruct
     public void init() {
         try {
-            // 인증 파일 경로 확인
             Resource credentialsResource = resourceLoader.getResource(credentialsFilePath);
-            if (credentialsResource.exists()) {
-                File credentialsFile = credentialsResource.getFile();
-                log.info("인증 파일 경로: {}", credentialsFile.getAbsolutePath());
-                
-                // 환경 변수 직접 설정 (테스트와 동일한 방식)
-                System.setProperty("GOOGLE_APPLICATION_CREDENTIALS", credentialsFile.getAbsolutePath());
-                log.info("GOOGLE_APPLICATION_CREDENTIALS 환경 변수 설정 완료");
-            } else {
-                log.error("인증 파일을 찾을 수 없습니다: {}", credentialsFilePath);
+            if (!credentialsResource.exists()) {
+                throw new FileNotFoundException("Google 인증파일 없음: " + credentialsFilePath);
             }
+
+            cachedCredentials = GoogleCredentials.fromStream(new FileInputStream(credentialsResource.getFile()));
+            System.setProperty("GOOGLE_APPLICATION_CREDENTIALS", credentialsResource.getFile().getAbsolutePath());
+            log.info("Google 인증 로드 완료: {}", credentialsResource.getFile().getAbsolutePath());
+
+            ffmpegAvailable = audioFormatConverter.isFFmpegAvailable();
+            log.info("FFmpeg 상태: {}", ffmpegAvailable ? "사용 가능" : "사용 불가");
+
         } catch (Exception e) {
-            log.error("인증 파일 설정 중 오류 발생", e);
+            log.error("초기화 실패", e);
+            throw new IllegalStateException("SpeechToTextService 초기화 실패", e);
         }
     }
 
-    /**
-     * 음성 파일을 텍스트로 변환합니다.
-     */
     public String convertSpeechToText(MultipartFile audioFile) {
         Path tempFile = null;
-        
+        Path convertedFile = null;
+        boolean isConvertedFile = false;
+
         try {
-            log.info("음성 파일 변환 시작: {}, 타입: {}", audioFile.getOriginalFilename(), audioFile.getContentType());
-            
-            // 1. 음성 파일을 임시 파일로 저장
+            log.info("음성파일 처리 시작: {} ({})", audioFile.getOriginalFilename(), audioFile.getContentType());
+
             String extension = getFileExtension(audioFile.getOriginalFilename());
-            tempFile = Files.createTempFile("speech-", "." + extension);
-            audioFile.transferTo(tempFile.toFile());
-            
-            // 2. 파일을 바이트 배열로 읽기
+
+            // 형식 변환
+            if (ffmpegAvailable) {
+                convertedFile = audioFormatConverter.convertToSupportedFormat(audioFile);
+                if (convertedFile != null) {
+                    tempFile = convertedFile;
+                    isConvertedFile = true;
+                    extension = "flac";
+                    log.info("변환 성공: {} → flac", audioFile.getOriginalFilename());
+                } else {
+                    log.warn("변환 실패, 원본 사용");
+                }
+            }
+
+            if (tempFile == null) {
+                tempFile = Files.createTempFile("speech-", "." + extension);
+                audioFile.transferTo(tempFile.toFile());
+            }
+
+            // STT 호출 준비
             byte[] audioBytes = Files.readAllBytes(tempFile);
-            log.info("오디오 파일 크기: {} 바이트", audioBytes.length);
-            
-            // 3. 인증 파일 경로 확인
-            Resource credentialsResource = resourceLoader.getResource(credentialsFilePath);
-            
-            if (!credentialsResource.exists()) {
-                log.error("인증 파일을 찾을 수 없습니다: {}", credentialsFilePath);
-                throw new IOException("Google API 인증 파일을 찾을 수 없습니다: " + credentialsFilePath);
-            }
-            
-            // 테스트와 유사한 방식으로 SpeechClient 생성
-            try (FileInputStream credentialsStream = new FileInputStream(credentialsResource.getFile())) {
-                GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream);
-                SpeechSettings settings = SpeechSettings.newBuilder()
-                    .setCredentialsProvider(() -> credentials)
+            RecognitionAudio audio = RecognitionAudio.newBuilder()
+                    .setContent(ByteString.copyFrom(audioBytes))
                     .build();
-                
-                try (SpeechClient speechClient = SpeechClient.create(settings)) {
-                    // 4. 오디오 데이터 생성
-                    ByteString audioData = ByteString.copyFrom(audioBytes);
-                    RecognitionAudio audio = RecognitionAudio.newBuilder()
-                        .setContent(audioData)
-                        .build();
-                    
-                    // 5. 인식 설정 구성 - 파일 타입에 따라 적절한 인코딩 설정
-                    RecognitionConfig.AudioEncoding encoding = determineAudioEncoding(audioFile.getContentType(), extension);
-                    log.info("오디오 인코딩 설정: {}", encoding);
-                    
-                    RecognitionConfig config = RecognitionConfig.newBuilder()
-                        .setEncoding(encoding)
-                        .setSampleRateHertz(44100)  // 테스트와 동일하게 44100 설정
-                        .setLanguageCode(language)
-                        .build();
-                    
-                    // 6. 음성 인식 요청
-                    log.info("음성 인식 요청 시작");
-                    RecognizeResponse response = speechClient.recognize(config, audio);
-                    log.info("음성 인식 응답 받음");
-                    
-                    List<SpeechRecognitionResult> results = response.getResultsList();
-                    
-                    // 7. 결과 처리
-                    if (results.isEmpty()) {
-                        log.warn("인식된 텍스트가 없습니다.");
-                        return "";
-                    }
-                    
-                    StringBuilder transcription = new StringBuilder();
-                    for (SpeechRecognitionResult result : results) {
-                        SpeechRecognitionAlternative alternative = result.getAlternativesList().get(0);
-                        log.info("인식 결과: {}, 신뢰도: {}", alternative.getTranscript(), alternative.getConfidence());
-                        transcription.append(alternative.getTranscript());
-                    }
-                    
-                    String recognizedText = transcription.toString();
-                    log.info("음성 인식 성공: {}", recognizedText);
-                    return recognizedText;
-                }
+
+            RecognitionConfig.Builder configBuilder = RecognitionConfig.newBuilder()
+                    .setEncoding(resolveEncoding(audioFile, isConvertedFile, extension))
+                    .setLanguageCode(language);
+
+            // Sample rate 설정
+            if (isConvertedFile || extension.equalsIgnoreCase("flac")) {
+                configBuilder.setSampleRateHertz(44100);
+            } else if (extension.equalsIgnoreCase("mp3")) {
+                configBuilder.setSampleRateHertz(44100);
+            } else if (extension.equalsIgnoreCase("webm") || extension.equalsIgnoreCase("ogg") || extension.equalsIgnoreCase("opus")) {
+                configBuilder.setSampleRateHertz(48000);
+            } else if (extension.equalsIgnoreCase("wav")) {
+                log.info("WAV 감지 → sample_rate 자동 감지");
+                // WAV는 설정 안함 (Google이 header 읽음)
             }
-            
-        } catch (IOException e) {
-            log.error("음성 파일 처리 중 오류 발생", e);
-            throw new RuntimeException("음성 파일 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
-        } finally {
-            // 임시 파일 삭제
-            if (tempFile != null) {
-                try {
-                    Files.deleteIfExists(tempFile);
-                } catch (IOException e) {
-                    log.warn("임시 파일 삭제 실패", e);
+
+            RecognitionConfig config = configBuilder.build();
+
+            // Google STT 요청
+            try (SpeechClient speechClient = SpeechClient.create(SpeechSettings.newBuilder()
+                    .setCredentialsProvider(() -> cachedCredentials)
+                    .build())) {
+
+                RecognizeResponse response = speechClient.recognize(config, audio);
+                List<SpeechRecognitionResult> results = response.getResultsList();
+
+                if (results.isEmpty()) {
+                    log.warn("STT 결과 없음");
+                    return "";
                 }
+
+                StringBuilder transcription = new StringBuilder();
+                for (SpeechRecognitionResult result : results) {
+                    SpeechRecognitionAlternative alt = result.getAlternativesList().get(0);
+                    transcription.append(alt.getTranscript());
+                    log.info("인식 결과: {}", alt.getTranscript());
+                }
+
+                return transcription.toString();
+            }
+
+        } catch (Exception e) {
+            log.error("STT 처리 중 오류", e);
+            throw new RuntimeException("STT 처리 실패: " + e.getMessage(), e);
+        } finally {
+            try {
+                if (tempFile != null) Files.deleteIfExists(tempFile);
+                if (convertedFile != null) Files.deleteIfExists(convertedFile);
+            } catch (IOException e) {
+                log.warn("임시파일 삭제 실패", e);
             }
         }
     }
-    
-    /**
-     * 파일 확장자에 따라 적절한 오디오 인코딩을 결정합니다.
-     */
-    private RecognitionConfig.AudioEncoding determineAudioEncoding(String contentType, String extension) {
-        if (contentType != null) {
-            if (contentType.contains("flac")) {
-                return RecognitionConfig.AudioEncoding.FLAC;
-            } else if (contentType.contains("mp3")) {
-                return RecognitionConfig.AudioEncoding.MP3;
-            } else if (contentType.contains("wav") || contentType.contains("wave")) {
-                return RecognitionConfig.AudioEncoding.LINEAR16;
-            } else if (contentType.contains("ogg") || contentType.contains("opus")) {
-                return RecognitionConfig.AudioEncoding.OGG_OPUS;
-            }
-        }
-        
-        // 확장자로 판단
-        if ("flac".equalsIgnoreCase(extension)) {
-            return RecognitionConfig.AudioEncoding.FLAC;
-        } else if ("mp3".equalsIgnoreCase(extension)) {
-            return RecognitionConfig.AudioEncoding.MP3;
-        } else if ("wav".equalsIgnoreCase(extension) || "wave".equalsIgnoreCase(extension)) {
-            return RecognitionConfig.AudioEncoding.LINEAR16;
-        } else if ("ogg".equalsIgnoreCase(extension) || "opus".equalsIgnoreCase(extension)) {
-            return RecognitionConfig.AudioEncoding.OGG_OPUS;
-        } else if ("m4a".equalsIgnoreCase(extension)) {
-            // m4a는 일반적으로 AAC 인코딩이지만, Google Speech API는 직접 지원하지 않음
-            // 따라서 명시적인 인코딩을 지정하지 않음
-            return RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
-        }
-        
-        log.warn("알 수 없는 오디오 형식: {}({}), 인코딩 미지정", extension, contentType);
+
+    private RecognitionConfig.AudioEncoding resolveEncoding(MultipartFile file, boolean isConverted, String extension) {
+        if (isConverted) return RecognitionConfig.AudioEncoding.FLAC;
+
+        String contentType = file.getContentType() != null ? file.getContentType() : "";
+        if (contentType.contains("wav")) return RecognitionConfig.AudioEncoding.LINEAR16;
+        if (contentType.contains("flac")) return RecognitionConfig.AudioEncoding.FLAC;
+        if (contentType.contains("mp3")) return RecognitionConfig.AudioEncoding.MP3;
+        if (contentType.contains("ogg") || contentType.contains("opus")) return RecognitionConfig.AudioEncoding.OGG_OPUS;
+        if (contentType.contains("webm")) return RecognitionConfig.AudioEncoding.OGG_OPUS;
+
+        if (extension.equalsIgnoreCase("wav")) return RecognitionConfig.AudioEncoding.LINEAR16;
+        if (extension.equalsIgnoreCase("flac")) return RecognitionConfig.AudioEncoding.FLAC;
+        if (extension.equalsIgnoreCase("mp3")) return RecognitionConfig.AudioEncoding.MP3;
+        if (extension.equalsIgnoreCase("ogg") || extension.equalsIgnoreCase("opus")) return RecognitionConfig.AudioEncoding.OGG_OPUS;
+        if (extension.equalsIgnoreCase("webm")) return RecognitionConfig.AudioEncoding.OGG_OPUS;
+
         return RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
     }
-    
-    /**
-     * 파일명에서 확장자를 추출합니다.
-     */
+
     private String getFileExtension(String filename) {
         if (filename == null) return "tmp";
         int lastDotIndex = filename.lastIndexOf('.');
-        if (lastDotIndex == -1 || lastDotIndex == filename.length() - 1) {
-            return "tmp";
-        }
+        if (lastDotIndex == -1 || lastDotIndex == filename.length() - 1) return "tmp";
         return filename.substring(lastDotIndex + 1);
     }
 }

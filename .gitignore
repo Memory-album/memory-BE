@@ -49,7 +49,22 @@ application-key.yml
 #Audio test files
 /mp4/
 
+# 임시 변환파일
+*.tmp
+*.swp
+
+# FFmpeg 변환 중 생길 수 있는 임시 파일
+*.flac
+*.wav
+*.mp3
+*.webm
+*.m4a
+
+# ffmpeg binary 는 제외 ❌ (꼭 포함해야 하니까)
+!src/main/resources/bin/ffmpeg-*
+
 #db files
 /data/memorydb.trace.db
 /data/memorydb.mv.db
 /data
+
