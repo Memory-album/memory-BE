@@ -39,6 +39,10 @@ public class SpeechToTextService {
     private String credentialsFilePath;
     
     private final ResourceLoader resourceLoader;
+    private final AudioFormatConverter audioFormatConverter;
+    
+    // FFmpeg 사용 가능 여부
+    private boolean ffmpegAvailable = false;
     
     // 객체 초기화 시 환경 변수 설정
     @PostConstruct
@@ -56,8 +60,16 @@ public class SpeechToTextService {
             } else {
                 log.error("인증 파일을 찾을 수 없습니다: {}", credentialsFilePath);
             }
+            
+            // FFmpeg 사용 가능 여부 확인
+            ffmpegAvailable = audioFormatConverter.isFFmpegAvailable();
+            if (ffmpegAvailable) {
+                log.info("FFmpeg 설치 확인 완료, 오디오 형식 변환 기능 활성화");
+            } else {
+                log.warn("FFmpeg가 설치되어 있지 않아 오디오 형식 변환 기능을 사용할 수 없습니다.");
+            }
         } catch (Exception e) {
-            log.error("인증 파일 설정 중 오류 발생", e);
+            log.error("초기화 중 오류 발생", e);
         }
     }
 
@@ -66,14 +78,35 @@ public class SpeechToTextService {
      */
     public String convertSpeechToText(MultipartFile audioFile) {
         Path tempFile = null;
+        Path convertedFile = null;
+        boolean isConvertedFile = false;
         
         try {
             log.info("음성 파일 변환 시작: {}, 타입: {}", audioFile.getOriginalFilename(), audioFile.getContentType());
             
-            // 1. 음성 파일을 임시 파일로 저장
+            // 파일 확장자 확인
             String extension = getFileExtension(audioFile.getOriginalFilename());
-            tempFile = Files.createTempFile("speech-", "." + extension);
-            audioFile.transferTo(tempFile.toFile());
+            
+            // 1. FFmpeg가 설치되어 있고, 지원되지 않는 형식이면 변환 시도
+            if (ffmpegAvailable) {
+                log.info("오디오 형식 변환 기능 사용 가능, 필요 시 변환 시도");
+                convertedFile = audioFormatConverter.convertToSupportedFormat(audioFile);
+                
+                if (convertedFile != null) {
+                    tempFile = convertedFile;
+                    isConvertedFile = true;
+                    extension = "flac"; // 변환된 파일은 항상 FLAC
+                    log.info("오디오 파일 변환 성공: {} -> FLAC", getFileExtension(audioFile.getOriginalFilename()));
+                } else {
+                    log.warn("오디오 파일 변환 실패, 원본 파일 사용");
+                }
+            }
+            
+            // 변환 실패 또는 FFmpeg가 없는 경우 기존 로직 사용
+            if (tempFile == null) {
+                tempFile = Files.createTempFile("speech-", "." + extension);
+                audioFile.transferTo(tempFile.toFile());
+            }
             
             // 2. 파일을 바이트 배열로 읽기
             byte[] audioBytes = Files.readAllBytes(tempFile);
@@ -102,7 +135,16 @@ public class SpeechToTextService {
                         .build();
                     
                     // 5. 인식 설정 구성 - 파일 타입에 따라 적절한 인코딩 설정
-                    RecognitionConfig.AudioEncoding encoding = determineAudioEncoding(audioFile.getContentType(), extension);
+                    RecognitionConfig.AudioEncoding encoding;
+                    
+                    // 변환된 파일인 경우 FLAC 인코딩 사용
+                    if (isConvertedFile) {
+                        encoding = RecognitionConfig.AudioEncoding.FLAC;
+                        log.info("변환된 FLAC 파일 사용, FLAC 인코딩 설정");
+                    } else {
+                        encoding = determineAudioEncoding(audioFile.getContentType(), extension);
+                    }
+                    
                     log.info("오디오 인코딩 설정: {}", encoding);
                     
                     // 6. RecognitionConfig 구성
@@ -110,10 +152,13 @@ public class SpeechToTextService {
                         .setEncoding(encoding)
                         .setLanguageCode(language);
                     
-                    // WAV, WebM/Opus, FLAC 파일은 샘플 레이트 설정
-                    // m4a는 샘플 레이트를 명시하지 않음 (자동 감지)
-                    if (encoding == RecognitionConfig.AudioEncoding.LINEAR16) {
-                        // WAV 파일은 샘플 레이트를 48000으로 설정 (실제 파일과 일치하도록)
+                    // 샘플 레이트 설정
+                    if (isConvertedFile) {
+                        // 변환된 FLAC 파일은 44100Hz 사용
+                        configBuilder.setSampleRateHertz(44100);
+                        log.info("변환된 FLAC 파일, 샘플 레이트를 44100Hz로 설정");
+                    } else if (encoding == RecognitionConfig.AudioEncoding.LINEAR16) {
+                        // WAV 파일은 샘플 레이트를 48000으로 설정
                         configBuilder.setSampleRateHertz(48000);
                         log.info("WAV 형식 감지, 샘플 레이트를 48000Hz로 설정");
                     } else if (encoding == RecognitionConfig.AudioEncoding.OGG_OPUS) {
@@ -121,7 +166,7 @@ public class SpeechToTextService {
                         configBuilder.setSampleRateHertz(48000);
                         log.info("Opus 코덱 감지, 샘플 레이트를 48000Hz로 설정");
                     } else if (encoding == RecognitionConfig.AudioEncoding.FLAC) {
-                        // FLAC는 44100Hz 사용 (기존 설정)
+                        // FLAC는 44100Hz 사용
                         configBuilder.setSampleRateHertz(44100);
                         log.info("FLAC 형식 감지, 샘플 레이트를 44100Hz로 설정");
                     } else if (encoding == RecognitionConfig.AudioEncoding.MP3) {
@@ -164,12 +209,15 @@ public class SpeechToTextService {
             throw new RuntimeException("음성 파일 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
         } finally {
             // 임시 파일 삭제
-            if (tempFile != null) {
-                try {
+            try {
+                if (tempFile != null && !isConvertedFile) {
                     Files.deleteIfExists(tempFile);
-                } catch (IOException e) {
-                    log.warn("임시 파일 삭제 실패", e);
                 }
+                if (convertedFile != null) {
+                    Files.deleteIfExists(convertedFile);
+                }
+            } catch (IOException e) {
+                log.warn("임시 파일 삭제 실패", e);
             }
         }
     }
