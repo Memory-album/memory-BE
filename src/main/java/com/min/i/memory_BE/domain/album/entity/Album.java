@@ -73,4 +73,24 @@ public class Album extends BaseEntity {
     this.user = user;
     this.group = group;
   }
+
+  /**
+   * 앨범의 그룹을 설정합니다.
+   * @param group 연결할 그룹
+   * @return 업데이트된 앨범 인스턴스
+   */
+  public Album updateGroup(Group group) {
+    this.group = group;
+    return this;
+  }
+  
+  /**
+   * 앨범의 소유자를 설정합니다.
+   * @param user 앨범의 소유자
+   * @return 업데이트된 앨범 인스턴스
+   */
+  public Album updateUser(User user) {
+    this.user = user;
+    return this;
+  }
 }

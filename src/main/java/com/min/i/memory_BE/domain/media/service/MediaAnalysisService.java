@@ -23,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -82,9 +83,10 @@ public class MediaAnalysisService {
     
     /**
      * FastAPI로부터 받은 분석 결과 처리
+     * @return 생성된 질문 리스트와 함께 업데이트된 분석 데이터
      */
     @Transactional
-    public void processAnalysisResult(Long mediaId, Map<String, Object> analysisData) {
+    public Map<String, Object> processAnalysisResult(Long mediaId, Map<String, Object> analysisData) {
         try {
             // 1. 미디어 엔티티 조회
             Media media = mediaRepository.findById(mediaId)
@@ -100,16 +102,21 @@ public class MediaAnalysisService {
                 processKeywordsFromAnalysisResult(media, analysisResult);
             }
             
-            // 4. 질문 처리
+            // 4. 질문 처리 및 ID 포함된 리스트 받기
+            List<Map<String, Object>> savedQuestions = new ArrayList<>();
             if (analysisData.containsKey("questions")) {
                 List<Map<String, Object>> questions = (List<Map<String, Object>>) analysisData.get("questions");
-                processQuestionsFromFastAPI(media, questions, analysisData);
+                savedQuestions = processQuestionsFromFastAPI(media, questions, analysisData);
+                // 분석 데이터의 questions를 ID가 포함된 버전으로 업데이트
+                analysisData.put("questions", savedQuestions);
             }
             
             // 5. 미디어 엔티티 저장
             mediaRepository.save(media);
             
             log.info("분석 결과 처리 완료: mediaId={}", mediaId);
+            
+            return analysisData;
             
         } catch (Exception e) {
             log.error("분석 결과 처리 중 오류 발생", e);
@@ -210,11 +217,15 @@ public class MediaAnalysisService {
     
     /**
      * FastAPI에서 받은 질문을 처리합니다.
+     * @return 생성된 질문과 ID 리스트
      */
-    private void processQuestionsFromFastAPI(Media media, List<Map<String, Object>> questions, Map<String, Object> analysisData) {
+    private List<Map<String, Object>> processQuestionsFromFastAPI(Media media, List<Map<String, Object>> questions, Map<String, Object> analysisData) {
         // 키워드 추출
         List<String> keywordsUsed = extractKeywordsFromAnalysisResult(analysisData);
         String keywordsStr = String.join(",", keywordsUsed);
+        
+        // 생성된 질문 저장
+        List<Map<String, Object>> savedQuestions = new ArrayList<>();
         
         for (Map<String, Object> questionMap : questions) {
             String content = (String) questionMap.get("question");
@@ -235,9 +246,16 @@ public class MediaAnalysisService {
                     .category(category)
                     .build();
             
-            questionRepository.save(question);
-            log.info("질문 저장 완료: {}", content);
+            Question savedQuestion = questionRepository.save(question);
+            log.info("질문 저장 완료: {}, ID: {}", content, savedQuestion.getId());
+            
+            // 원본 질문 정보에 ID 추가
+            Map<String, Object> savedQuestionMap = new HashMap<>(questionMap);
+            savedQuestionMap.put("id", savedQuestion.getId());
+            savedQuestions.add(savedQuestionMap);
         }
+        
+        return savedQuestions;
     }
     
     /**

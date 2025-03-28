@@ -63,3 +63,8 @@ application-key.yml
 # ffmpeg binary 는 제외 ❌ (꼭 포함해야 하니까)
 !src/main/resources/bin/ffmpeg-*
 
+#db files
+/data/memorydb.trace.db
+/data/memorydb.mv.db
+/data
+

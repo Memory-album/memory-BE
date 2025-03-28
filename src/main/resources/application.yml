@@ -12,10 +12,25 @@ spring:
       - classpath:application-db.yml
       - classpath:application-key.yml
 
+  # 기본 데이터베이스 설정 추가
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+  
+  # H2 콘솔 활성화
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+
   jpa:
     defer-datasource-initialization: true
     hibernate:
-      ddl-auto: create
+      ddl-auto: update
     properties:
       hibernate:
         default_batch_fetch_size: 100
@@ -102,7 +117,7 @@ spring.config.activate.on-profile: local
 spring:
   datasource:
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:core;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:./data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password:
   jpa:
