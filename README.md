@@ -33,6 +33,8 @@ git clone [레포주소]
 cd memory-BE
 git lfs pull
 
+---
+
 ## ✅ 프로젝트 세팅
 
 ### 1️⃣ Google Speech API 인증키
@@ -46,14 +48,20 @@ chmod +x src/main/resources/bin/ffmpeg-*
 실행권한 부여
 (Windows 환경에서는 필요 없음)
 
+---
+
 ## ✅ 실행 방법
 ./gradlew clean bootRun
+
+---
 
 ## ✅ 커밋 & 푸시 가이드 (LFS 적용 후)
 git add .
 git add --chmod=+x src/main/resources/bin/ffmpeg-*
 git commit -m "your message"
 git push
+
+---
 
 ⚠ 참고사항
 - 모든 팀원은 git lfs install을 반드시 먼저 실행해야 합니다.
