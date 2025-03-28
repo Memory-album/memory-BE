@@ -105,20 +105,42 @@ public class SpeechToTextService {
                     RecognitionConfig.AudioEncoding encoding = determineAudioEncoding(audioFile.getContentType(), extension);
                     log.info("오디오 인코딩 설정: {}", encoding);
                     
-                    RecognitionConfig config = RecognitionConfig.newBuilder()
+                    // 6. RecognitionConfig 구성
+                    RecognitionConfig.Builder configBuilder = RecognitionConfig.newBuilder()
                         .setEncoding(encoding)
-                        .setSampleRateHertz(44100)  // 테스트와 동일하게 44100 설정
-                        .setLanguageCode(language)
-                        .build();
+                        .setLanguageCode(language);
                     
-                    // 6. 음성 인식 요청
+                    // WAV, WebM/Opus, FLAC 파일은 샘플 레이트 설정
+                    // m4a는 샘플 레이트를 명시하지 않음 (자동 감지)
+                    if (encoding == RecognitionConfig.AudioEncoding.LINEAR16) {
+                        // WAV 파일은 샘플 레이트를 48000으로 설정 (실제 파일과 일치하도록)
+                        configBuilder.setSampleRateHertz(48000);
+                        log.info("WAV 형식 감지, 샘플 레이트를 48000Hz로 설정");
+                    } else if (encoding == RecognitionConfig.AudioEncoding.OGG_OPUS) {
+                        // WebM/Opus는 48000Hz 사용
+                        configBuilder.setSampleRateHertz(48000);
+                        log.info("Opus 코덱 감지, 샘플 레이트를 48000Hz로 설정");
+                    } else if (encoding == RecognitionConfig.AudioEncoding.FLAC) {
+                        // FLAC는 44100Hz 사용 (기존 설정)
+                        configBuilder.setSampleRateHertz(44100);
+                        log.info("FLAC 형식 감지, 샘플 레이트를 44100Hz로 설정");
+                    } else if (encoding == RecognitionConfig.AudioEncoding.MP3) {
+                        // MP3는 일반적으로 44100Hz 사용
+                        configBuilder.setSampleRateHertz(44100);
+                        log.info("MP3 형식 감지, 샘플 레이트를 44100Hz로 설정");
+                    }
+                    // m4a 및 기타 형식은 샘플 레이트 자동 감지를 위해 설정하지 않음
+                    
+                    RecognitionConfig config = configBuilder.build();
+                    
+                    // 7. 음성 인식 요청
                     log.info("음성 인식 요청 시작");
                     RecognizeResponse response = speechClient.recognize(config, audio);
                     log.info("음성 인식 응답 받음");
                     
                     List<SpeechRecognitionResult> results = response.getResultsList();
                     
-                    // 7. 결과 처리
+                    // 8. 결과 처리
                     if (results.isEmpty()) {
                         log.warn("인식된 텍스트가 없습니다.");
                         return "";
@@ -181,9 +203,9 @@ public class SpeechToTextService {
             return RecognitionConfig.AudioEncoding.LINEAR16;
         } else if ("ogg".equalsIgnoreCase(extension) || "opus".equalsIgnoreCase(extension)) {
             return RecognitionConfig.AudioEncoding.OGG_OPUS;
-        } else if ("m4a".equalsIgnoreCase(extension)) {
-            // m4a는 일반적으로 AAC 인코딩이지만, Google Speech API는 직접 지원하지 않음
-            // 따라서 명시적인 인코딩을 지정하지 않음
+        } else if ("m4a".equalsIgnoreCase(extension) || contentType.contains("m4a") || contentType.contains("mp4a")) {
+            // m4a는 일반적으로 AAC 인코딩이지만, API가 직접 지원하지 않아 자동 감지 사용
+            log.info("m4a 형식 감지, 인코딩 자동 감지 사용");
             return RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
         } else if ("webm".equalsIgnoreCase(extension)) {
             // WebM 확장자 처리
