@@ -3,6 +3,7 @@ package com.min.i.memory_BE.domain.album.controller;
 import com.min.i.memory_BE.domain.album.entity.Answer;
 import com.min.i.memory_BE.domain.album.service.AnswerService;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
+import com.min.i.memory_BE.domain.album.dto.response.AnswerResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -116,5 +118,39 @@ public class AnswerController {
         }
     }
     
-    // 기타 필요한 엔드포인트들...
+    /**
+     * 특정 질문에 대한 모든 답변 조회
+     */
+    @GetMapping("/question/{questionId}")
+    public ResponseEntity<List<AnswerResponse>> getAnswersByQuestion(
+            @PathVariable Long questionId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.info("질문 ID {} 에 대한 답변 목록 조회", questionId);
+        List<AnswerResponse> answers = answerService.getAnswersByQuestionId(questionId);
+        return ResponseEntity.ok(answers);
+    }
+
+    /**
+     * 특정 사용자의 답변 목록 조회
+     */
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<AnswerResponse>> getAnswersByUser(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.info("사용자 ID {} 의 답변 목록 조회", userId);
+        List<AnswerResponse> answers = answerService.getAnswersByUserId(userId);
+        return ResponseEntity.ok(answers);
+    }
+
+    /**
+     * 특정 답변 상세 조회
+     */
+    @GetMapping("/{answerId}")
+    public ResponseEntity<AnswerResponse> getAnswer(
+            @PathVariable Long answerId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        log.info("답변 ID {} 상세 조회", answerId);
+        AnswerResponse answer = answerService.getAnswerById(answerId);
+        return ResponseEntity.ok(answer);
+    }
 }

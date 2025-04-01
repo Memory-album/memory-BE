@@ -2,6 +2,7 @@ package com.min.i.memory_BE.domain.album.service;
 
 import com.min.i.memory_BE.domain.album.entity.Answer;
 import com.min.i.memory_BE.domain.album.repository.AnswerRepository;
+import com.min.i.memory_BE.domain.album.dto.response.AnswerResponse;
 import com.min.i.memory_BE.domain.album.entity.Question;
 import com.min.i.memory_BE.domain.album.repository.QuestionRepository;
 import com.min.i.memory_BE.domain.user.entity.User;
@@ -10,6 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+import java.util.stream.Collectors;
+import jakarta.persistence.EntityNotFoundException;
 
 @Slf4j
 @Service
@@ -52,12 +56,28 @@ public class AnswerService {
         return answerRepository.save(answer);
     }
     
-    /**
-     * SpeechToTextService 인스턴스를 반환합니다.
-     */
+    //SpeechToTextService 인스턴스를 반환합니다.
     public SpeechToTextService getSpeechToTextService() {
         return speechToTextService;
     }
     
-    // 기타 필요한 메서드들...
+    public List<AnswerResponse> getAnswersByQuestionId(Long questionId) {
+        return answerRepository.findByQuestionId(questionId)
+                .stream()
+                .map(AnswerResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    public List<AnswerResponse> getAnswersByUserId(Long userId) {
+        return answerRepository.findByUserId(userId)
+                .stream()
+                .map(AnswerResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    public AnswerResponse getAnswerById(Long answerId) {
+        Answer answer = answerRepository.findById(answerId)
+                .orElseThrow(() -> new EntityNotFoundException("답변을 찾을 수 없습니다: " + answerId));
+        return AnswerResponse.from(answer);
+    }
 }

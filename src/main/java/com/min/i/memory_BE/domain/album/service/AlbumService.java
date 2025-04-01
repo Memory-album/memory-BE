@@ -4,7 +4,6 @@ import com.min.i.memory_BE.domain.album.repository.AlbumRepository;
 import com.min.i.memory_BE.global.service.S3Service;
 import com.min.i.memory_BE.domain.album.dto.request.AlbumRequestDto;
 import com.min.i.memory_BE.domain.album.entity.Album;
-import com.min.i.memory_BE.domain.album.enums.AlbumTheme;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
