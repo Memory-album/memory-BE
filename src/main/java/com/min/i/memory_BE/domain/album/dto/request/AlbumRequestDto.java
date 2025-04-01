@@ -24,5 +24,6 @@ public class AlbumRequestDto {
 
     private Long userId;
 
+    @NotNull(message = "그룹 ID는 필수입니다.")
     private Long groupId;
 }

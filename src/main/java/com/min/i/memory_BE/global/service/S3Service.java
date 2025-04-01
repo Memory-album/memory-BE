@@ -202,9 +202,28 @@ public class S3Service {
   }
 
   public String uploadThumbnail(MultipartFile file) {
-    // S3에 파일 업로드 로직 구현
-    // 업로드 후 파일의 URL 반환
-    return "uploaded_thumbnail_url"; // 실제 URL로 변경 필요
+    validateImageFile(file);
+    
+    String fileName = generateFileName(file.getOriginalFilename());
+    String key = String.format("thumbnails/%s", fileName);
+    
+    try {
+      PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+        .bucket(bucketName)
+        .key(key)
+        .contentType(file.getContentType())
+        .build();
+      
+      s3Client.putObject(putObjectRequest,
+        RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+      
+      log.info("썸네일 이미지 업로드 성공: {}", key);
+      return getFileUrl(key);
+      
+    } catch (IOException e) {
+      log.error("썸네일 이미지 업로드 실패: {}", e.getMessage());
+      throw new S3Exception("썸네일 이미지 업로드 중 오류가 발생했습니다");
+    }
   }
 
   /**
