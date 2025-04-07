@@ -63,6 +63,31 @@ public class QuestionService {
         
         return QuestionDto.Response.fromEntity(savedQuestion);
     }
+    
+    /**
+     * 질문을 수정합니다.
+     *
+     * @param questionId 수정할 질문 ID
+     * @param requestDto 질문 수정 요청 DTO
+     * @return 수정된 질문의 응답 DTO
+     */
+    @Transactional
+    public QuestionDto.Response updateQuestion(Long questionId, QuestionDto.Update requestDto) {
+        log.info("질문 수정 시작: questionId={}, content={}", questionId, requestDto.getContent());
+
+        // 1. 질문 존재 확인
+        Question question = questionRepository.findByIdWithMediaAndUploader(questionId)
+                .orElseThrow(() -> new EntityNotFoundException("질문을 찾을 수 없습니다: " + questionId));
+
+        // 2. 질문 내용 수정
+        question.setContent(requestDto.getContent());
+        
+        // 3. 수정된 질문 저장
+        Question updatedQuestion = questionRepository.save(question);
+        log.info("질문 수정 완료: questionId={}", updatedQuestion.getId());
+        
+        return QuestionDto.Response.fromEntity(updatedQuestion);
+    }
 
     /**
      * 미디어 ID로 질문 목록을 조회합니다.

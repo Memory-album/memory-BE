@@ -57,4 +57,12 @@ public class Question extends BaseEntity {
     this.level = level;
     this.category = category;
   }
+  
+  /**
+   * 질문 내용을 수정합니다.
+   * @param content 새로운 질문 내용
+   */
+  public void setContent(String content) {
+    this.content = content;
+  }
 }

@@ -32,40 +32,6 @@ public class QuestionController {
     private final MediaService mediaService;
     private final AlbumRepository albumRepository;
     
-    @PostMapping
-    @Operation(summary = "사용자 질문 생성", description = "사용자가 입력한 질문을 생성합니다. 미디어 ID와 질문 내용만 필요합니다.")
-    public ResponseEntity<?> createUserQuestion(
-            @Valid @RequestBody QuestionDto.Create requestDto,
-            @AuthenticationPrincipal CustomUserDetails userDetails) {
-        
-        try {
-            log.info("사용자 질문 생성 요청: mediaId={}, content={}", 
-                requestDto.getMediaId(), requestDto.getContent());
-            
-            // 질문 생성
-            QuestionDto.Response response = questionService.createUserQuestion(requestDto);
-            
-            return ResponseEntity.ok(Map.of(
-                "status", "success",
-                "message", "질문이 성공적으로 생성되었습니다",
-                "data", response
-            ));
-            
-        } catch (EntityNotFoundException e) {
-            log.error("질문 생성 중 엔티티를 찾을 수 없음: {}", e.getMessage());
-            return ResponseEntity.status(404).body(Map.of(
-                "status", "error",
-                "message", e.getMessage()
-            ));
-        } catch (Exception e) {
-            log.error("질문 생성 중 오류 발생: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body(Map.of(
-                "status", "error",
-                "message", "질문 생성 중 오류가 발생했습니다: " + e.getMessage()
-            ));
-        }
-    }
-
     @GetMapping("/{questionId}")
     @Operation(summary = "질문 상세 조회", description = "질문 ID에 해당하는 질문 상세 정보를 반환합니다.")
     public ResponseEntity<?> getQuestionDetail(@PathVariable Long questionId) {
@@ -92,6 +58,41 @@ public class QuestionController {
             return ResponseEntity.badRequest().body(Map.of(
                 "status", "error",
                 "message", "질문 상세 조회 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PutMapping("/{questionId}")
+    @Operation(summary = "질문 수정", description = "질문 ID에 해당하는 질문을 수정합니다.")
+    public ResponseEntity<?> updateQuestion(
+            @PathVariable Long questionId,
+            @Valid @RequestBody QuestionDto.Update requestDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        try {
+            log.info("질문 수정 요청: questionId={}, content={}", 
+                questionId, requestDto.getContent());
+            
+            // 질문 수정
+            QuestionDto.Response response = questionService.updateQuestion(questionId, requestDto);
+            
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "질문이 성공적으로 수정되었습니다",
+                "data", response
+            ));
+            
+        } catch (EntityNotFoundException e) {
+            log.error("질문 수정 중 엔티티를 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(404).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("질문 수정 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", "질문 수정 중 오류가 발생했습니다: " + e.getMessage()
             ));
         }
     }
