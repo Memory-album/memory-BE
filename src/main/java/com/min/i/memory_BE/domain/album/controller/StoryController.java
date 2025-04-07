@@ -1,14 +1,17 @@
 package com.min.i.memory_BE.domain.album.controller;
 
+import com.min.i.memory_BE.domain.album.dto.StoryDto;
 import com.min.i.memory_BE.domain.album.entity.Story;
 import com.min.i.memory_BE.domain.album.service.StoryService;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import com.min.i.memory_BE.global.error.exception.DuplicateResourceException;
+import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -59,6 +62,47 @@ public class StoryController {
             return ResponseEntity.status(404).body(Map.of(
                 "status", "error",
                 "message", e.getMessage()
+            ));
+        }
+    }
+    
+    @PutMapping("/{storyId}")
+    @Operation(summary = "스토리 수정", description = "스토리 ID에 해당하는 스토리를 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "스토리 수정 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "404", description = "스토리를 찾을 수 없음")
+    })
+    public ResponseEntity<?> updateStory(
+            @Parameter(description = "스토리 ID", required = true)
+            @PathVariable Long storyId,
+            @Valid @RequestBody StoryDto.Update requestDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        try {
+            log.info("스토리 수정 요청: storyId={}, content={}", 
+                storyId, requestDto.getContent());
+            
+            // 스토리 수정
+            StoryDto.Response response = storyService.updateStory(storyId, requestDto);
+            
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "스토리가 성공적으로 수정되었습니다",
+                "data", response
+            ));
+            
+        } catch (EntityNotFoundException e) {
+            log.error("스토리 수정 중 엔티티를 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(404).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("스토리 수정 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", "스토리 수정 중 오류가 발생했습니다: " + e.getMessage()
             ));
         }
     }

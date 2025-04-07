@@ -29,4 +29,12 @@ public class Story extends BaseEntity {
         this.media = media;
         this.content = content;
     }
+    
+    /**
+     * 스토리 내용을 수정합니다.
+     * @param content 새로운 스토리 내용
+     */
+    public void setContent(String content) {
+        this.content = content;
+    }
 }

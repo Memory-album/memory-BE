@@ -1,5 +1,6 @@
 package com.min.i.memory_BE.domain.album.service;
 
+import com.min.i.memory_BE.domain.album.dto.StoryDto;
 import com.min.i.memory_BE.domain.album.entity.Answer;
 import com.min.i.memory_BE.domain.album.entity.Question;
 import com.min.i.memory_BE.domain.album.entity.Story;
@@ -44,6 +45,31 @@ public class StoryService {
         log.info("미디어 ID {}에 대한 스토리 조회", mediaId);
         return storyRepository.findByMediaId(mediaId)
                 .orElseThrow(() -> new EntityNotFoundException("스토리를 찾을 수 없습니다: 미디어 ID " + mediaId));
+    }
+    
+    /**
+     * 스토리를 수정합니다.
+     *
+     * @param storyId 수정할 스토리 ID
+     * @param updateDto 스토리 수정 요청 DTO
+     * @return 수정된 스토리의 응답 DTO
+     */
+    @Transactional
+    public StoryDto.Response updateStory(Long storyId, StoryDto.Update updateDto) {
+        log.info("스토리 수정 시작: storyId={}, content={}", storyId, updateDto.getContent());
+
+        // 1. 스토리 존재 확인
+        Story story = storyRepository.findById(storyId)
+                .orElseThrow(() -> new EntityNotFoundException("스토리를 찾을 수 없습니다: " + storyId));
+
+        // 2. 스토리 내용 수정
+        story.setContent(updateDto.getContent());
+        
+        // 3. 수정된 스토리 저장
+        Story updatedStory = storyRepository.save(story);
+        log.info("스토리 수정 완료: storyId={}", updatedStory.getId());
+        
+        return StoryDto.Response.fromEntity(updatedStory);
     }
     
     /**
