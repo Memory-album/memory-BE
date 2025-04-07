@@ -23,7 +23,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/stories")
-@Tag(name = "스토리 API", description = "스토리 생성 및 조회 API")
+@Tag(name = "Story API", description = "스토리 관리 API")
 @RequiredArgsConstructor
 @Slf4j
 public class StoryController {

@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/answers")
 @RequiredArgsConstructor
-@Tag(name = "답변 API", description = "미디어에 대한 답변 생성 및 조회 API")
+@Tag(name = "Answer API", description = " 답변 관리 API")
 public class AnswerController {
 
     private final AnswerService answerService;

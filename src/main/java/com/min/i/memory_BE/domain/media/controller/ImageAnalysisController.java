@@ -30,7 +30,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/images")
 @RequiredArgsConstructor
-@Tag(name = "이미지 분석 API", description = "이미지 업로드 및 분석 관련 API")
+@Tag(name = "ImageAnalysis API", description = "이미지 업로드 및 분석 관련 API")
 public class ImageAnalysisController {
 
     private final S3Service s3Service;
