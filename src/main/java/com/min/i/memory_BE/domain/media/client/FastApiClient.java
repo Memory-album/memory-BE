@@ -134,16 +134,18 @@ public class FastApiClient {
     }
     
     /**
-     * 질문-답변 데이터를 FastAPI 서버로 전송하여 스토리텔링을 생성합니다.
+     * 질문-답변 데이터 + 이미지를 FastAPI 서버로 전송하여 스토리텔링을 생성합니다.
      * 
      * @param mediaId 미디어 ID
      * @param questions 질문 목록 (각 질문은 id, content, category, level, theme 등의 정보를 포함)
      * @param answers 답변 목록 (각 답변은 id, content, user_id 등의 정보를 포함)
      * @param options 스토리 생성 옵션 (스타일, 길이 등)
+     * @param imageUrl 이미지 URL (Gemini 1.5 Flash 모델에 전달할 이미지 URL)
      * @return 생성된 스토리 정보를 포함한 응답
      */
     public Map<String, Object> generateStory(Long mediaId, List<Map<String, Object>> questions, 
-                                         List<Map<String, Object>> answers, Map<String, Object> options) {
+                                         List<Map<String, Object>> answers, Map<String, Object> options,
+                                         String imageUrl) {
         try {
             log.info("FastAPI 서버로 스토리 생성 요청: {}", fastApiUrl);
             
@@ -155,6 +157,7 @@ public class FastApiClient {
             requestBody.put("media_id", mediaId);
             requestBody.put("questions", questions);
             requestBody.put("answers", answers);
+            requestBody.put("image_url", imageUrl);
             
             if (options != null) {
                 requestBody.put("options", options);
@@ -181,5 +184,20 @@ public class FastApiClient {
             log.error("스토리 생성 중 오류 발생: {}", e.getMessage(), e);
             throw new FastApiServiceException("스토리 생성 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * 질문-답변 데이터를 FastAPI 서버로 전송하여 스토리텔링을 생성합니다. (이전 버전과의 호환성 유지)
+     * 
+     * @param mediaId 미디어 ID
+     * @param questions 질문 목록 (각 질문은 id, content, category, level, theme 등의 정보를 포함)
+     * @param answers 답변 목록 (각 답변은 id, content, user_id 등의 정보를 포함)
+     * @param options 스토리 생성 옵션 (스타일, 길이 등)
+     * @return 생성된 스토리 정보를 포함한 응답
+     */
+    public Map<String, Object> generateStory(Long mediaId, List<Map<String, Object>> questions, 
+                                         List<Map<String, Object>> answers, Map<String, Object> options) {
+        // 이미지 URL 없이 호출되는 경우 null로 전달
+        return generateStory(mediaId, questions, answers, options, null);
     }
 } 

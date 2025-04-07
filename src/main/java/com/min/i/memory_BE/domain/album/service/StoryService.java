@@ -89,8 +89,17 @@ public class StoryService {
         options.put("style", "emotional");
         options.put("length", "medium");
         
-        // 5. FastAPI 호출하여 스토리 생성
-        Map<String, Object> response = fastApiClient.generateStory(mediaId, questionsList, answersList, options);
+        // 미디어의 이미지 URL 가져오기
+        String imageUrl = media.getImageUrl(); // 이미지 URL 우선사용
+        // 이미지 URL이 없으면 파일 URL 사용
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            imageUrl = media.getFileUrl();
+        }
+        
+        log.info("스토리 생성에 사용할 이미지 URL: {}", imageUrl);
+        
+        // 5. FastAPI 호출하여 스토리 생성 - 이미지 URL 전달
+        Map<String, Object> response = fastApiClient.generateStory(mediaId, questionsList, answersList, options, imageUrl);
         
         // 6. 응답 처리
         if (response == null || !"success".equals(response.get("status"))) {
@@ -114,25 +123,5 @@ public class StoryService {
         
         return savedStory;
     }
-    
-    /**
-     * 미디어 ID로 스토리를 조회합니다.
-     * 
-     * @param mediaId 미디어 ID
-     * @return 스토리 엔티티 (없는 경우 null)
-     */
-    public Story getStoryByMediaId(Long mediaId) {
-        return storyRepository.findByMediaId(mediaId)
-                .orElse(null);
-    }
-    
-    /**
-     * 여러 미디어 ID에 대한 스토리를 조회합니다.
-     * 
-     * @param mediaIds 미디어 ID 목록
-     * @return 스토리 목록
-     */
-    public List<Story> getStoriesByMediaIds(List<Long> mediaIds) {
-        return storyRepository.findByMediaIdIn(mediaIds);
-    }
+
 } 

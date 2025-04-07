@@ -20,18 +20,10 @@ public interface StoryRepository extends JpaRepository<Story, Long> {
      * @return 스토리 (없는 경우 Optional.empty())
      */
     Optional<Story> findByMediaId(Long mediaId);
-    
-    /**
-     * 여러 미디어 ID에 대한 스토리를 조회합니다.
-     * 
-     * @param mediaIds 미디어 ID 목록
-     * @return 스토리 목록
-     */
-    List<Story> findByMediaIdIn(List<Long> mediaIds);
-    
+
     /**
      * 미디어 ID로 스토리 존재 여부를 확인합니다.
-     * 
+     *
      * @param mediaId 미디어 ID
      * @return 존재 여부 (true/false)
      */
