@@ -63,7 +63,7 @@ public class MediaService {
                 .uploadedBy(uploadedBy)
                 .build();
             
-        // 명시적으로 생성 시간 설정
+      
         LocalDateTime now = LocalDateTime.now();
         media.setCreatedAt(now);
         media.setUpdatedAt(now);
