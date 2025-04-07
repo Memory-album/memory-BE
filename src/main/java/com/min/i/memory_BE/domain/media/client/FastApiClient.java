@@ -27,6 +27,9 @@ public class FastApiClient {
     @Value("${fastapi.server.url}")
     private String fastApiUrl;
 
+    @Value("${google.api.key:}")
+    private String googleApiKey;
+
     private final RestTemplate restTemplate;
 
     /**
@@ -158,13 +161,9 @@ public class FastApiClient {
             requestBody.put("questions", questions);
             requestBody.put("answers", answers);
             requestBody.put("image_url", imageUrl);
-            
-            if (options != null) {
-                requestBody.put("options", options);
-            }
 
             HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-
+            
             // FastAPI 서버에 요청 전송
             ResponseEntity<Map> response = restTemplate.postForEntity(
                 fastApiUrl + "/api/v1/generate-story",

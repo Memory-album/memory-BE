@@ -10,6 +10,7 @@ import com.min.i.memory_BE.domain.media.client.FastApiClient;
 import com.min.i.memory_BE.domain.media.entity.Media;
 import com.min.i.memory_BE.domain.media.repository.MediaRepository;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
+import com.min.i.memory_BE.global.error.exception.DuplicateResourceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,11 +34,25 @@ public class StoryService {
     private final FastApiClient fastApiClient;
     
     /**
+     * 미디어 ID로 스토리를 조회합니다.
+     * 
+     * @param mediaId 미디어 ID
+     * @return 조회된 스토리 엔티티
+     * @throws EntityNotFoundException 스토리가 존재하지 않을 경우
+     */
+    public Story getStoryByMediaId(Long mediaId) {
+        log.info("미디어 ID {}에 대한 스토리 조회", mediaId);
+        return storyRepository.findByMediaId(mediaId)
+                .orElseThrow(() -> new EntityNotFoundException("스토리를 찾을 수 없습니다: 미디어 ID " + mediaId));
+    }
+    
+    /**
      * 미디어 ID를 기반으로 질문과 답변을 조회하여 스토리를 생성합니다.
      * 생성된 스토리는 데이터베이스에 저장됩니다.
      * 
      * @param mediaId 미디어 ID
      * @return 생성된 스토리 엔티티
+     * @throws DuplicateResourceException 이미 스토리가 존재할 경우
      */
     @Transactional
     public Story generateStory(Long mediaId) {
@@ -50,7 +65,7 @@ public class StoryService {
         // 2. 이미 스토리가 있는지 확인
         if (storyRepository.existsByMediaId(mediaId)) {
             log.info("이미 스토리가 존재합니다. ID: {}", mediaId);
-            return storyRepository.findByMediaId(mediaId).orElse(null);
+            throw new DuplicateResourceException("이미 해당 미디어에 대한 스토리가 존재합니다: " + mediaId);
         }
         
         // 3. 질문과 답변 데이터 조회
