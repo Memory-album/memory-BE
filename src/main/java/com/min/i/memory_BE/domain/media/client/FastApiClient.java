@@ -16,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -130,5 +131,55 @@ public class FastApiClient {
      */
     public RestTemplate getRestTemplate() {
         return restTemplate;
+    }
+    
+    /**
+     * 질문-답변 데이터를 FastAPI 서버로 전송하여 스토리텔링을 생성합니다.
+     * 
+     * @param mediaId 미디어 ID
+     * @param questions 질문 목록 (각 질문은 id, content, category, level, theme 등의 정보를 포함)
+     * @param answers 답변 목록 (각 답변은 id, content, user_id 등의 정보를 포함)
+     * @param options 스토리 생성 옵션 (스타일, 길이 등)
+     * @return 생성된 스토리 정보를 포함한 응답
+     */
+    public Map<String, Object> generateStory(Long mediaId, List<Map<String, Object>> questions, 
+                                         List<Map<String, Object>> answers, Map<String, Object> options) {
+        try {
+            log.info("FastAPI 서버로 스토리 생성 요청: {}", fastApiUrl);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            
+            // 요청 본문 구성
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("media_id", mediaId);
+            requestBody.put("questions", questions);
+            requestBody.put("answers", answers);
+            
+            if (options != null) {
+                requestBody.put("options", options);
+            }
+
+            HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+            // FastAPI 서버에 요청 전송
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                fastApiUrl + "/api/v1/generate-story",
+                requestEntity,
+                Map.class
+            );
+
+            // 응답 상태 확인
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                throw new FastApiServiceException("FastAPI 서버 응답 오류: " + response.getStatusCode());
+            }
+            
+            log.info("FastAPI 서버로부터 스토리 생성 응답 수신 성공");
+            return response.getBody();
+
+        } catch (Exception e) {
+            log.error("스토리 생성 중 오류 발생: {}", e.getMessage(), e);
+            throw new FastApiServiceException("스토리 생성 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
     }
 } 
