@@ -2,6 +2,7 @@ package com.min.i.memory_BE.domain.album.dto;
 
 import com.min.i.memory_BE.domain.album.entity.Question;
 import com.min.i.memory_BE.domain.album.enums.QuestionTheme;
+import com.min.i.memory_BE.domain.user.dto.UserSimpleDto;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -67,6 +68,7 @@ public class QuestionDto {
         private String category;
         private Integer level;
         private Boolean isPrivate;
+        private UserSimpleDto uploader;
         
         /**
          * Question 엔티티를 Response DTO로 변환
@@ -80,6 +82,8 @@ public class QuestionDto {
                 .category(question.getCategory())
                 .level(question.getLevel())
                 .isPrivate(question.isPrivate())
+                .uploader(question.getMedia() != null && question.getMedia().getUploadedBy() != null ? 
+                          UserSimpleDto.from(question.getMedia().getUploadedBy()) : null)
                 .build();
         }
     }
