@@ -47,7 +47,6 @@ public class MediaAnalysisService {
     @Transactional
     public Media createEmptyMedia() {
         Media media = Media.builder()
-                .createdAt(LocalDateTime.now())
                 .fileSize(0L)
                 .fileUrl("")
                 .fileType(com.min.i.memory_BE.domain.media.enums.MediaType.IMAGE)
@@ -62,7 +61,6 @@ public class MediaAnalysisService {
     @Transactional
     public Media createEmptyMedia(User user, Album album) {
         Media media = Media.builder()
-                .createdAt(LocalDateTime.now())
                 .uploadedBy(user)
                 .album(album)
                 .fileSize(0L)
