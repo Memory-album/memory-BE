@@ -65,4 +65,30 @@ public class AlbumController {
         
         return ResponseEntity.ok(ApiResponse.success(albums));
     }
+
+    @Operation(summary = "앨범 수정", description = "앨범 정보를 수정합니다. 제목, 설명, 테마, 썸네일 등을 변경할 수 있습니다.")
+    @PutMapping(value = "/{albumId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<AlbumResponseDto>> updateAlbum(
+            @Parameter(description = "앨범 ID") @PathVariable Long albumId,
+            @ModelAttribute AlbumRequestDto request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        // 로그인한 사용자 ID 설정
+        if (userDetails != null) {
+            request.setUserId(userDetails.getUser().getId());
+        }
+        
+        Album updatedAlbum = albumService.updateAlbum(albumId, request);
+        return ResponseEntity.ok(ApiResponse.success(AlbumResponseDto.fromEntity(updatedAlbum)));
+    }
+    
+    @Operation(summary = "앨범 삭제", description = "앨범을 삭제합니다. 앨범과 연결된 모든 미디어는 유지됩니다.")
+    @DeleteMapping("/{albumId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAlbum(
+            @Parameter(description = "앨범 ID") @PathVariable Long albumId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        albumService.deleteAlbum(albumId, userDetails.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }

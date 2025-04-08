@@ -1,65 +1,99 @@
 package com.min.i.memory_BE.domain.album.controller;
 
-import com.min.i.memory_BE.domain.album.entity.Question;
-import com.min.i.memory_BE.domain.album.repository.QuestionRepository;
-import com.min.i.memory_BE.domain.media.entity.Media;
-import com.min.i.memory_BE.domain.user.entity.User;
+import com.min.i.memory_BE.domain.album.dto.QuestionDto;
+import com.min.i.memory_BE.domain.album.service.QuestionService;
+import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
+import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
+import com.min.i.memory_BE.domain.media.service.MediaService;
+import com.min.i.memory_BE.domain.album.repository.AlbumRepository;
+import com.min.i.memory_BE.domain.media.entity.Media;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/questions")
+@RequestMapping("/api/v1/questions")
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
+@Tag(name = "Question API", description = "질문 관리 API")
 public class QuestionController {
 
-    private final QuestionRepository questionRepository;
-
+    private final QuestionService questionService;
+    private final MediaService mediaService;
+    private final AlbumRepository albumRepository;
+    
     @GetMapping("/{questionId}")
     @Operation(summary = "질문 상세 조회", description = "질문 ID에 해당하는 질문 상세 정보를 반환합니다.")
     public ResponseEntity<?> getQuestionDetail(@PathVariable Long questionId) {
         try {
             log.info("질문 ID {} 상세 조회 요청", questionId);
             
-            Question question = questionRepository.findByIdWithMediaAndUploader(questionId)
-                .orElseThrow(() -> new RuntimeException("질문을 찾을 수 없습니다: " + questionId));
+            // 서비스 계층 사용
+            QuestionDto.Response question = questionService.getQuestionById(questionId);
             
-            // 미디어 및 업로더 정보 추출
-            Media media = question.getMedia();
-            User uploader = media.getUploadedBy();
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "질문 상세 조회 성공",
+                "data", question
+            ));
             
-            // 응답 데이터 구성 (간소화)
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("userName", uploader != null ? uploader.getName() : "알 수 없음");
-            responseData.put("content", question.getContent());
-            responseData.put("imageUrl", media.getImageUrl());
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "success");
-            response.put("message", "질문 상세 조회 성공");
-            response.put("data", responseData);
-            
-            return ResponseEntity.ok(response);
-            
+        } catch (EntityNotFoundException e) {
+            log.error("질문을 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(404).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
         } catch (Exception e) {
             log.error("질문 상세 조회 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", "질문 상세 조회 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PutMapping("/{questionId}")
+    @Operation(summary = "질문 수정", description = "질문 ID에 해당하는 질문을 수정합니다.")
+    public ResponseEntity<?> updateQuestion(
+            @PathVariable Long questionId,
+            @Valid @RequestBody QuestionDto.Update requestDto,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        try {
+            log.info("질문 수정 요청: questionId={}, content={}", 
+                questionId, requestDto.getContent());
             
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "질문 상세 조회 중 오류가 발생했습니다: " + e.getMessage());
+            // 질문 수정
+            QuestionDto.Response response = questionService.updateQuestion(questionId, requestDto);
             
-            return ResponseEntity.badRequest().body(response);
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "질문이 성공적으로 수정되었습니다",
+                "data", response
+            ));
+            
+        } catch (EntityNotFoundException e) {
+            log.error("질문 수정 중 엔티티를 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(404).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("질문 수정 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", "질문 수정 중 오류가 발생했습니다: " + e.getMessage()
+            ));
         }
     }
 
@@ -69,72 +103,74 @@ public class QuestionController {
         try {
             log.info("미디어 ID {} 관련 질문 조회 요청", mediaId);
             
-            List<Question> questions = questionRepository.findByMediaIdWithMediaAndUploader(mediaId);
+            // 서비스 계층 사용
+            List<QuestionDto.Response> questions = questionService.getQuestionsByMediaId(mediaId);
             
-            if (questions.isEmpty()) {
-                Map<String, Object> responseData = new HashMap<>();
-                responseData.put("questions", new ArrayList<>());
-                
-                Map<String, Object> response = new HashMap<>();
-                response.put("status", "success");
-                response.put("message", "해당 미디어에 대한 질문이 없습니다.");
-                response.put("data", responseData);
-                
-                return ResponseEntity.ok(response);
-            }
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", questions.isEmpty() ? "해당 미디어에 대한 질문이 없습니다" : "질문 조회 성공",
+                "data", Map.of("questions", questions)
+            ));
             
-            // 미디어 및 업로더 정보 추출
-            Media media = questions.get(0).getMedia();
-            User uploader = media.getUploadedBy();
-            
-            // 사용자 정보 맵 생성
-            Map<String, Object> uploaderInfo = new HashMap<>();
-            if (uploader != null) {
-                uploaderInfo.put("id", uploader.getId());
-                uploaderInfo.put("name", uploader.getName());
-                uploaderInfo.put("profileImgUrl", uploader.getProfileImgUrl());
-            }
-            
-            // 미디어 정보 맵 생성
-            Map<String, Object> mediaInfo = new HashMap<>();
-            mediaInfo.put("id", media.getId());
-            mediaInfo.put("imageUrl", media.getImageUrl());
-            mediaInfo.put("fileUrl", media.getFileUrl());
-            
-            // 질문 목록을 변환하여 반환
-            List<Map<String, Object>> questionsList = questions.stream()
-                .map(q -> {
-                    Map<String, Object> questionMap = new HashMap<>();
-                    questionMap.put("id", q.getId());
-                    questionMap.put("content", q.getContent());
-                    questionMap.put("category", q.getCategory());
-                    questionMap.put("level", q.getLevel());
-                    return questionMap;
-                })
-                .collect(Collectors.toList());
-            
-            // 응답 데이터 구성
-            Map<String, Object> responseData = new HashMap<>();
-            responseData.put("mediaId", mediaId);
-            responseData.put("media", mediaInfo);
-            responseData.put("uploader", uploaderInfo);
-            responseData.put("questions", questionsList);
-            
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "success");
-            response.put("message", "질문 조회 성공");
-            response.put("data", responseData);
-            
-            return ResponseEntity.ok(response);
-            
+        } catch (EntityNotFoundException e) {
+            log.error("미디어를 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(404).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
         } catch (Exception e) {
             log.error("질문 조회 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", "질문 조회 중 오류가 발생했습니다: " + e.getMessage()
+            ));
+        }
+    }
+
+    @PostMapping(value = "/with-media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "미디어 업로드와 질문 생성", description = "미디어 파일을 업로드하고 해당 미디어에 대한 질문을 함께 생성합니다.")
+    public ResponseEntity<?> createQuestionWithMedia(
+            @RequestPart(value = "file", required = true) MultipartFile file,
+            @RequestParam(value = "content", required = true) String content,
+            @RequestParam(value = "groupId", required = true) Long groupId,
+            @RequestParam(value = "albumId", required = true) Long albumId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        
+        try {
+            log.info("미디어 업로드 및 질문 생성 요청: groupId={}, albumId={}, contentLength={}", 
+                    groupId, albumId, content.length());
             
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "error");
-            response.put("message", "질문 조회 중 오류가 발생했습니다: " + e.getMessage());
+            // 1. 미디어 업로드
+            Media uploadedMedia = mediaService.uploadMedia(file, groupId, albumId, userDetails.getUser());
             
-            return ResponseEntity.badRequest().body(response);
+            // 2. 질문 생성 DTO 생성
+            QuestionDto.Create questionDto = new QuestionDto.Create(uploadedMedia.getId(), content);
+            
+            // 3. 질문 생성
+            QuestionDto.Response response = questionService.createUserQuestion(questionDto);
+            
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "미디어 업로드 및 질문 생성이 성공적으로 완료되었습니다",
+                "data", Map.of(
+                    "mediaId", uploadedMedia.getId(),
+                    "mediaUrl", uploadedMedia.getFileUrl(),
+                    "question", response
+                )
+            ));
+            
+        } catch (EntityNotFoundException e) {
+            log.error("미디어 업로드 및 질문 생성 중 엔티티를 찾을 수 없음: {}", e.getMessage());
+            return ResponseEntity.status(404).body(Map.of(
+                "status", "error",
+                "message", e.getMessage()
+            ));
+        } catch (Exception e) {
+            log.error("미디어 업로드 및 질문 생성 중 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(Map.of(
+                "status", "error",
+                "message", "미디어 업로드 및 질문 생성 중 오류가 발생했습니다: " + e.getMessage()
+            ));
         }
     }
 } 

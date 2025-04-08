@@ -26,13 +26,14 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import jakarta.persistence.PrePersist;
 
 @Entity
 @Table(name = "media")
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@Builder(toBuilder = true)
 public class Media extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -43,9 +44,6 @@ public class Media extends BaseEntity {
   
   @Column(columnDefinition = "TEXT")
   private String analysisResult;
-  
-  @Column(nullable = false)
-  private LocalDateTime createdAt;
   
   @Column(nullable = false)
   private String fileUrl;
@@ -82,6 +80,22 @@ public class Media extends BaseEntity {
 
   @OneToMany(mappedBy = "media", cascade = CascadeType.ALL)
   private final List<Story> stories = new ArrayList<>();
+  
+  /**
+   * Builder 사용 후 BaseEntity의 필드를 초기화
+   */
+  @Builder.Default
+  private LocalDateTime builderCreatedAt = LocalDateTime.now();
+  
+
+  @PrePersist
+  @Override
+  public void prePersist() {
+    super.prePersist();
+    if (getCreatedAt() == null) {
+      setCreatedAt(builderCreatedAt);
+    }
+  }
   
   public void setImageUrl(String imageUrl) {
     this.imageUrl = imageUrl;

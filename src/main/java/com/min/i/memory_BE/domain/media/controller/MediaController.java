@@ -78,4 +78,31 @@ public class MediaController {
             return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
         }
     }
+    
+    /**
+     * 3. 미디어 삭제
+     */
+    @Operation(
+            summary = "미디어 삭제",
+            description = "특정 그룹과 앨범의 미디어를 삭제합니다. S3에서도 파일이 삭제됩니다."
+    )
+    @DeleteMapping("/groups/{groupId}/albums/{albumId}/media/{mediaId}")
+    public ResponseEntity<ApiResponse<?>> deleteMedia(
+            @Parameter(description = "그룹 ID") @PathVariable Long groupId,
+            @Parameter(description = "앨범 ID") @PathVariable Long albumId,
+            @Parameter(description = "미디어 ID") @PathVariable Long mediaId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        try {
+            // 서비스 호출 - 인증 및 권한 검증은 서비스에서 처리
+            mediaService.deleteMedia(groupId, albumId, mediaId, userDetails.getUser());
+            
+            return ResponseEntity.ok(ApiResponse.success("미디어가 성공적으로 삭제되었습니다."));
+            
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(404).body(ApiResponse.error(ErrorCode.ENTITY_NOT_FOUND));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
+        }
+    }
 }

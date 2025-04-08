@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageImpl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -61,6 +62,11 @@ public class MediaService {
                 .album(album)
                 .uploadedBy(uploadedBy)
                 .build();
+            
+      
+        LocalDateTime now = LocalDateTime.now();
+        media.setCreatedAt(now);
+        media.setUpdatedAt(now);
 
         return mediaRepository.save(media);
     }

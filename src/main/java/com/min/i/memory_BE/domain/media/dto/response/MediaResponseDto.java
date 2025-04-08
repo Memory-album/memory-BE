@@ -1,5 +1,6 @@
 package com.min.i.memory_BE.domain.media.dto.response;
 
+import com.min.i.memory_BE.domain.album.entity.Story;
 import com.min.i.memory_BE.domain.media.entity.Media;
 import com.min.i.memory_BE.domain.media.enums.MediaType;
 import com.min.i.memory_BE.domain.user.dto.UserSimpleDto;
@@ -8,6 +9,7 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Getter
@@ -21,13 +23,19 @@ public class MediaResponseDto {
     private String thumbnailUrl;
     private UserSimpleDto uploadedBy;
     private LocalDateTime createdAt;
-    private String story;   // Story 필드 (null 허용)
+    private String story;   // Story 필드
 
     /**
      * 미디어 엔티티로부터 응답 DTO를 생성합니다.
-     * Story 필드는 우선 null로 설정합니다.
      */
     public static MediaResponseDto from(Media media) {
+        // 스토리 정보 가져오기
+        String storyContent = null;
+        if (!media.getStories().isEmpty()) {
+            // 미디어에 연결된 첫 번째 스토리의 내용을 가져옴
+            storyContent = media.getStories().get(0).getContent();
+        }
+        
         return MediaResponseDto.builder()
                 .id(media.getId())
                 .fileUrl(media.getFileUrl())
@@ -37,7 +45,7 @@ public class MediaResponseDto {
                 .thumbnailUrl(media.getThumbnailUrl())
                 .uploadedBy(UserSimpleDto.fromMedia(media))
                 .createdAt(media.getCreatedAt())
-                .story(null)  // Story 필드는 우선 null로 설정
+                .story(storyContent)  // 스토리 내용 설정
                 .build();
     }
 

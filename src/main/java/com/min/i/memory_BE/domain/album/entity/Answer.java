@@ -1,6 +1,7 @@
 package com.min.i.memory_BE.domain.album.entity;
 
 import com.min.i.memory_BE.domain.user.entity.User;
+import com.min.i.memory_BE.domain.media.entity.Media;
 import com.min.i.memory_BE.global.entity.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,8 +30,8 @@ public class Answer extends BaseEntity {
   private Long id;
   
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "question_id")
-  private Question question;
+  @JoinColumn(name = "media_id")
+  private Media media;
   
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id")
@@ -42,4 +43,13 @@ public class Answer extends BaseEntity {
   @Column(nullable = false)
   @Builder.Default
   private boolean isPrivate = false;
+  
+  @Builder
+  public Answer(Media media, User user, String content,
+    boolean isPrivate) {
+    this.media = media;
+    this.user = user;
+    this.content = content;
+    this.isPrivate = isPrivate;
+  }
 }

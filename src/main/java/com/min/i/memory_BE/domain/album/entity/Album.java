@@ -93,4 +93,54 @@ public class Album extends BaseEntity {
     this.user = user;
     return this;
   }
+
+  /**
+   * 앨범의 제목을 업데이트합니다.
+   * @param title 새 제목
+   * @return 업데이트된 앨범 인스턴스
+   */
+  public Album updateTitle(String title) {
+    this.title = title;
+    return this;
+  }
+
+  /**
+   * 앨범의 설명을 업데이트합니다.
+   * @param description 새 설명
+   * @return 업데이트된 앨범 인스턴스
+   */
+  public Album updateDescription(String description) {
+    this.description = description;
+    return this;
+  }
+
+  /**
+   * 앨범의 테마를 업데이트합니다.
+   * @param theme 새 테마
+   * @return 업데이트된 앨범 인스턴스
+   */
+  public Album updateTheme(AlbumTheme theme) {
+    this.theme = theme;
+    return this;
+  }
+
+  /**
+   * 앨범의 썸네일 URL을 업데이트합니다.
+   * @param thumbnailUrl 새 썸네일 URL
+   * @return 업데이트된 앨범 인스턴스
+   */
+  public Album updateThumbnailUrl(String thumbnailUrl) {
+    this.thumbnailUrl = thumbnailUrl;
+    return this;
+  }
+
+  /**
+   * 앨범의 공개 범위를 업데이트합니다.
+   * @param visibility 새 공개 범위
+   * @return 업데이트된 앨범 인스턴스
+   */
+  public Album updateVisibility(AlbumVisibility visibility) {
+    this.visibility = visibility;
+    return this;
+  }
 }
