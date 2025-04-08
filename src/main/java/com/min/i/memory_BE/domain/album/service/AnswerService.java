@@ -2,6 +2,7 @@ package com.min.i.memory_BE.domain.album.service;
 
 import com.min.i.memory_BE.domain.album.entity.Answer;
 import com.min.i.memory_BE.domain.album.repository.AnswerRepository;
+import com.min.i.memory_BE.domain.album.dto.response.AnswerResponse;
 import com.min.i.memory_BE.domain.album.entity.Question;
 import com.min.i.memory_BE.domain.album.repository.QuestionRepository;
 import com.min.i.memory_BE.domain.media.entity.Media;
@@ -13,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import java.util.List;
 

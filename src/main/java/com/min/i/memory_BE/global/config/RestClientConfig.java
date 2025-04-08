@@ -1,7 +1,6 @@
 package com.min.i.memory_BE.global.config;
 
 import com.min.i.memory_BE.global.error.exception.FastApiServiceException;
-import com.min.i.memory_BE.domain.media.client.FastApiClient;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;

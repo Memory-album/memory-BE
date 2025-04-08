@@ -452,4 +452,31 @@ public class UserController {
             ));
         }
     }
+
+    @Operation(
+            summary = "ID로 사용자 조회",
+            description = "사용자 ID로 사용자 정보를 조회합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "사용자 정보 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable Long userId) {
+        try {
+            User user = userService.getUserById(userId);
+            return ResponseEntity.ok()
+                    .body(Map.of(
+                            "status", "success",
+                            "user", UserResponse.from(user)
+                    ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "message", e.getMessage(),
+                            "status", "error"
+                    ));
+        }
+    }
 }

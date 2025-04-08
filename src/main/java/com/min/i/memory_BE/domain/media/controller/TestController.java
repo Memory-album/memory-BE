@@ -1,7 +1,6 @@
 package com.min.i.memory_BE.domain.media.controller;
 
 import com.min.i.memory_BE.domain.media.client.FastApiClient;
-import com.min.i.memory_BE.global.service.S3Service;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -9,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
