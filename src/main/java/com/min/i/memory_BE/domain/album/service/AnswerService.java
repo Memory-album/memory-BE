@@ -13,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.stream.Collectors;
-import jakarta.persistence.EntityNotFoundException;
 
 @Slf4j
 @Service
@@ -61,23 +60,24 @@ public class AnswerService {
         return speechToTextService;
     }
     
+    @Transactional(readOnly = true)
     public List<AnswerResponse> getAnswersByQuestionId(Long questionId) {
-        return answerRepository.findByQuestionId(questionId)
-                .stream()
+        return answerRepository.findByQuestionId(questionId).stream()
                 .map(AnswerResponse::from)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<AnswerResponse> getAnswersByUserId(Long userId) {
-        return answerRepository.findByUserId(userId)
-                .stream()
+        return answerRepository.findByUserId(userId).stream()
                 .map(AnswerResponse::from)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public AnswerResponse getAnswerById(Long answerId) {
         Answer answer = answerRepository.findById(answerId)
-                .orElseThrow(() -> new EntityNotFoundException("답변을 찾을 수 없습니다: " + answerId));
+                .orElseThrow(() -> new IllegalArgumentException("답변을 찾을 수 없습니다: " + answerId));
         return AnswerResponse.from(answer);
     }
 }

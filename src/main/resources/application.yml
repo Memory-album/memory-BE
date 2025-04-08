@@ -165,3 +165,10 @@ google:
     language: ko-KR
     credentials-file: classpath:keys/google-credentials.json
 
+spring:
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data-dev.sql
+      continue-on-error: true
+

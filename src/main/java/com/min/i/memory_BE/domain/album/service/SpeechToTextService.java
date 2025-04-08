@@ -30,10 +30,10 @@ public class SpeechToTextService {
 
     @Value("${google.speech.language:ko-KR}")
     private String language;
-
+    
     @Value("${google.speech.credentials-file:classpath:keys/google-credentials.json}")
     private String credentialsFilePath;
-
+    
     private final ResourceLoader resourceLoader;
     private final AudioFormatConverter audioFormatConverter;
 
@@ -65,10 +65,10 @@ public class SpeechToTextService {
         Path tempFile = null;
         Path convertedFile = null;
         boolean isConvertedFile = false;
-
+        
         try {
             log.info("음성파일 처리 시작: {} ({})", audioFile.getOriginalFilename(), audioFile.getContentType());
-
+            
             String extension = getFileExtension(audioFile.getOriginalFilename());
 
             // 형식 변환
@@ -85,16 +85,16 @@ public class SpeechToTextService {
             }
 
             if (tempFile == null) {
-                tempFile = Files.createTempFile("speech-", "." + extension);
-                audioFile.transferTo(tempFile.toFile());
+            tempFile = Files.createTempFile("speech-", "." + extension);
+            audioFile.transferTo(tempFile.toFile());
             }
-
+            
             // STT 호출 준비
             byte[] audioBytes = Files.readAllBytes(tempFile);
-            RecognitionAudio audio = RecognitionAudio.newBuilder()
+                RecognitionAudio audio = RecognitionAudio.newBuilder()
                     .setContent(ByteString.copyFrom(audioBytes))
                     .build();
-
+                
             RecognitionConfig.Builder configBuilder = RecognitionConfig.newBuilder()
                     .setEncoding(resolveEncoding(audioFile, isConvertedFile, extension))
                     .setLanguageCode(language);
@@ -120,12 +120,12 @@ public class SpeechToTextService {
 
                 RecognizeResponse response = speechClient.recognize(config, audio);
                 List<SpeechRecognitionResult> results = response.getResultsList();
-
+                
                 if (results.isEmpty()) {
                     log.warn("STT 결과 없음");
                     return "";
                 }
-
+                
                 StringBuilder transcription = new StringBuilder();
                 for (SpeechRecognitionResult result : results) {
                     SpeechRecognitionAlternative alt = result.getAlternativesList().get(0);
@@ -140,10 +140,10 @@ public class SpeechToTextService {
             log.error("STT 처리 중 오류", e);
             throw new RuntimeException("STT 처리 실패: " + e.getMessage(), e);
         } finally {
-            try {
+                try {
                 if (tempFile != null) Files.deleteIfExists(tempFile);
                 if (convertedFile != null) Files.deleteIfExists(convertedFile);
-            } catch (IOException e) {
+                } catch (IOException e) {
                 log.warn("임시파일 삭제 실패", e);
             }
         }
@@ -167,7 +167,7 @@ public class SpeechToTextService {
 
         return RecognitionConfig.AudioEncoding.ENCODING_UNSPECIFIED;
     }
-
+    
     private String getFileExtension(String filename) {
         if (filename == null) return "tmp";
         int lastDotIndex = filename.lastIndexOf('.');

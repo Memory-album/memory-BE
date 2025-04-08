@@ -10,7 +10,6 @@ import com.min.i.memory_BE.global.service.S3Service;
 import com.min.i.memory_BE.domain.album.dto.request.AlbumRequestDto;
 import com.min.i.memory_BE.domain.album.dto.response.GroupAlbumListResponseDto;
 import com.min.i.memory_BE.domain.album.entity.Album;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.min.i.memory_BE.domain.media.dto.response.MediaResponseDto;
 import com.min.i.memory_BE.domain.media.service.MediaService;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
