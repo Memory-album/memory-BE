@@ -42,7 +42,7 @@ logging:
     com.min.i.memory_BE: debug
 
 jwt:
-  secret: ${JWT_SECRET:your-default-secret-key-here}
+  secret: ${JWT_SECRET_KEY}
   access-token-validity: 3600
   refresh-token-validity: 86400
 
