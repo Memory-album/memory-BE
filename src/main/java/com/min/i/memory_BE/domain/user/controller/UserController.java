@@ -99,6 +99,7 @@ public class UserController {
             .body(Map.of(
                 "status", "success",
                 "user", Map.of(
+                    "id", userDetails.getId(),
                     "email", userDetails.getEmail(),
                     "name", userDetails.getName(),
                     "profileImgUrl", userDetails.getProfileImgUrl(),
