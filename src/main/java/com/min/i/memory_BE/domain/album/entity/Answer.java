@@ -30,26 +30,31 @@ public class Answer extends BaseEntity {
   private Long id;
   
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "media_id")
+  @JoinColumn(name = "media_id", nullable = false)
   private Media media;
   
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "user_id")
+  @JoinColumn(name = "user_id", nullable = false)
   private User user;
   
-  @Column(columnDefinition = "TEXT")
+  @Column(nullable = false)
   private String content;
 
   @Column(nullable = false)
   @Builder.Default
   private boolean isPrivate = false;
   
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "question_id", nullable = false)
+  private Question question;
+  
   @Builder
   public Answer(Media media, User user, String content,
-    boolean isPrivate) {
+    boolean isPrivate, Question question) {
     this.media = media;
     this.user = user;
     this.content = content;
     this.isPrivate = isPrivate;
+    this.question = question;
   }
 }
