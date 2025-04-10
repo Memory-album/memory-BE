@@ -17,8 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import java.util.List;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -89,5 +87,32 @@ public class AnswerService {
      */
     public SpeechToTextService getSpeechToTextService() {
         return speechToTextService;
+    }
+
+    /**
+     * 질문 ID로 답변 목록을 조회합니다.
+     */
+    public List<AnswerResponse> getAnswersByQuestionId(Long questionId) {
+        return answerRepository.findByQuestionId(questionId).stream()
+                .map(AnswerResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 사용자 ID로 답변 목록을 조회합니다.
+     */
+    public List<AnswerResponse> getAnswersByUserId(Long userId) {
+        return answerRepository.findByUserId(userId).stream()
+                .map(AnswerResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 답변 ID로 답변을 조회합니다.
+     */
+    public AnswerResponse getAnswerById(Long answerId) {
+        Answer answer = answerRepository.findById(answerId)
+                .orElseThrow(() -> new EntityNotFoundException("답변을 찾을 수 없습니다: " + answerId));
+        return AnswerResponse.from(answer);
     }
 }

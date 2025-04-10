@@ -8,8 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
-
-import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -27,4 +25,10 @@ public interface AnswerRepository extends JpaRepository<Answer, Long> {
     // 미디어 ID로 가장 최근 답변 하나 조회
     @Query("SELECT a FROM Answer a WHERE a.media.id = :mediaId ORDER BY a.createdAt DESC")
     Optional<Answer> findLatestByMediaId(@Param("mediaId") Long mediaId);
+
+    // 질문 ID로 답변 찾기
+    List<Answer> findByQuestionId(Long questionId);
+
+    // 사용자 ID로 답변 찾기
+    List<Answer> findByUserId(Long userId);
 }

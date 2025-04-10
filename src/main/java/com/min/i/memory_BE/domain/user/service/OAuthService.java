@@ -24,22 +24,20 @@ import java.util.UUID;
 @Service
 public class OAuthService {
 
-    @Value("${naver.oauth.client-id}")
+    @Value("${spring.security.oauth2.client.registration.naver.client-id}")
     private String naverClientId;
 
-    @Value("${naver.oauth.client-secret}")
+    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
     private String naverClientSecret;
 
-    @Value("${naver.oauth.redirect-uri}")
+    @Value("${spring.security.oauth2.client.registration.naver.redirect-uri}")
     private String naverRedirectUri;
 
-    @Value("${naver.oauth.token-url}")
+    @Value("${spring.security.oauth2.client.provider.naver.token-uri}")
     private String naverTokenUrl;
 
-    @Value("${naver.oauth.auth-url}")
+    @Value("${spring.security.oauth2.client.provider.naver.authorization-uri}")
     private String naverAuthUrl;
-
-    //
 
     @Value("${kakao.oauth.client-id}")
     private String kakaoClientId;
