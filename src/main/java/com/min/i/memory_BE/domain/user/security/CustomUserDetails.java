@@ -18,6 +18,10 @@ public class CustomUserDetails implements UserDetails {
         this.user = user;
     }
 
+    public Long getId() {
+        return user.getId();
+    }
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"));
@@ -50,7 +54,7 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return user.getStatus() == UserStatus.ACTIVE;
     }
 
     // User 엔티티의 추가 정보에 접근하기 위한 메서드들

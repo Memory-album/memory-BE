@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.user.service.UserService;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.dto.UserUpdateDto;
 import com.min.i.memory_BE.domain.user.dto.PasswordResetDto;
+import com.min.i.memory_BE.domain.user.dto.UserResponse;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
