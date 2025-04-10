@@ -7,7 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class MemoryBeApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(MemoryBeApplication.class, args);
+        SpringApplication.run(MemoryBeApplication.class, args);
 	}
 
 }
