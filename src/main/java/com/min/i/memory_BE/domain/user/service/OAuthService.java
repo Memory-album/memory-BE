@@ -24,20 +24,22 @@ import java.util.UUID;
 @Service
 public class OAuthService {
 
-    @Value("${spring.security.oauth2.client.registration.naver.client-id}")
+    @Value("${naver.oauth.client-id}")
     private String naverClientId;
 
-    @Value("${spring.security.oauth2.client.registration.naver.client-secret}")
+    @Value("${naver.oauth.client-secret}")
     private String naverClientSecret;
 
-    @Value("${spring.security.oauth2.client.registration.naver.redirect-uri}")
+    @Value("${naver.oauth.redirect-uri}")
     private String naverRedirectUri;
 
-    @Value("${spring.security.oauth2.client.provider.naver.token-uri}")
+    @Value("${naver.oauth.token-url}")
     private String naverTokenUrl;
 
-    @Value("${spring.security.oauth2.client.provider.naver.authorization-uri}")
+    @Value("${naver.oauth.auth-url}")
     private String naverAuthUrl;
+
+    //
 
     @Value("${kakao.oauth.client-id}")
     private String kakaoClientId;
@@ -113,7 +115,7 @@ public class OAuthService {
     public String handleCallback(OAuthProvider provider, String code, String state) {
         String accessToken;
         Map<String, Object> userProfile;
-        
+
         switch (provider) {
             case NAVER:
                 accessToken = fetchAccessTokenForNaver(code, state);
@@ -130,10 +132,10 @@ public class OAuthService {
             default:
                 throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
         }
-        
+
         // 사용자 정보 저장 또는 업데이트
         User user = saveOrUpdateUser(userProfile, provider, accessToken);
-        
+
         // 사용자 이메일 반환
         return user.getEmail();
     }
@@ -255,7 +257,7 @@ public class OAuthService {
         if (userProfile == null) {
             throw new RuntimeException("Failed to fetch user profile");
         }
-        
+
         return userProfile;
     }
 
@@ -286,7 +288,7 @@ public class OAuthService {
                 }
                 @SuppressWarnings("unchecked")
                 Map<String, Object> kakaoAccount = (Map<String, Object>) kakaoAccountObj;
-                
+
                 Object profileObj = kakaoAccount.get("profile");
                 if (!(profileObj instanceof Map)) {
                     throw new RuntimeException("Invalid profile format from Kakao");
@@ -323,7 +325,7 @@ public class OAuthService {
 
             // 이메일로 기존 사용자 찾기
             Optional<User> existingUser = userRepository.findByEmail(finalEmail);
-            
+
             if (existingUser.isPresent()) {
                 user = existingUser.get();
                 System.out.println("이메일로 기존 사용자 찾음: " + user.getEmail());
@@ -350,14 +352,13 @@ public class OAuthService {
             oAuthAccountRepository.save(newOAuthAccount);
             System.out.println("OAuth 계정 정보 저장 완료: " + provider + ", " + providerUserId);
         }
-        
+
         // 최종 확인
         final String userEmail = user.getEmail();
         User savedUser = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("사용자 저장 실패: " + userEmail));
         System.out.println("최종 사용자 확인: " + savedUser.getEmail());
-        
+
         return savedUser;
     }
 }
-
