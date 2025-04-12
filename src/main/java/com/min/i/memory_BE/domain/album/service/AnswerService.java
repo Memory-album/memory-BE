@@ -50,11 +50,62 @@ public class AnswerService {
             content = textContent;
         }
         
+        // 미디어와 연결된 질문을 가져옵니다
+        List<Question> questions = questionRepository.findByMediaIdWithMediaAndUploader(mediaId);
+        if (questions.isEmpty()) {
+            throw new EntityNotFoundException("미디어에 연결된 질문이 없습니다: " + mediaId);
+        }
+        
+        // 첫 번째 질문을 가져와 사용합니다
+        Question question = questions.get(0);
+        
         // 4. Answer 엔티티 생성 및 저장
         Answer answer = Answer.builder()
                 .media(media)
                 .user(user)
                 .content(content)
+                .question(question)
+                .build();
+        
+        return answerRepository.save(answer);
+    }
+    
+    /**
+     * 미디어에 대한 음성 또는 텍스트 답변을 저장합니다 (질문 ID 지정).
+     */
+    @Transactional
+    public Answer saveAnswer(Long mediaId, Long questionId, User user, String textContent, MultipartFile audioFile) {
+        // 1. 미디어 조회
+        Media media = mediaRepository.findById(mediaId)
+                .orElseThrow(() -> new EntityNotFoundException("미디어를 찾을 수 없습니다: " + mediaId));
+        
+        // 2. 질문 조회
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new EntityNotFoundException("질문을 찾을 수 없습니다: " + questionId));
+        
+        // 3. 미디어와 질문의 관계 검증
+        if (!question.getMedia().getId().equals(mediaId)) {
+            throw new IllegalArgumentException("해당 질문이 미디어와 연결되어 있지 않습니다. 질문 ID: " + questionId + ", 미디어 ID: " + mediaId);
+        }
+        
+        String content;
+        
+        // 4. 음성 파일이 제공된 경우, STT로 변환
+        if (audioFile != null && !audioFile.isEmpty()) {
+            log.info("음성 답변 처리 시작: 사용자 {}의 미디어 {} 답변", user.getEmail(), mediaId);
+            content = speechToTextService.convertSpeechToText(audioFile);
+        } else {
+            // 5. 텍스트 답변인 경우 그대로 사용
+            log.info("텍스트 답변 처리: 사용자 {}의 미디어 {} 답변", user.getEmail(), mediaId);
+            content = textContent;
+        }
+        
+        // 6. Answer 엔티티 생성 및 저장
+        Answer answer = Answer.builder()
+                .media(media)
+                .user(user)
+                .content(content)
+                .question(question)
                 .build();
         
         return answerRepository.save(answer);
