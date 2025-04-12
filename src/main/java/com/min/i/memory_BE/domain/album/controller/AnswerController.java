@@ -43,6 +43,9 @@ public class AnswerController {
             @Parameter(description = "미디어 ID", required = true)
             @RequestParam("mediaId") Long mediaId,
             
+            @Parameter(description = "질문 ID", required = true)
+            @RequestParam("questionId") Long questionId,
+            
             @Parameter(description = "텍스트 답변 내용")
             @RequestParam(value = "textContent", required = false) String textContent,
             
@@ -52,8 +55,9 @@ public class AnswerController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         
         try {
-            log.info("답변 생성 요청: 미디어 ID={}, 텍스트 있음={}, 오디오 있음={}", 
-                mediaId, 
+            log.info("답변 생성 요청: 미디어 ID={}, 질문 ID={}, 텍스트 있음={}, 오디오 있음={}", 
+                mediaId,
+                questionId,
                 (textContent != null && !textContent.isEmpty()), 
                 (audioFile != null && !audioFile.isEmpty()));
             
@@ -76,8 +80,10 @@ public class AnswerController {
                 ));
             }
             
+            // questionId를 전달하여 답변 저장
             Answer savedAnswer = answerService.saveAnswer(
-                    mediaId, 
+                    mediaId,
+                    questionId,
                     userDetails.getUser(), 
                     textContent, 
                     audioFile);
@@ -99,6 +105,7 @@ public class AnswerController {
             responseData.put("answerId", savedAnswer.getId());
             responseData.put("content", savedAnswer.getContent());
             responseData.put("mediaId", mediaId);
+            responseData.put("questionId", questionId);
             responseData.put("questions", questionsList);
             
             return ResponseEntity.ok(Map.of(
