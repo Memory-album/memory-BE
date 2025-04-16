@@ -20,6 +20,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -29,6 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MediaController {
     private final MediaService mediaService;
+    private static final Logger log = LoggerFactory.getLogger(MediaController.class);
 
     /**
      * 1. 메인페이지용 - 앨범의 최근 미디어 조회 (story 필드는 우선 null)
@@ -64,18 +67,31 @@ public class MediaController {
 
         try {
             // 서비스 호출 - 인증 및 권한 검증은 서비스에서 처리
-            Page<Media> mediaPage = mediaService.getAllAlbumMediaWithAuth(
+            // 이미 DTO로 변환된 결과를 반환받으므로 별도의 변환 과정 불필요
+            Page<MediaResponseDto> mediaPage = mediaService.getAllAlbumMediaWithAuth(
                 groupId, albumId, pageable, userDetails.getUser()
             );
             
-            // 결과를 DTO로 변환하여 반환
-            PageResponseDto<MediaResponseDto> responseDto = PageResponseDto.of(mediaPage, MediaResponseDto::from);
+            // 이미 DTO로 변환된 상태이므로 PageResponseDto 생성 방식 변경
+            PageResponseDto<MediaResponseDto> responseDto = PageResponseDto.<MediaResponseDto>builder()
+                    .content(mediaPage.getContent())
+                    .pageNumber(mediaPage.getNumber())
+                    .pageSize(mediaPage.getSize())
+                    .totalElements(mediaPage.getTotalElements())
+                    .totalPages(mediaPage.getTotalPages())
+                    .first(mediaPage.isFirst())
+                    .last(mediaPage.isLast())
+                    .build();
+            
             return ResponseEntity.ok(ApiResponse.success(responseDto));
             
         } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(404).body(ApiResponse.error(ErrorCode.ENTITY_NOT_FOUND));
+            // 엔티티를 찾을 수 없는 경우 상세 메시지 포함
+            return ResponseEntity.status(404).body(ApiResponse.error(ErrorCode.ENTITY_NOT_FOUND, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR));
+            // 상세한 오류 정보 로깅
+            log.error("미디어 조회 중 서버 오류 발생: {}", e.getMessage(), e);
+            return ResponseEntity.status(500).body(ApiResponse.error(ErrorCode.INTERNAL_SERVER_ERROR, "미디어 조회 중 서버 오류: " + e.getMessage()));
         }
     }
     

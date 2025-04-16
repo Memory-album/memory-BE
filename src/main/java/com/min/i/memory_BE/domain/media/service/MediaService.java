@@ -11,6 +11,7 @@ import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.global.error.exception.EntityNotFoundException;
 import com.min.i.memory_BE.global.service.S3Service;
 import com.min.i.memory_BE.domain.media.dto.response.MediaResponseDto;
+import com.min.i.memory_BE.domain.user.dto.UserSimpleDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,6 +27,7 @@ import org.springframework.data.domain.PageImpl;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -156,9 +158,10 @@ public class MediaService {
 
     /**
      * 그룹 내 특정 앨범의 전체 미디어 조회 (페이징) - 권한 검증 포함
+     * 개선된 버전: LazyInitializationException 방지 및 안전한 페이징 처리
      */
-    @Transactional
-    public Page<Media> getAllAlbumMediaWithAuth(Long groupId, Long albumId, Pageable pageable, User user) {
+    @Transactional(readOnly = true)
+    public Page<MediaResponseDto> getAllAlbumMediaWithAuth(Long groupId, Long albumId, Pageable pageable, User user) {
         try {
             log.info("미디어 조회 시작 - groupId: {}, albumId: {}, 페이지: {}, 사이즈: {}", 
                     groupId, albumId, pageable.getPageNumber(), pageable.getPageSize());
@@ -196,18 +199,25 @@ public class MediaService {
                 // 사용자(User) 정보를 함께 로드하는 쿼리 사용
                 List<Media> mediaList = mediaRepository.findByAlbumIdAndGroupIdWithUserFetch(albumId, groupId);
                 
-                // 수동으로 페이징 처리
-                int start = (int) pageable.getOffset();
+                // 수동으로 안전하게 페이징 처리 (빈 목록 처리 및 인덱스 검증 추가)
+                int start = (int) Math.min(pageable.getOffset(), mediaList.size());
                 int end = Math.min((start + pageable.getPageSize()), mediaList.size());
                 
-                List<Media> pageContent = mediaList;
-                if (start <= end) {
+                List<Media> pageContent = Collections.emptyList();
+                if (start < end) {
                     pageContent = mediaList.subList(start, end);
                 }
                 
-                Page<Media> result = new PageImpl<>(pageContent, pageable, mediaList.size());
+                // 트랜잭션 내에서 지연 로딩 되는 데이터를 모두 초기화하여 DTO 변환
+                List<MediaResponseDto> dtoList = pageContent.stream()
+                        .map(media -> convertToMediaResponseDto(media))
+                        .collect(Collectors.toList());
+                
+                // DTO 객체로 페이지 생성 (지연 로딩 이슈 방지)
+                PageImpl<MediaResponseDto> result = new PageImpl<>(dtoList, pageable, mediaList.size());
                 log.info("미디어 조회 성공 - 총 {} 개의 미디어 아이템 반환", result.getTotalElements());
                 return result;
+                
             } catch (Exception e) {
                 log.error("미디어 조회 중 데이터베이스 오류 발생: {}", e.getMessage(), e);
                 throw new RuntimeException("Error querying media from database: " + e.getMessage(), e);
@@ -219,6 +229,36 @@ public class MediaService {
             log.error("미디어 조회 중 일반 오류 발생: {}", e.getMessage(), e);
             throw new RuntimeException("Error retrieving album media: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 안전하게 Media 엔티티를 MediaResponseDto로 변환하는 메서드
+     * 지연 로딩 관련 예외를 방지하기 위해 모든 필요한 관계를 명시적으로 초기화
+     */
+    private MediaResponseDto convertToMediaResponseDto(Media media) {
+        // 명시적으로 스토리 컬렉션 초기화 (필요한 경우)
+        String storyContent = null;
+        if (media.getStories() != null && !media.getStories().isEmpty()) {
+            storyContent = media.getStories().get(0).getContent();
+        }
+        
+        // 사용자 정보 안전하게 처리
+        UserSimpleDto userDto = null;
+        if (media.getUploadedBy() != null) {
+            userDto = UserSimpleDto.from(media.getUploadedBy());
+        }
+        
+        return MediaResponseDto.builder()
+                .id(media.getId())
+                .fileUrl(media.getFileUrl())
+                .fileType(media.getFileType())
+                .originalFilename(media.getOriginalFilename())
+                .fileSize(media.getFileSize())
+                .thumbnailUrl(media.getThumbnailUrl())
+                .uploadedBy(userDto)
+                .createdAt(media.getCreatedAt())
+                .story(storyContent)
+                .build();
     }
 
     /**

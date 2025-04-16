@@ -23,4 +23,8 @@ public class ApiResponse<T> {
   public static ApiResponse<?> error(ErrorCode errorCode) {
     return new ApiResponse<>(ResultType.ERROR, new ErrorMessage(errorCode), null);
   }
+  
+  public static ApiResponse<?> error(ErrorCode errorCode, String detailMessage) {
+    return new ApiResponse<>(ResultType.ERROR, new ErrorMessage(errorCode, detailMessage), null);
+  }
 }
