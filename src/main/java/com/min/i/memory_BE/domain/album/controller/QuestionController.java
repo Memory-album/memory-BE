@@ -99,16 +99,37 @@ public class QuestionController {
 
     @GetMapping("/media/{mediaId}")
     @Operation(summary = "미디어별 질문 조회", description = "미디어 ID에 해당하는 질문 목록을 반환합니다.")
-    public ResponseEntity<?> getQuestionsByMediaId(@PathVariable Long mediaId) {
+    public ResponseEntity<?> getQuestionsByMediaId(
+            @PathVariable Long mediaId,
+            @RequestParam(required = false, defaultValue = "all") String filter) {
         try {
-            log.info("미디어 ID {} 관련 질문 조회 요청", mediaId);
+            log.info("미디어 ID {} 관련 질문 조회 요청, 필터: {}", mediaId, filter);
             
-            // 서비스 계층 사용
-            List<QuestionDto.Response> questions = questionService.getQuestionsByMediaId(mediaId);
+            List<QuestionDto.Response> questions;
+            String message;
+            
+            // 필터에 따라 다른 질문 목록 조회
+            switch (filter) {
+                case "unanswered":
+                    // 미답변 질문만 조회
+                    questions = questionService.getUnansweredQuestionsByMediaId(mediaId);
+                    message = questions.isEmpty() ? "해당 미디어에 대한 미답변 질문이 없습니다" : "미답변 질문 조회 성공";
+                    break;
+                case "answered":
+                    // 답변된 질문만 조회
+                    questions = questionService.getAnsweredQuestionsByMediaId(mediaId);
+                    message = questions.isEmpty() ? "해당 미디어에 대한 답변된 질문이 없습니다" : "답변된 질문 조회 성공";
+                    break;
+                default:
+                    // 모든 질문 조회
+                    questions = questionService.getQuestionsByMediaId(mediaId);
+                    message = questions.isEmpty() ? "해당 미디어에 대한 질문이 없습니다" : "질문 조회 성공";
+                    break;
+            }
             
             return ResponseEntity.ok(Map.of(
                 "status", "success",
-                "message", questions.isEmpty() ? "해당 미디어에 대한 질문이 없습니다" : "질문 조회 성공",
+                "message", message,
                 "data", Map.of("questions", questions)
             ));
             

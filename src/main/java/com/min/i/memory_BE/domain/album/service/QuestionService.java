@@ -149,4 +149,44 @@ public class QuestionService {
         // 기본 테마
         return QuestionTheme.SENIOR_CARE;
     }
+
+    /**
+     * 미디어 ID로 미답변 질문 목록을 조회합니다.
+     *
+     * @param mediaId 미디어 ID
+     * @return 미답변 질문 목록
+     */
+    public List<QuestionDto.Response> getUnansweredQuestionsByMediaId(Long mediaId) {
+        log.info("미디어 ID로 미답변 질문 목록 조회: mediaId={}", mediaId);
+        
+        // 미디어 존재 확인
+        if (!mediaRepository.existsById(mediaId)) {
+            throw new EntityNotFoundException("미디어를 찾을 수 없습니다: " + mediaId);
+        }
+        
+        List<Question> questions = questionRepository.findUnansweredQuestionsByMediaId(mediaId);
+        return questions.stream()
+                .map(QuestionDto.Response::fromEntity)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 미디어 ID로 답변된 질문 목록을 조회합니다.
+     *
+     * @param mediaId 미디어 ID
+     * @return 답변된 질문 목록
+     */
+    public List<QuestionDto.Response> getAnsweredQuestionsByMediaId(Long mediaId) {
+        log.info("미디어 ID로 답변된 질문 목록 조회: mediaId={}", mediaId);
+        
+        // 미디어 존재 확인
+        if (!mediaRepository.existsById(mediaId)) {
+            throw new EntityNotFoundException("미디어를 찾을 수 없습니다: " + mediaId);
+        }
+        
+        List<Question> questions = questionRepository.findAnsweredQuestionsByMediaId(mediaId);
+        return questions.stream()
+                .map(QuestionDto.Response::fromEntity)
+                .collect(Collectors.toList());
+    }
 } 

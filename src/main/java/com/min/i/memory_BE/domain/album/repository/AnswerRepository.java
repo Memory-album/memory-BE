@@ -31,4 +31,8 @@ public interface AnswerRepository extends JpaRepository<Answer, Long> {
 
     // 사용자 ID로 답변 찾기
     List<Answer> findByUserId(Long userId);
+    
+    // 미디어 ID로 답변 존재 여부 확인
+    @Query("SELECT COUNT(a) > 0 FROM Answer a WHERE a.media.id = :mediaId")
+    boolean existsByMediaId(@Param("mediaId") Long mediaId);
 }
