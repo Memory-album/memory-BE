@@ -69,11 +69,19 @@ public class QuestionDto {
         private Integer level;
         private Boolean isPrivate;
         private UserSimpleDto uploader;
+        private String imgUrl;
         
         /**
          * Question 엔티티를 Response DTO로 변환
          */
         public static Response fromEntity(Question question) {
+            String imageUrl = null;
+            if (question.getMedia() != null) {
+                imageUrl = question.getMedia().getImageUrl() != null ? 
+                           question.getMedia().getImageUrl() : 
+                           question.getMedia().getFileUrl();
+            }
+            
             return Response.builder()
                 .id(question.getId())
                 .mediaId(question.getMedia() != null ? question.getMedia().getId() : null)
@@ -84,6 +92,7 @@ public class QuestionDto {
                 .isPrivate(question.isPrivate())
                 .uploader(question.getMedia() != null && question.getMedia().getUploadedBy() != null ? 
                           UserSimpleDto.from(question.getMedia().getUploadedBy()) : null)
+                .imgUrl(imageUrl)
                 .build();
         }
     }
