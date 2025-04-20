@@ -98,7 +98,7 @@ public class QuestionController {
     }
 
     @GetMapping("/media/{mediaId}")
-    @Operation(summary = "미디어별 질문 조회", description = "미디어 ID에 해당하는 질문 목록을 반환합니다.")
+    @Operation(summary = "미디어별 질문 조회", description = "미디어 ID에 해당하는 질문 목록을 반환합니다. 필터 옵션에 따라 미디어 단위로 질문이 필터링됩니다.")
     public ResponseEntity<?> getQuestionsByMediaId(
             @PathVariable Long mediaId,
             @RequestParam(required = false, defaultValue = "all") String filter) {
@@ -109,14 +109,15 @@ public class QuestionController {
             String message;
             
             // 필터에 따라 다른 질문 목록 조회
+            // 미디어 단위로 필터링: 하나의 미디어에 답변이 있으면 모든 질문이 answered로, 답변이 없으면 모든 질문이 unanswered로 처리됨
             switch (filter) {
                 case "unanswered":
-                    // 미답변 질문만 조회
+                    // 미답변 질문만 조회 - 미디어에 답변이 없는 경우
                     questions = questionService.getUnansweredQuestionsByMediaId(mediaId);
                     message = questions.isEmpty() ? "해당 미디어에 대한 미답변 질문이 없습니다" : "미답변 질문 조회 성공";
                     break;
                 case "answered":
-                    // 답변된 질문만 조회
+                    // 답변된 질문만 조회 - 미디어에 답변이 있는 경우
                     questions = questionService.getAnsweredQuestionsByMediaId(mediaId);
                     message = questions.isEmpty() ? "해당 미디어에 대한 답변된 질문이 없습니다" : "답변된 질문 조회 성공";
                     break;
