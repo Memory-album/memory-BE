@@ -62,7 +62,7 @@ public class MediaController {
     public ResponseEntity<?> getAlbumMedia(
             @Parameter(description = "그룹 ID") @PathVariable Long groupId,
             @Parameter(description = "앨범 ID") @PathVariable Long albumId,
-            @Parameter(description = "페이징 정보") @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @Parameter(description = "페이징 정보") @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.ASC) Pageable pageable,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
 
         try {
