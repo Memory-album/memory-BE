@@ -152,6 +152,7 @@ public class QuestionService {
 
     /**
      * 미디어 ID로 미답변 질문 목록을 조회합니다.
+     * 해당 미디어에 답변이 하나도 없는 경우에만 모든 질문이 미답변으로 간주됩니다.
      *
      * @param mediaId 미디어 ID
      * @return 미답변 질문 목록
@@ -164,6 +165,8 @@ public class QuestionService {
             throw new EntityNotFoundException("미디어를 찾을 수 없습니다: " + mediaId);
         }
         
+        // 미디어에 대한 답변이 없는 질문만 조회
+        // 미디어 단위로 필터링: 하나의 미디어에 답변이 없는 경우에만 모든 질문이 미답변으로 간주됨
         List<Question> questions = questionRepository.findUnansweredQuestionsByMediaId(mediaId);
         return questions.stream()
                 .map(QuestionDto.Response::fromEntity)
@@ -172,6 +175,7 @@ public class QuestionService {
     
     /**
      * 미디어 ID로 답변된 질문 목록을 조회합니다.
+     * 해당 미디어에 답변이 하나라도 있으면 모든 질문이 답변된 것으로 간주됩니다.
      *
      * @param mediaId 미디어 ID
      * @return 답변된 질문 목록
@@ -184,6 +188,8 @@ public class QuestionService {
             throw new EntityNotFoundException("미디어를 찾을 수 없습니다: " + mediaId);
         }
         
+        // 미디어에 대한 답변이 있는 질문만 조회
+        // 미디어 단위로 필터링: 하나의 미디어에 답변이 하나라도 있으면 모든 질문이 답변된 것으로 간주됨
         List<Question> questions = questionRepository.findAnsweredQuestionsByMediaId(mediaId);
         return questions.stream()
                 .map(QuestionDto.Response::fromEntity)

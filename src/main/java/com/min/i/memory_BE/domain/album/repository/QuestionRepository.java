@@ -21,13 +21,13 @@ public interface QuestionRepository extends JpaRepository<Question, Long> {
     @Query("SELECT q FROM Question q JOIN FETCH q.media m JOIN FETCH m.uploadedBy WHERE q.media.id = :mediaId")
     List<Question> findByMediaIdWithMediaAndUploader(@Param("mediaId") Long mediaId);
     
-    // 답변이 없는 질문만 조회 (미디어 ID 기준)
+    // 답변이 없는 질문만 조회 (미디어 ID 기준) - 미디어에 답변이 하나도 없는 경우에만 해당 미디어의 모든 질문 조회
     @Query("SELECT q FROM Question q JOIN FETCH q.media m JOIN FETCH m.uploadedBy " +
-           "WHERE q.media.id = :mediaId AND NOT EXISTS (SELECT 1 FROM Answer a WHERE a.question = q)")
+           "WHERE q.media.id = :mediaId AND NOT EXISTS (SELECT 1 FROM Answer a WHERE a.media.id = q.media.id)")
     List<Question> findUnansweredQuestionsByMediaId(@Param("mediaId") Long mediaId);
     
-    // 답변이 있는 질문만 조회 (미디어 ID 기준)
+    // 답변이 있는 질문만 조회 (미디어 ID 기준) - 미디어에 답변이 하나라도 있으면 해당 미디어의 모든 질문 조회
     @Query("SELECT q FROM Question q JOIN FETCH q.media m JOIN FETCH m.uploadedBy " +
-           "WHERE q.media.id = :mediaId AND EXISTS (SELECT 1 FROM Answer a WHERE a.question = q)")
+           "WHERE q.media.id = :mediaId AND EXISTS (SELECT 1 FROM Answer a WHERE a.media.id = q.media.id)")
     List<Question> findAnsweredQuestionsByMediaId(@Param("mediaId") Long mediaId);
 } 
