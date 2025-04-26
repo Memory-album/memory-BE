@@ -45,7 +45,7 @@ public class MediaResponseDto {
                 .thumbnailUrl(media.getThumbnailUrl())
                 .uploadedBy(UserSimpleDto.fromMedia(media))
                 .createdAt(media.getCreatedAt())
-                .story(storyContent)  // 스토리 내용 설정
+                .story(storyContent)  
                 .build();
     }
 
