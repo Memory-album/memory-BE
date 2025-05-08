@@ -99,7 +99,13 @@ jobs:
         echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/keys/google-credentials.json
       
     - name: Build with Gradle
-      run: ./gradlew bootJar
+      run: |
+        ./gradlew clean bootJar
+        ls -la build/libs/
+        
+    - name: Check JAR content
+      run: |
+        jar tf build/libs/memory-BE-*.jar | grep -E 'META-INF/MANIFEST.MF|com/min/i/memory_BE/MemoryBeApplication.class'
       
     - name: Grant execute permission for ffmpeg binaries and deploy script
       run: |
