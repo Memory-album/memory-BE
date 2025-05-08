@@ -120,33 +120,52 @@ jobs:
     - name: Deploy application
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          # 설정 파일 복사
-          mkdir -p ~/memory-BE/src/main/resources/keys
-          cp ~/config/application-db.yml ~/memory-BE/src/main/resources/
-          cp ~/config/application-key.yml ~/memory-BE/src/main/resources/
-          cp ~/config/keys/google-credentials.json ~/memory-BE/src/main/resources/keys/
-          
-          # ffmpeg 바이너리 복사 및 권한 설정
-          mkdir -p ~/memory-BE/src/main/resources/bin
-          cp ~/bin/ffmpeg-* ~/memory-BE/src/main/resources/bin/
-          chmod +x ~/memory-BE/src/main/resources/bin/ffmpeg-*
-          
-          # JAR 파일 복사 및 deploy.sh 설정
-          mkdir -p ~/deploy
-          cp ~/*.jar ~/deploy/
-          cp ~/deploy.sh ~/deploy/
-          chmod +x ~/deploy/deploy.sh
-          
-          # 애플리케이션 재시작
-          ~/deploy/deploy.sh
-          
-          # 상태 확인
-          sleep 10
-          ps aux | grep java
+       host: ${{ secrets.EC2_HOST }}
+       username: ${{ secrets.EC2_USERNAME }}
+       key: ${{ secrets.EC2_SSH_KEY }}
+       script: |
+         # 폴더 구조 확인
+         ls -la ~/build/libs/
+         ls -la ~/scripts/
+         
+         # 설정 파일 복사
+         mkdir -p ~/memory-BE/src/main/resources/keys
+         cp ~/build/libs/config/application-db.yml ~/memory-BE/src/main/resources/
+         cp ~/build/libs/config/application-key.yml ~/memory-BE/src/main/resources/
+         cp ~/build/libs/config/keys/google-credentials.json ~/memory-BE/src/main/resources/keys/
+         
+         # JAR 파일 내부에 설정 파일 포함
+         mkdir -p ~/temp
+         cd ~/temp
+         jar xf ~/build/libs/memory-BE-0.0.1-SNAPSHOT.jar
+         mkdir -p BOOT-INF/classes
+         cp ~/build/libs/config/application-db.yml BOOT-INF/classes/
+         cp ~/build/libs/config/application-key.yml BOOT-INF/classes/
+         mkdir -p BOOT-INF/classes/keys
+         cp ~/build/libs/config/keys/google-credentials.json BOOT-INF/classes/keys/
+         jar cf ~/build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar .
+         cd ~
+         mv ~/build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar ~/build/libs/memory-BE-0.0.1-SNAPSHOT.jar
+         rm -rf ~/temp
+         
+         # ffmpeg 바이너리 복사 및 권한 설정
+         mkdir -p ~/memory-BE/src/main/resources/bin
+         cp ~/src/main/resources/bin/ffmpeg-* ~/memory-BE/src/main/resources/bin/
+         chmod +x ~/memory-BE/src/main/resources/bin/ffmpeg-*
+         
+         # JAR 파일 복사 및 deploy.sh 설정
+         mkdir -p ~/deploy
+         cp ~/build/libs/*.jar ~/deploy/
+         cp ~/scripts/deploy.sh ~/deploy/
+         chmod +x ~/deploy/deploy.sh
+         
+         # 애플리케이션 재시작
+         cd ~/deploy
+         ./deploy.sh
+         
+         # 상태 확인
+         sleep 10
+         ps aux | grep java
     
     # 디스코드 배포 성공 알림
     - name: Send Discord Success Notification
