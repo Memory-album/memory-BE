@@ -21,7 +21,7 @@ configurations {
 
 repositories {
     mavenCentral()
-    maven { url 'https://jitpack.io' }
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
@@ -79,6 +79,21 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+bootJar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
+    from('src/main/resources') {
+        include '**/*'
+    }
+    
+    manifest {
+        attributes(
+            'Main-Class': 'com.min.i.memory_BE.MemoryBeApplication',
+            'Implementation-Version': archiveVersion
+        )
+    }
 }
 
 tasks.named('processResources') {

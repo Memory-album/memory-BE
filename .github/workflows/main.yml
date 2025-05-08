@@ -23,15 +23,12 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x ./gradlew
       
-    - name: Build with Gradle
-      run: ./gradlew build -x test
-      
-    - name: Create config directory
-      run: mkdir -p build/libs/config/keys
-      
-    - name: Create application-db.yml
+    - name: Create configuration files before build
       run: |
-        cat > build/libs/config/application-db.yml << EOF
+        mkdir -p src/main/resources/keys
+        
+        # Create application-db.yml
+        cat > src/main/resources/application-db.yml << EOF
         database:
           dev:
             ip: localhost:3306
@@ -44,9 +41,8 @@ jobs:
             password: ${{ secrets.DB_PASSWORD }}
         EOF
         
-    - name: Create application-key.yml
-      run: |
-        cat > build/libs/config/application-key.yml << EOF
+        # Create application-key.yml
+        cat > src/main/resources/application-key.yml << EOF
         spring:
           mail:
             host: smtp.gmail.com
@@ -86,35 +82,17 @@ jobs:
             client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
             client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         EOF
-    
-    - name: Create Google credentials file
-      run: |
-        echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > build/libs/config/keys/google-credentials.json
-    
+        
+        # Create Google credentials file
+        echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/keys/google-credentials.json
+      
+    - name: Build with Gradle
+      run: ./gradlew bootJar
+      
     - name: Grant execute permission for ffmpeg binaries and deploy script
       run: |
         chmod +x src/main/resources/bin/ffmpeg-*
         chmod +x scripts/deploy.sh
-
-    - name: Embed configuration files into JAR
-      run: |
-       # JAR 압축 해제
-       mkdir -p temp
-       cd temp
-       jar xf ../build/libs/memory-BE-0.0.1-SNAPSHOT.jar
-       
-       # 설정 파일 복사
-       mkdir -p BOOT-INF/classes
-       cp ../build/libs/config/application-db.yml BOOT-INF/classes/
-       cp ../build/libs/config/application-key.yml BOOT-INF/classes/
-       mkdir -p BOOT-INF/classes/keys
-       cp ../build/libs/config/keys/google-credentials.json BOOT-INF/classes/keys/
-       
-       # JAR 다시 압축
-       jar cf ../build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar .
-       cd ..
-       mv build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar build/libs/memory-BE-0.0.1-SNAPSHOT.jar
-       rm -rf temp
         
     - name: Test SSH connection
       run: |
@@ -131,8 +109,8 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
-        source: "build/libs/*.jar,build/libs/config/**,src/main/resources/bin/**,scripts/deploy.sh"
-        target: "/home/ec2-user"
+        source: "build/libs/*.jar,scripts/deploy.sh,src/main/resources/bin/*"
+        target: "/home/ec2-user/deploy"
         strip_components: 0
         timeout: 300s
         debug: true
@@ -140,52 +118,24 @@ jobs:
     - name: Deploy application
       uses: appleboy/ssh-action@master
       with:
-       host: ${{ secrets.EC2_HOST }}
-       username: ${{ secrets.EC2_USERNAME }}
-       key: ${{ secrets.EC2_SSH_KEY }}
-       script: |
-         # 폴더 구조 확인
-         ls -la ~/build/libs/
-         ls -la ~/scripts/
-         
-         # 설정 파일 복사
-         mkdir -p ~/memory-BE/src/main/resources/keys
-         cp ~/build/libs/config/application-db.yml ~/memory-BE/src/main/resources/
-         cp ~/build/libs/config/application-key.yml ~/memory-BE/src/main/resources/
-         cp ~/build/libs/config/keys/google-credentials.json ~/memory-BE/src/main/resources/keys/
-         
-         # JAR 파일 내부에 설정 파일 포함
-         mkdir -p ~/temp
-         cd ~/temp
-         jar xf ~/build/libs/memory-BE-0.0.1-SNAPSHOT.jar
-         mkdir -p BOOT-INF/classes
-         cp ~/build/libs/config/application-db.yml BOOT-INF/classes/
-         cp ~/build/libs/config/application-key.yml BOOT-INF/classes/
-         mkdir -p BOOT-INF/classes/keys
-         cp ~/build/libs/config/keys/google-credentials.json BOOT-INF/classes/keys/
-         jar cf ~/build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar .
-         cd ~
-         mv ~/build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar ~/build/libs/memory-BE-0.0.1-SNAPSHOT.jar
-         rm -rf ~/temp
-         
-         # ffmpeg 바이너리 복사 및 권한 설정
-         mkdir -p ~/memory-BE/src/main/resources/bin
-         cp ~/src/main/resources/bin/ffmpeg-* ~/memory-BE/src/main/resources/bin/
-         chmod +x ~/memory-BE/src/main/resources/bin/ffmpeg-*
-         
-         # JAR 파일 복사 및 deploy.sh 설정
-         mkdir -p ~/deploy
-         cp ~/build/libs/*.jar ~/deploy/
-         cp ~/scripts/deploy.sh ~/deploy/
-         chmod +x ~/deploy/deploy.sh
-         
-         # 애플리케이션 재시작
-         cd ~/deploy
-         ./deploy.sh
-         
-         # 상태 확인
-         sleep 10
-         ps aux | grep java
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          # EC2 서버에서 파일 정리
+          rm -rf ~/deploy/memory-BE-*.jar 2>/dev/null || true
+          mkdir -p ~/logs
+          
+          # JAR 파일의 경로 설정
+          cd ~/deploy
+          chmod +x scripts/deploy.sh
+          
+          # 애플리케이션 재시작
+          ./scripts/deploy.sh
+          
+          # 상태 확인
+          sleep 10
+          ps aux | grep java
     
     # 디스코드 배포 성공 알림
     - name: Send Discord Success Notification
