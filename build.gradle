@@ -70,7 +70,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
 	// Google Cloud Speech-to-Text
-	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	implementation 'com.google.cloud:google-cloud-speech:4.53.0'
 
 	// discord
