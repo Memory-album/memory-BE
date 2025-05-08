@@ -113,7 +113,7 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         source: "build/libs/*.jar,build/libs/config/**,src/main/resources/bin/**,scripts/deploy.sh"
         target: "/home/ec2-user"
-        strip_components: 1
+        strip_components: 0
         timeout: 300s
         debug: true
         
