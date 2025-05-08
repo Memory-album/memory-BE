@@ -95,6 +95,26 @@ jobs:
       run: |
         chmod +x src/main/resources/bin/ffmpeg-*
         chmod +x scripts/deploy.sh
+
+    - name: Embed configuration files into JAR
+      run: |
+       # JAR 압축 해제
+       mkdir -p temp
+       cd temp
+       jar xf ../build/libs/memory-BE-0.0.1-SNAPSHOT.jar
+       
+       # 설정 파일 복사
+       mkdir -p BOOT-INF/classes
+       cp ../build/libs/config/application-db.yml BOOT-INF/classes/
+       cp ../build/libs/config/application-key.yml BOOT-INF/classes/
+       mkdir -p BOOT-INF/classes/keys
+       cp ../build/libs/config/keys/google-credentials.json BOOT-INF/classes/keys/
+       
+       # JAR 다시 압축
+       jar cf ../build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar .
+       cd ..
+       mv build/libs/memory-BE-0.0.1-SNAPSHOT-new.jar build/libs/memory-BE-0.0.1-SNAPSHOT.jar
+       rm -rf temp
         
     - name: Test SSH connection
       run: |
