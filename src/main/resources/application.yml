@@ -142,8 +142,18 @@ spring:
         dialect: org.hibernate.dialect.MySQL8Dialect
     show-sql: true
 
-    logging:
+# 디스코드 로깅 설정 추가
+logging:
   level:
+    org.hibernate.SQL: debug
+    org.hibernate.type: trace
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
+    com.min.i.memory_BE: DEBUG
+    com.min.i.memory_BE.global.service.S3Service: DEBUG
+    com.min.i.memory_BE.domain.user.service.UserService: DEBUG
+    com.amazonaws: DEBUG
   discord:
     webhook-url: https://discord.com/api/webhooks/1370075555529232404/mUOfVFtleD_b3vVm7Smuk5MXAYACZvq9PAXZjkHBUI2w5vv1aStt59DZ6aZcZ6-LqfmE
   config: classpath:logback-spring.xml
