@@ -12,7 +12,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
       with:
-        lfs: true  
+        lfs: false
     
     - name: Set up JDK 17
       uses: actions/setup-java@v3
@@ -22,6 +22,18 @@ jobs:
         
     - name: Grant execute permission for gradlew
       run: chmod +x ./gradlew
+      
+    - name: Download FFmpeg binaries
+      run: |
+        mkdir -p src/main/resources/bin
+        # Linux 용 FFmpeg 다운로드
+        curl -L -o src/main/resources/bin/ffmpeg-linux https://github.com/vot/ffbinaries-prebuilt/releases/download/v4.2.1/ffmpeg-4.2.1-linux-64
+        # Mac 용 FFmpeg 다운로드
+        curl -L -o src/main/resources/bin/ffmpeg-mac https://github.com/vot/ffbinaries-prebuilt/releases/download/v4.2.1/ffmpeg-4.2.1-osx-64
+        # Windows 용 FFmpeg 다운로드
+        curl -L -o src/main/resources/bin/ffmpeg-win.exe https://github.com/vot/ffbinaries-prebuilt/releases/download/v4.2.1/ffmpeg-4.2.1-win-64.exe
+        # 실행 권한 부여
+        chmod +x src/main/resources/bin/ffmpeg-*
       
     - name: Create configuration files before build
       run: |
