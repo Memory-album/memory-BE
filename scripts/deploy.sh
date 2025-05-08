@@ -47,7 +47,7 @@ jar xf $JAR_FILE BOOT-INF/classes/application.yml -p 2>/dev/null | head -30 | te
 
 # 실행 환경 설정
 JAVA_OPTS="-Xms512m -Xmx1024m"
-SPRING_OPTS="-Dspring.profiles.active=prod -Ddebug=true"
+SPRING_OPTS="-Dspring.profiles.active=dev -Ddebug=true"
 
 # 환경 변수 설정 - DB 설정
 ENV_VARS="-DDB_PASSWORD=${DB_PASSWORD:-default_password}"
