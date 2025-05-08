@@ -37,27 +37,45 @@ fi
 
 echo "배포할 JAR 파일: $JAR_FILE" | tee -a $LOG_FILE
 
+# 실행 전 JAR 내용 확인
+echo "JAR 파일 내용:" | tee -a $LOG_FILE
+jar tf $JAR_FILE | grep -E "application.*\.yml|.env" | tee -a $LOG_FILE
+
+# JAR 파일에서 설정 파일 추출
+echo "application.yml 내용:" | tee -a $LOG_FILE
+jar xf $JAR_FILE BOOT-INF/classes/application.yml -p 2>/dev/null | head -30 | tee -a $LOG_FILE
+
 # 실행 환경 설정
 JAVA_OPTS="-Xms512m -Xmx1024m"
-SPRING_OPTS="-Dspring.profiles.active=prod"
+SPRING_OPTS="-Dspring.profiles.active=prod -Ddebug=true"
+
+# 환경 변수 설정 - DB 설정
+ENV_VARS="-DDB_PASSWORD=${DB_PASSWORD:-default_password}"
+ENV_VARS="$ENV_VARS -DJWT_SECRET=${JWT_SECRET:-default_secret}"
+ENV_VARS="$ENV_VARS -DGMAIL_MAIL_USERNAME=${GMAIL_MAIL_USERNAME:-default_username}"
+ENV_VARS="$ENV_VARS -DGMAIL_MAIL_PASSWORD=${GMAIL_MAIL_PASSWORD:-default_password}"
+ENV_VARS="$ENV_VARS -DAWS_ACCESS_KEY=${AWS_ACCESS_KEY:-default_key}"
+ENV_VARS="$ENV_VARS -DAWS_SECRET_KEY=${AWS_SECRET_KEY:-default_secret}"
+ENV_VARS="$ENV_VARS -DAWS_REGION=${AWS_REGION:-ap-northeast-2}"
+ENV_VARS="$ENV_VARS -DS3_BUCKET=${S3_BUCKET:-default_bucket}"
 
 # JAR 파일 실행
 echo "애플리케이션 시작 중..." | tee -a $LOG_FILE
-nohup java $JAVA_OPTS $SPRING_OPTS -jar $JAR_FILE > $LOG_DIR/app_$TIMESTAMP.log 2>&1 &
+nohup java $JAVA_OPTS $SPRING_OPTS $ENV_VARS -jar $JAR_FILE > $LOG_DIR/app_$TIMESTAMP.log 2>&1 &
 
 # 프로세스 ID 저장
 PID=$!
 echo "애플리케이션이 PID=$PID로 시작되었습니다." | tee -a $LOG_FILE
 
 # 애플리케이션이 성공적으로 시작되었는지 확인
-sleep 10
+sleep 20  # 애플리케이션 시작 시간 증가
 if ps -p $PID > /dev/null; then
   echo "애플리케이션이 성공적으로 실행 중입니다." | tee -a $LOG_FILE
   echo "로그 확인: tail -f $LOG_DIR/app_$TIMESTAMP.log" | tee -a $LOG_FILE
 else
   echo "애플리케이션 시작에 실패했습니다! 로그를 확인하세요." | tee -a $LOG_FILE
   echo "마지막 로그 확인:" | tee -a $LOG_FILE
-  tail -n 50 $LOG_DIR/app_$TIMESTAMP.log | tee -a $LOG_FILE
+  tail -n 100 $LOG_DIR/app_$TIMESTAMP.log | tee -a $LOG_FILE
   exit 1
 fi
 

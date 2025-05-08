@@ -39,64 +39,246 @@ jobs:
       run: |
         mkdir -p src/main/resources/keys
         
+        # Create application.yml
+        cat > src/main/resources/application.yml << 'EOF'
+        spring:
+          servlet:
+            multipart:
+              enabled: true
+              max-file-size: 10MB
+              max-request-size: 10MB
+              resolve-lazily: true
+              file-size-threshold: 0
+        
+          jpa:
+            defer-datasource-initialization: true
+            hibernate:
+              ddl-auto: create
+            properties:
+              hibernate:
+                default_batch_fetch_size: 100
+                format_sql: true
+            open-in-view: false
+        
+          security:
+            user:
+              name: admin
+              password: adminpassword
+        
+        logging:
+          level:
+            org.hibernate.SQL: debug
+            org.hibernate.type: trace
+            org.springframework.security: DEBUG
+            org.springframework.web: DEBUG
+            org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
+            com.min.i.memory_BE: DEBUG
+            com.min.i.memory_BE.global.service.S3Service: DEBUG
+            com.min.i.memory_BE.domain.user.service.UserService: DEBUG
+            com.amazonaws: DEBUG
+        
+        springdoc:
+          swagger-ui:
+            path: /swagger-ui.html
+            groups-order: DESC
+            operationsSorter: method
+            disable-swagger-default-url: true
+          api-docs:
+            path: /v3/api-docs
+          show-actuator: true
+        
+        # FastAPI 서버 설정
+        fastapi:
+          server:
+            url: http://localhost:8000
+          connection:
+            timeout: 5000
+          read:
+            timeout: 30000
+        
+        ---
+        spring.config.activate.on-profile: local
+        spring:
+          datasource:
+            driver-class-name: org.h2.Driver
+            url: jdbc:h2:file:./data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+            username: sa
+            password:
+          jpa:
+            hibernate:
+              ddl-auto: update
+            show-sql: true
+            properties:
+              hibernate:
+                format_sql: true
+            defer-datasource-initialization: true
+          h2:
+            console:
+              enabled: true
+              path: /h2-console
+              settings:
+                web-allow-others: false
+          sql:
+            init:
+              mode: always
+              platform: h2
+        
+        ---
+        spring.config.activate.on-profile: dev
+        spring:
+          datasource:
+            driver-class-name: com.mysql.cj.jdbc.Driver
+            url: jdbc:mysql://${database.dev.ip}/${database.dev.name}?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+            username: ${database.dev.username}
+            password: ${database.dev.password}
+            hikari:
+              maximum-pool-size: 10
+              minimum-idle: 5
+              connection-timeout: 5000
+          jpa:
+            hibernate:
+              ddl-auto: update
+            properties:
+              hibernate:
+                dialect: org.hibernate.dialect.MySQL8Dialect
+            show-sql: true
+          mail:
+            host: smtp.gmail.com
+            port: 587
+            username: ${spring.mail.username}
+            password: ${spring.mail.password}
+            properties:
+              mail.smtp.auth: true
+              mail.smtp.starttls.enable: true
+          config:
+            import:
+              - application-db.yml
+              - application-key.yml
+        
+        ---
+        spring.config.activate.on-profile: prod
+        spring:
+          datasource:
+            driver-class-name: com.mysql.cj.jdbc.Driver
+            url: jdbc:mysql://localhost:3306/${database.prod.name}?characterEncoding=UTF-8&serverTimezone=Asia/Seoul
+            username: ${database.prod.username}
+            password: ${database.prod.password}
+            hikari:
+              maximum-pool-size: 10
+              minimum-idle: 5
+              connection-timeout: 5000
+          jpa:
+            hibernate:
+              ddl-auto: update
+            properties:
+              hibernate:
+                dialect: org.hibernate.dialect.MySQL8Dialect
+            show-sql: false
+          config:
+            import:
+              - application-db.yml
+              - application-key.yml
+        
+        # Google Cloud Speech 설정
+        google:
+          speech:
+            language: ko-KR
+            credentials-file: classpath:keys/google-credentials.json
+        EOF
+        
         # Create application-db.yml
-        cat > src/main/resources/application-db.yml << EOF
+        cat > src/main/resources/application-db.yml << 'EOF'
         database:
           dev:
             ip: localhost:3306
             name: memory_dev
             username: memoryapp
-            password: ${{ secrets.DB_PASSWORD }}
+            password: ${DB_PASSWORD}
           prod:
             name: memory_prod
             username: memoryapp
-            password: ${{ secrets.DB_PASSWORD }}
+            password: ${DB_PASSWORD}
         EOF
         
         # Create application-key.yml
-        cat > src/main/resources/application-key.yml << EOF
+        cat > src/main/resources/application-key.yml << 'EOF'
         spring:
           mail:
             host: smtp.gmail.com
             port: 587
-            username: ${{ secrets.GMAIL_MAIL_USERNAME }}
-            password: ${{ secrets.GMAIL_MAIL_PASSWORD }}
+            username: ${GMAIL_MAIL_USERNAME}
+            password: ${GMAIL_MAIL_PASSWORD}
             properties:
               mail.smtp.auth: true
               mail.smtp.starttls.enable: true
           cloud:
             aws:
               credentials:
-                access-key: ${{ secrets.AWS_ACCESS_KEY }}
-                secret-key: ${{ secrets.AWS_SECRET_KEY }}
+                access-key: ${AWS_ACCESS_KEY}
+                secret-key: ${AWS_SECRET_KEY}
               region:
-                static: ${{ secrets.AWS_REGION }}
+                static: ${AWS_REGION}
               stack:
                 auto: false
               s3:
-                bucket: ${{ secrets.S3_BUCKET }}
-                
+                bucket: ${S3_BUCKET}
+        
         jwt:
-          secret: ${{ secrets.JWT_SECRET }}
-          
+          secret: ${JWT_SECRET}
+        
         naver:
           oauth:
-            client-id: ${{ secrets.NAVER_CLIENT_ID }}
-            client-secret: ${{ secrets.NAVER_CLIENT_SECRET }}
-            
+            client-id: ${NAVER_CLIENT_ID}
+            client-secret: ${NAVER_CLIENT_SECRET}
+            redirect-uri: http://localhost:8080/oauth/callback?provider=naver
+            token-url: https://nid.naver.com/oauth2.0/token
+            auth-url: https://nid.naver.com/oauth2.0/authorize
+        
         kakao:
           oauth:
-            client-id: ${{ secrets.KAKAO_CLIENT_ID }}
-            client-secret: ${{ secrets.KAKAO_CLIENT_SECRET }}
-            
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            token-url: https://kauth.kakao.com/oauth/token
+            auth-url: https://kauth.kakao.com/oauth/authorize
+            redirect-uri: http://localhost:8080/oauth/callback?provider=kakao
+        
         google:
           oauth:
-            client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
-            client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            auth-url: https://accounts.google.com/o/oauth2/v2/auth
+            token-url: https://oauth2.googleapis.com/token
+            redirect-uri: http://localhost:8080/oauth/callback?provider=google
+        EOF
+        
+        # Set environment variables in a .env file for the application to use
+        cat > src/main/resources/.env << 'EOF'
+        DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+        GMAIL_MAIL_USERNAME=${{ secrets.GMAIL_MAIL_USERNAME }}
+        GMAIL_MAIL_PASSWORD=${{ secrets.GMAIL_MAIL_PASSWORD }}
+        AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+        AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+        AWS_REGION=${{ secrets.AWS_REGION }}
+        S3_BUCKET=${{ secrets.S3_BUCKET }}
+        JWT_SECRET=${{ secrets.JWT_SECRET }}
+        NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}
+        NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}
+        KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
+        KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+        GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
         EOF
         
         # Create Google credentials file
         echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/keys/google-credentials.json
+        
+        # Debugging output for YAML files
+        echo "=== application.yml structure check ==="
+        grep -n ":" src/main/resources/application.yml | head -20
+        echo "=== application-db.yml structure check ==="
+        grep -n ":" src/main/resources/application-db.yml
+        echo "=== application-key.yml structure check ==="
+        grep -n ":" src/main/resources/application-key.yml | head -10
       
     - name: Build with Gradle
       run: |
@@ -138,11 +320,30 @@ jobs:
           # EC2 서버에서 파일 정리
           mkdir -p ~/logs
           
-          # JAR 파일의 경로 설정
+          # 시크릿을 환경 변수 파일로 생성
+          cat > ~/deploy/.env << EOF
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          GMAIL_MAIL_USERNAME=${{ secrets.GMAIL_MAIL_USERNAME }}
+          GMAIL_MAIL_PASSWORD=${{ secrets.GMAIL_MAIL_PASSWORD }}
+          AWS_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY }}
+          AWS_SECRET_KEY=${{ secrets.AWS_SECRET_KEY }}
+          AWS_REGION=${{ secrets.AWS_REGION }}
+          S3_BUCKET=${{ secrets.S3_BUCKET }}
+          NAVER_CLIENT_ID=${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET=${{ secrets.NAVER_CLIENT_SECRET }}
+          KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
+          KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          EOF
+          
+          # 스크립트 실행 권한 설정
           cd ~/deploy
           chmod +x scripts/deploy.sh
           
-          # 애플리케이션 재시작
+          # deploy.sh 스크립트에 환경 변수 전달
+          export $(cat .env | xargs)
           ./scripts/deploy.sh
           
           # 상태 확인
