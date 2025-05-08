@@ -1,0 +1,167 @@
+name: Deploy to min-i with Discord Notifications
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        lfs: true  
+    
+    - name: Set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+      
+    - name: Build with Gradle
+      run: ./gradlew build -x test
+      
+    - name: Create config directory
+      run: mkdir -p build/libs/config/keys
+      
+    - name: Create application-db.yml
+      run: |
+        cat > build/libs/config/application-db.yml << EOF
+        database:
+          dev:
+            ip: localhost:3306
+            name: memory_dev
+            username: memoryapp
+            password: ${{ secrets.DB_PASSWORD }}
+          prod:
+            name: memory_prod
+            username: memoryapp
+            password: ${{ secrets.DB_PASSWORD }}
+        EOF
+        
+    - name: Create application-key.yml
+      run: |
+        cat > build/libs/config/application-key.yml << EOF
+        spring:
+          mail:
+            host: smtp.gmail.com
+            port: 587
+            username: ${{ secrets.GMAIL_MAIL_USERNAME }}
+            password: ${{ secrets.GMAIL_MAIL_PASSWORD }}
+            properties:
+              mail.smtp.auth: true
+              mail.smtp.starttls.enable: true
+          cloud:
+            aws:
+              credentials:
+                access-key: ${{ secrets.AWS_ACCESS_KEY }}
+                secret-key: ${{ secrets.AWS_SECRET_KEY }}
+              region:
+                static: ${{ secrets.AWS_REGION }}
+              stack:
+                auto: false
+              s3:
+                bucket: ${{ secrets.S3_BUCKET }}
+                
+        jwt:
+          secret: ${{ secrets.JWT_SECRET }}
+          
+        naver:
+          oauth:
+            client-id: ${{ secrets.NAVER_CLIENT_ID }}
+            client-secret: ${{ secrets.NAVER_CLIENT_SECRET }}
+            
+        kakao:
+          oauth:
+            client-id: ${{ secrets.KAKAO_CLIENT_ID }}
+            client-secret: ${{ secrets.KAKAO_CLIENT_SECRET }}
+            
+        google:
+          oauth:
+            client-id: ${{ secrets.GOOGLE_CLIENT_ID }}
+            client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+        EOF
+    
+    - name: Create Google credentials file
+      run: |
+        echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > build/libs/config/keys/google-credentials.json
+    
+    - name: Grant execute permission for ffmpeg binaries and deploy script
+      run: |
+        chmod +x src/main/resources/bin/ffmpeg-*
+        chmod +x scripts/deploy.sh
+        
+    - name: Test SSH connection
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh -o ConnectTimeout=10 -i ~/.ssh/id_rsa ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo SSH connection successful"
+      continue-on-error: true
+        
+    - name: Deploy to EC2
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        source: "build/libs/*.jar,build/libs/config/**,src/main/resources/bin/**,scripts/deploy.sh"
+        target: "/home/ec2-user"
+        strip_components: 1
+        timeout: 300s
+        debug: true
+        
+    - name: Deploy application
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          # 설정 파일 복사
+          mkdir -p ~/memory-BE/src/main/resources/keys
+          cp ~/config/application-db.yml ~/memory-BE/src/main/resources/
+          cp ~/config/application-key.yml ~/memory-BE/src/main/resources/
+          cp ~/config/keys/google-credentials.json ~/memory-BE/src/main/resources/keys/
+          
+          # ffmpeg 바이너리 복사 및 권한 설정
+          mkdir -p ~/memory-BE/src/main/resources/bin
+          cp ~/bin/ffmpeg-* ~/memory-BE/src/main/resources/bin/
+          chmod +x ~/memory-BE/src/main/resources/bin/ffmpeg-*
+          
+          # JAR 파일 복사 및 deploy.sh 설정
+          mkdir -p ~/deploy
+          cp ~/*.jar ~/deploy/
+          cp ~/deploy.sh ~/deploy/
+          chmod +x ~/deploy/deploy.sh
+          
+          # 애플리케이션 재시작
+          ~/deploy/deploy.sh
+          
+          # 상태 확인
+          sleep 10
+          ps aux | grep java
+    
+    # 디스코드 배포 성공 알림
+    - name: Send Discord Success Notification
+      if: success()
+      uses: Ilshidur/action-discord@master
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      with:
+        args: '🎉 메모리 앱 배포가 성공적으로 완료되었습니다람쥐! 브랜치: `${{ github.ref_name }}`, 커밋: `${{ github.event.head_commit.message }}`'
+    
+    # 디스코드 배포 실패 알림
+    - name: Send Discord Failure Notification
+      if: failure()
+      uses: Ilshidur/action-discord@master
+      env:
+        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      with:
+        args: '❌ 메모리 앱 배포에 실패했습니다!ㅜㅜ 브랜치: `${{ github.ref_name }}`, 커밋: `${{ github.event.head_commit.message }}`. 로그를 확인해주세요.' 
