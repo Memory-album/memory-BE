@@ -66,7 +66,6 @@ jobs:
             client-secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         EOF
     
-    # Google 인증 파일 생성
     - name: Create Google credentials file
       run: |
         echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > build/libs/config/keys/google-credentials.json
@@ -96,10 +95,10 @@ jobs:
           cp ~/config/application-db.yml ~/memory-BE/src/main/resources/
           cp ~/config/application-key.yml ~/memory-BE/src/main/resources/
           
-          # Google 인증 파일 복사
+         
           cp ~/config/keys/google-credentials.json ~/memory-BE/src/main/resources/keys/
           
-          # ffmpeg 바이너리 디렉토리 생성 및 복사
+         
           mkdir -p ~/memory-BE/src/main/resources/bin
           cp ~/bin/ffmpeg-* ~/memory-BE/src/main/resources/bin/
           chmod +x ~/memory-BE/src/main/resources/bin/ffmpeg-*
@@ -122,7 +121,7 @@ jobs:
       env:
         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       with:
-        args: '🎉 메모리 앱 배포가 성공적으로 완료되었습니다! 브랜치: `${{ github.ref_name }}`, 커밋: `${{ github.event.head_commit.message }}`'
+        args: '🎉 메모리 앱 배포가 성공적으로 완료되었습니다람쥐! 브랜치: `${{ github.ref_name }}`, 커밋: `${{ github.event.head_commit.message }}`'
     
     # 디스코드 배포 실패 알림
     - name: Send Discord Failure Notification
@@ -131,4 +130,4 @@ jobs:
       env:
         DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
       with:
-        args: '❌ 메모리 앱 배포에 실패했습니다! 브랜치: `${{ github.ref_name }}`, 커밋: `${{ github.event.head_commit.message }}`. 로그를 확인해주세요.'
+        args: '❌ 메모리 앱 배포에 실패했습니다!ㅜㅜ 브랜치: `${{ github.ref_name }}`, 커밋: `${{ github.event.head_commit.message }}`. 로그를 확인해주세요.'
