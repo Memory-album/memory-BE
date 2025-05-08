@@ -20,7 +20,8 @@ configurations {
 }
 
 repositories {
-	mavenCentral()
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -38,11 +39,11 @@ dependencies {
 	implementation 'io.awspring.cloud:spring-cloud-aws-starter'
 	implementation 'io.awspring.cloud:spring-cloud-aws-starter-s3'
 
-
 	// JWT
 	implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
+	implementation 'io.jsonwebtoken:jjwt:0.12.6'
 
 	// Swagger
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
@@ -51,10 +52,8 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-databind'
 	implementation 'org.apache.commons:commons-lang3'
 
-
 	// HTTP Client
 	implementation 'org.apache.httpcomponents.client5:httpclient5:5.2.1'
-
 
 	// Lombok
 	compileOnly 'org.projectlombok:lombok'
@@ -67,16 +66,24 @@ dependencies {
 	// Dev Tools
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
-	//jwt
-	implementation 'io.jsonwebtoken:jjwt:0.12.6'
-
-	//SMTP
+	// SMTP
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
+	// Google Cloud Speech-to-Text
+	implementation 'com.google.cloud:google-cloud-speech:4.53.0'
 
+	// discord
+	implementation 'com.github.napstr:logback-discord-appender:1.0.0'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
 }
-
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+tasks.named('processResources') {
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	from('src/main/resources') {
+		include '**/*'
+	}
 }

@@ -4,7 +4,6 @@ import com.min.i.memory_BE.domain.group.dto.request.GroupJoinRequestDto;
 import com.min.i.memory_BE.domain.group.dto.request.GroupRequestDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupJoinResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupListResponseDto;
-import com.min.i.memory_BE.domain.group.dto.response.GroupMemberResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupResponseDto;
 import com.min.i.memory_BE.domain.group.dto.response.GroupDetailResponseDto;
 import com.min.i.memory_BE.domain.group.entity.Group;

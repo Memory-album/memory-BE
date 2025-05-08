@@ -4,6 +4,7 @@ import com.min.i.memory_BE.domain.user.service.UserService;
 import com.min.i.memory_BE.domain.user.entity.User;
 import com.min.i.memory_BE.domain.user.dto.UserUpdateDto;
 import com.min.i.memory_BE.domain.user.dto.PasswordResetDto;
+import com.min.i.memory_BE.domain.user.dto.UserResponse;
 import com.min.i.memory_BE.domain.user.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -99,6 +100,7 @@ public class UserController {
             .body(Map.of(
                 "status", "success",
                 "user", Map.of(
+                    "id", userDetails.getId(),
                     "email", userDetails.getEmail(),
                     "name", userDetails.getName(),
                     "profileImgUrl", userDetails.getProfileImgUrl(),
@@ -419,22 +421,64 @@ public class UserController {
     @PutMapping("/password/reset")
     public ResponseEntity<?> resetPassword(
             @RequestBody PasswordResetDto request,
-            @Parameter(description = "Authorization 헤더에 포함된 JWT 토큰")
-            @RequestHeader("Authorization") String authorization) {
+            @CookieValue(name = "passwordResetToken", required = true) String jwtToken) {
         try {
-            // JWT 토큰 추출
-            String jwtToken = authorization.replace("Bearer ", "");
+            if (request.getEmail() == null) {
+                return ResponseEntity.badRequest().body(Map.of(
+                    "message", "이메일 정보가 필요합니다.",
+                    "status", "error"
+                ));
+            }
             
             userService.resetPassword(request, jwtToken);
-            return ResponseEntity.ok().body(Map.of(
-                "message", "비밀번호가 성공적으로 변경되었습니다.",
-                "status", "success"
-            ));
+            
+            // 비밀번호 재설정 후 쿠키 삭제
+            ResponseCookie deleteCookie = ResponseCookie.from("passwordResetToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+                
+            return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body(Map.of(
+                    "message", "비밀번호가 성공적으로 변경되었습니다.",
+                    "status", "success"
+                ));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of(
                 "message", e.getMessage(),
                 "status", "error"
             ));
+        }
+    }
+
+    @Operation(
+            summary = "ID로 사용자 조회",
+            description = "사용자 ID로 사용자 정보를 조회합니다."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "사용자 정보 조회 성공"),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청"),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없음")
+    })
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable Long userId) {
+        try {
+            User user = userService.getUserById(userId);
+            return ResponseEntity.ok()
+                    .body(Map.of(
+                            "status", "success",
+                            "user", UserResponse.from(user)
+                    ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of(
+                            "message", e.getMessage(),
+                            "status", "error"
+                    ));
         }
     }
 }

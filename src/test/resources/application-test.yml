@@ -1,0 +1,123 @@
+spring:
+  config:
+    activate:
+      on-profile: test
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: true
+    database-platform: org.hibernate.dialect.H2Dialect
+  
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+  
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+      resolve-lazily: true
+      file-size-threshold: 0
+  
+  mail:
+    host: smtp.gmail.com
+    port: 465
+    username: ${GMAIL_MAIL_USERNAME}
+    password: ${GMAIL_MAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      
+  cloud:
+    aws:
+      credentials:
+        access-key: test_access_key
+        secret-key: test_secret_key
+      region:
+        static: ap-northeast-2
+      stack:
+        auto: false
+      s3:
+        bucket: test-bucket
+
+google:
+  speech:
+    language: ko-KR
+    credentials-file: file:C:/memory-BE/src/test/resources/keys/google-credentials.json
+  oauth:
+    client-id: ${GOOGLE_CLIENT_ID}
+    client-secret: ${GOOGLE_CLIENT_SECRET}
+    auth-url: https://accounts.google.com/o/oauth2/v2/auth
+    token-url: https://oauth2.googleapis.com/token
+    redirect-uri: http://localhost:8080/oauth/callback?provider=google
+
+logging:
+  level:
+    root: INFO
+    com.min.i.memory_BE: DEBUG
+    org.hibernate.SQL: DEBUG 
+
+# JWT 설정 추가
+JWT_SECRET_KEY: test_secret_key_for_jwt_token_please_change_in_production
+
+# OAuth 설정 추가
+NAVER_CLIENT_ID: test_naver_client_id
+NAVER_CLIENT_SECRET: test_naver_client_secret
+NAVER_REDIRECT_URI: http://localhost:8080/oauth/naver/callback
+KAKAO_CLIENT_ID: test_kakao_client_id
+KAKAO_CLIENT_SECRET: test_kakao_client_secret
+KAKAO_REDIRECT_URI: http://localhost:8080/oauth/kakao/callback
+GOOGLE_CLIENT_ID: test_google_client_id
+GOOGLE_CLIENT_SECRET: test_google_client_secret
+GOOGLE_REDIRECT_URI: http://localhost:8080/oauth/google/callback
+
+# 메일 설정 추가
+NAVER_MAIL_USERNAME: test_mail_username
+NAVER_MAIL_PASSWORD: test_mail_password
+GMAIL_MAIL_USERNAME: test_gmail_username
+GMAIL_MAIL_PASSWORD: test_gmail_password
+
+# JWT 시크릿 키 설정 (256비트 이상의 키 필요)
+jwt:
+  secret: testsecretkeytestsecretkeytestsecretkeytestsecretkey
+  access-token-validity: 3600000
+  refresh-token-validity: 86400000
+
+# OAuth 설정
+naver:
+  oauth:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
+    redirect-uri: http://localhost:8080/oauth/callback?provider=naver
+    token-url: https://nid.naver.com/oauth2.0/token
+    auth-url: https://nid.naver.com/oauth2.0/authorize
+
+kakao:
+  oauth:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    token-url: https://kauth.kakao.com/oauth/token
+    auth-url: https://kauth.kakao.com/oauth/authorize
+    redirect-uri: http://localhost:8080/oauth/callback?provider=kakao
+
+# FastAPI 서버 설정
+fastapi:
+  server:
+    url: http://localhost:8000
+  connection:
+    timeout: 5000
+  read:
+    timeout: 30000
+
+security:
+  user:
+    name: test
+    password: test

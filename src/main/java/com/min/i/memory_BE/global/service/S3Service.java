@@ -202,8 +202,66 @@ public class S3Service {
   }
 
   public String uploadThumbnail(MultipartFile file) {
-    // S3에 파일 업로드 로직 구현
-    // 업로드 후 파일의 URL 반환
-    return "uploaded_thumbnail_url"; // 실제 URL로 변경 필요
+    validateImageFile(file);
+    
+    String fileName = generateFileName(file.getOriginalFilename());
+    String key = String.format("thumbnails/%s", fileName);
+    
+    try {
+      PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+        .bucket(bucketName)
+        .key(key)
+        .contentType(file.getContentType())
+        .build();
+      
+      s3Client.putObject(putObjectRequest,
+        RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+      
+      log.info("썸네일 이미지 업로드 성공: {}", key);
+      return getFileUrl(key);
+      
+    } catch (IOException e) {
+      log.error("썸네일 이미지 업로드 실패: {}", e.getMessage());
+      throw new S3Exception("썸네일 이미지 업로드 중 오류가 발생했습니다");
+    }
+  }
+
+  /**
+   * S3 프로토콜 URL을 객체 URL로 변환합니다.
+   * 예: s3://bucket-name/path/to/file.jpg -> https://bucket-name.s3.amazonaws.com/path/to/file.jpg
+   *
+   * @param s3ProtocolUrl S3 프로토콜 URL (s3://bucket-name/path/to/file.jpg 형식)
+   * @return 객체 URL (https://bucket-name.s3.amazonaws.com/path/to/file.jpg 형식)
+   */
+  public String convertS3ProtocolUrlToObjectUrl(String s3ProtocolUrl) {
+    if (s3ProtocolUrl == null || s3ProtocolUrl.isEmpty()) {
+      return null;
+    }
+
+    // S3 프로토콜 URL 형식 확인
+    if (!s3ProtocolUrl.startsWith("s3://")) {
+      // 이미 객체 URL 형식이면 그대로 반환
+      if (s3ProtocolUrl.startsWith("http")) {
+        return s3ProtocolUrl;
+      }
+      throw new IllegalArgumentException("유효한 S3 URL 형식이 아닙니다: " + s3ProtocolUrl);
+    }
+
+    // s3://bucket-name/path/to/file.jpg 형식에서 버킷 이름과 키 추출
+    String withoutProtocol = s3ProtocolUrl.substring(5); // "s3://" 제거
+    int firstSlashIndex = withoutProtocol.indexOf('/');
+    
+    if (firstSlashIndex == -1) {
+      throw new IllegalArgumentException("S3 URL에 경로가 없습니다: " + s3ProtocolUrl);
+    }
+    
+    String bucketName = withoutProtocol.substring(0, firstSlashIndex);
+    String key = withoutProtocol.substring(firstSlashIndex + 1);
+    
+    // 객체 URL 생성
+    String objectUrl = String.format("https://%s.s3.amazonaws.com/%s", bucketName, key);
+    
+    log.info("S3 URL 변환: {} -> {}", s3ProtocolUrl, objectUrl);
+    return objectUrl;
   }
 }

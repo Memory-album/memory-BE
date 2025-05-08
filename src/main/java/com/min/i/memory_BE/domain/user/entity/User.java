@@ -11,23 +11,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users") // 예약어 보호
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
-  
+
   @Column(unique = true, nullable = false)
   private String email;
-  
+
   private String password;
-  
+
   @Column(nullable = false)
   private String name;
-  
-  private String profileImgUrl;
+
+  private String profileImgUrl = "";
 
   @Column(nullable = false)
   private boolean emailVerified = false;
@@ -56,10 +56,10 @@ public class User extends BaseEntity {
 
   @OneToMany(mappedBy = "user")
   private final List<OAuthAccount> oauthAccounts = new ArrayList<>();
-  
+
   @OneToMany(mappedBy = "user")
   private final List<UserGroup> userGroups = new ArrayList<>();
-  
+
   @Builder(toBuilder = true)  // toBuilder 활성화
   public User(Long id, String email, String password, String name, boolean emailVerified, String profileImgUrl, String emailVerificationCode,
     LocalDateTime emailVerificationExpiredAt, int loginAttempts, boolean accountLocked, LocalDateTime lastLoginAttempt, LocalDateTime lockedUntil, UserStatus status) {
@@ -67,7 +67,7 @@ public class User extends BaseEntity {
     this.email = email;
     this.password = password;
     this.name = name;
-    this.profileImgUrl = profileImgUrl;
+    this.profileImgUrl = profileImgUrl != null ? profileImgUrl : ""; // null 체크 추가
     this.emailVerified = emailVerified;
     this.emailVerificationCode = emailVerificationCode;
     this.emailVerificationExpiredAt = emailVerificationExpiredAt;

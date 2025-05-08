@@ -1,7 +1,6 @@
 package com.min.i.memory_BE.domain.group.dto.response;
 
 import com.min.i.memory_BE.domain.group.entity.UserGroup;
-import com.min.i.memory_BE.domain.user.enums.UserGroupRole;
 import java.time.LocalDateTime;
 import lombok.Builder;
 import lombok.Getter;

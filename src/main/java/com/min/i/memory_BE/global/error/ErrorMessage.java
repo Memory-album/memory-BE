@@ -16,4 +16,9 @@ public class ErrorMessage {
     this.code = errorCode.getCode();
     this.message = errorCode.getMessage();
   }
+  
+  public ErrorMessage(ErrorCode errorCode, String detailMessage) {
+    this.code = errorCode.getCode();
+    this.message = detailMessage != null ? detailMessage : errorCode.getMessage();
+  }
 }

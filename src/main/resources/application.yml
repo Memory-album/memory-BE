@@ -42,6 +42,8 @@ logging:
     org.hibernate.SQL: debug
     org.hibernate.type: trace
     org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
     com.min.i.memory_BE: DEBUG
     com.min.i.memory_BE.global.service.S3Service: DEBUG
     com.min.i.memory_BE.domain.user.service.UserService: DEBUG
@@ -84,12 +86,21 @@ google:
     token-url: https://oauth2.googleapis.com/token
     redirect-uri: http://localhost:8080/oauth/callback?provider=google
 
+# FastAPI 서버 설정
+fastapi:
+  server:
+    url: http://localhost:8000  # FastAPI 서버 주소
+  connection:
+    timeout: 5000  # 연결 타임아웃 (ms)
+  read:
+    timeout: 30000  # 읽기 타임아웃 (ms)
+
 ---
 spring.config.activate.on-profile: local
 spring:
   datasource:
     driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:core;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:file:./data/memorydb;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     username: sa
     password:
   jpa:
@@ -130,3 +141,25 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.MySQL8Dialect
     show-sql: true
+
+# 디스코드 로깅 설정 추가
+logging:
+  level:
+    org.hibernate.SQL: debug
+    org.hibernate.type: trace
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping: TRACE
+    com.min.i.memory_BE: DEBUG
+    com.min.i.memory_BE.global.service.S3Service: DEBUG
+    com.min.i.memory_BE.domain.user.service.UserService: DEBUG
+    com.amazonaws: DEBUG
+  discord:
+    webhook-url: https://discord.com/api/webhooks/1370075555529232404/mUOfVFtleD_b3vVm7Smuk5MXAYACZvq9PAXZjkHBUI2w5vv1aStt59DZ6aZcZ6-LqfmE
+  config: classpath:logback-spring.xml
+
+# Google Cloud Speech 설정
+google:
+  speech:
+    language: ko-KR
+    credentials-file: classpath:keys/google-credentials.json

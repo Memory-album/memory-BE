@@ -3,7 +3,6 @@ package com.min.i.memory_BE.domain.album.entity;
 import com.min.i.memory_BE.domain.album.enums.QuestionTheme;
 import com.min.i.memory_BE.domain.media.entity.Media;
 import com.min.i.memory_BE.global.entity.BaseEntity;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -14,11 +13,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.ArrayList;
-import java.util.List;
-
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -47,16 +42,27 @@ public class Question extends BaseEntity {
   
   private String keywordsUsed;
   
-  @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)
-  private final List<Answer> answers = new ArrayList<>();
+  private Integer level;
+  
+  private String category;
   
   @Builder
   public Question(Media media, String content, QuestionTheme theme,
-    boolean isPrivate, String keywordsUsed) {
+    boolean isPrivate, String keywordsUsed, Integer level, String category) {
     this.media = media;
     this.content = content;
     this.theme = theme;
     this.isPrivate = isPrivate;
     this.keywordsUsed = keywordsUsed;
+    this.level = level;
+    this.category = category;
+  }
+  
+  /**
+   * 질문 내용을 수정합니다.
+   * @param content 새로운 질문 내용
+   */
+  public void setContent(String content) {
+    this.content = content;
   }
 }

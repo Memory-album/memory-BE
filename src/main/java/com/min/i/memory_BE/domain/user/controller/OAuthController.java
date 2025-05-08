@@ -2,6 +2,8 @@ package com.min.i.memory_BE.domain.user.controller;
 
 import com.min.i.memory_BE.domain.user.enums.OAuthProvider;
 import com.min.i.memory_BE.domain.user.service.OAuthService;
+import com.min.i.memory_BE.domain.user.dto.JwtAuthenticationResponse;
+import com.min.i.memory_BE.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -12,6 +14,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Map;
 
@@ -20,9 +23,14 @@ import java.util.Map;
 public class OAuthController {
 
     private final OAuthService oAuthService;
+    private final UserService userService;
+    
+    @Value("${frontend.url:http://localhost:3000}")
+    private String frontendUrl;
 
-    public OAuthController(OAuthService oAuthService) {
+    public OAuthController(OAuthService oAuthService, UserService userService) {
         this.oAuthService = oAuthService;
+        this.userService = userService;
     }
 
     @Operation(
@@ -44,12 +52,12 @@ public class OAuthController {
 
     @Operation(
             summary = "OAuth 로그인 콜백 처리",
-            description = "OAuth 제공자로부터 받은 콜백을 처리하고 로그인 성공 메시지를 반환합니다."
+            description = "OAuth 제공자로부터 받은 콜백을 처리하고 로그인 성공 후 홈 화면으로 리다이렉트합니다."
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "200",
-                    description = "로그인 성공",
+                    responseCode = "302",
+                    description = "로그인 성공 후 홈 화면으로 리다이렉트",
                     content = @Content(mediaType = "application/json")
             ),
             @ApiResponse(
@@ -58,15 +66,41 @@ public class OAuthController {
             )
     })
     @GetMapping("/callback")
-    public ResponseEntity<String> handleCallback(@Parameter(description = "OAuth 제공자 이름 (예: google, kakao, naver)")
+    public ResponseEntity<Void> handleCallback(@Parameter(description = "OAuth 제공자 이름 (예: google, kakao, naver)")
                                                  @RequestParam("provider") String providerName,
                                                  @Parameter(description = "OAuth 제공자가 반환한 인증 코드")
                                                  @RequestParam("code") String code,
                                                  @Parameter(description = "상태 값 (선택 사항)")
                                                  @RequestParam(value = "state", required = false) String state) {
         OAuthProvider provider = OAuthProvider.valueOf(providerName.toUpperCase());
-        oAuthService.handleCallback(provider, code, state);
-        return ResponseEntity.ok(providerName + " 로그인 성공");
+        String email = oAuthService.handleCallback(provider, code, state);
+        
+        // 일반 로그인과 동일하게 토큰 생성
+        JwtAuthenticationResponse tokens = userService.generateTokens(email);
+        
+        // JWT 쿠키 설정
+        ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", tokens.getAccessToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(60 * 60) // 1시간
+                .sameSite("Strict")
+                .build();
+
+        ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(60 * 60 * 24 * 7) // 7일
+                .sameSite("Strict")
+                .build();
+        
+        // 홈 화면으로 리다이렉트
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .header("Location", frontendUrl + "/user/home")
+                .build();
     }
 
     @Operation(
@@ -111,8 +145,28 @@ public class OAuthController {
                 throw new IllegalArgumentException("지원하지 않는 제공자: " + provider);
         }
 
-        // 로그아웃 완료 메시지만 반환하고 리다이렉트는 프론트에서 처리
-        return ResponseEntity.ok("로그아웃 완료");
+        // JWT 토큰 쿠키 삭제
+        ResponseCookie deleteAccessTokenCookie = ResponseCookie.from("jwtToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+                
+        ResponseCookie deleteRefreshTokenCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        // 로그아웃 완료 메시지와 토큰 쿠키 삭제
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteAccessTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, deleteRefreshTokenCookie.toString())
+                .body("로그아웃 완료");
     }
 
     private void logoutFromGoogle(String accessToken) {

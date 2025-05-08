@@ -104,28 +104,28 @@ public class LoginController {
             // JWT 쿠키 설정
             ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", tokens.getAccessToken())
                     .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
                 .maxAge(60 * 60) // 1시간
-                .sameSite("Lax")
+                .sameSite("Strict")
                     .build();
 
             ResponseCookie refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(true)
                 .path("/")
                 .maxAge(60 * 60 * 24 * 7) // 7일
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
 
             // 자동 로그인 설정
             if (loginDto.isRememberMe()) {
                 refreshTokenCookie = ResponseCookie.from("refreshToken", tokens.getRefreshToken())
                     .httpOnly(true)
-                    .secure(false)
+                    .secure(true)
                     .path("/")
                     .maxAge(60 * 60 * 24 * 30) // 30일
-                    .sameSite("Lax")
+                    .sameSite("Strict")
                     .build();
             }
 
@@ -198,18 +198,18 @@ public class LoginController {
         // JWT 쿠키 삭제
         ResponseCookie deleteAccessTokenCookie = ResponseCookie.from("jwtToken", "")
             .httpOnly(true)
-            .secure(false)
+            .secure(true)
             .path("/")
             .maxAge(0)
-            .sameSite("Lax")
+            .sameSite("Strict")
             .build();
 
         ResponseCookie deleteRefreshTokenCookie = ResponseCookie.from("refreshToken", "")
             .httpOnly(true)
-            .secure(false)
+            .secure(true)
             .path("/")
             .maxAge(0)
-            .sameSite("Lax")
+            .sameSite("Strict")
             .build();
 
         return ResponseEntity.ok()
@@ -241,10 +241,10 @@ public class LoginController {
                 // 새로운 액세스 토큰을 쿠키에 설정
                 ResponseCookie accessTokenCookie = ResponseCookie.from("jwtToken", newAccessToken)
                     .httpOnly(true)
-                    .secure(false)
+                    .secure(true)
                     .path("/")
                     .maxAge(60 * 60) // 1시간
-                    .sameSite("Lax")
+                    .sameSite("Strict")
                     .build();
 
                 return ResponseEntity.ok()
