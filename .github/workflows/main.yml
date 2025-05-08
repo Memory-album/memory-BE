@@ -103,13 +103,8 @@ jobs:
         ./gradlew clean bootJar
         ls -la build/libs/
         
-    - name: Check JAR content
+    - name: Grant execute permission for deploy script
       run: |
-        jar tf build/libs/memory-BE-*.jar | grep -E 'META-INF/MANIFEST.MF|com/min/i/memory_BE/MemoryBeApplication.class'
-      
-    - name: Grant execute permission for ffmpeg binaries and deploy script
-      run: |
-        chmod +x src/main/resources/bin/ffmpeg-*
         chmod +x scripts/deploy.sh
         
     - name: Test SSH connection
@@ -127,7 +122,7 @@ jobs:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
-        source: "build/libs/*.jar,scripts/deploy.sh,src/main/resources/bin/*"
+        source: "build/libs/memory-BE-*.jar,scripts/deploy.sh"
         target: "/home/ec2-user/deploy"
         strip_components: 0
         timeout: 300s
@@ -141,7 +136,6 @@ jobs:
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
           # EC2 서버에서 파일 정리
-          rm -rf ~/deploy/memory-BE-*.jar 2>/dev/null || true
           mkdir -p ~/logs
           
           # JAR 파일의 경로 설정

@@ -70,6 +70,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-mail'
 
 	// Google Cloud Speech-to-Text
+	implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
 	implementation 'com.google.cloud:google-cloud-speech:4.53.0'
 
 	// discord
@@ -81,21 +82,8 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
-bootJar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    
-    from('src/main/resources') {
-        include '**/*'
-    }
-    
-    manifest {
-        attributes(
-            'Main-Class': 'org.springframework.boot.loader.JarLauncher',
-            'Start-Class': 'com.min.i.memory_BE.MemoryBeApplication',
-            'Implementation-Version': archiveVersion
-        )
-    }
-}
+// bootJar 태스크는 Spring Boot 플러그인에 의해 자동으로 설정됩니다.
+// 기본 설정으로 돌아갑니다.
 
 tasks.named('processResources') {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE

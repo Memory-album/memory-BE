@@ -24,8 +24,8 @@ if pgrep -f "java -jar" > /dev/null; then
   fi
 fi
 
-# JAR 파일 찾기
-JAR_FILE=$(find ~/deploy/build/libs -name "*.jar" -type f | grep -v "plain" | sort -t- -k2V | tail -n1)
+# JAR 파일 찾기 - 빌드 디렉토리를 포함한 모든 경로 검색
+JAR_FILE=$(find ~/deploy -type f -name "memory-BE-*.jar" | grep -v "plain" | head -n 1)
 
 if [ -z "$JAR_FILE" ]; then
   echo "배포할 JAR 파일을 찾을 수 없습니다!" | tee -a $LOG_FILE
@@ -41,14 +41,7 @@ echo "배포할 JAR 파일: $JAR_FILE" | tee -a $LOG_FILE
 JAVA_OPTS="-Xms512m -Xmx1024m"
 SPRING_OPTS="-Dspring.profiles.active=prod"
 
-# 디렉토리 권한 설정
-chmod -R 755 $(dirname $JAR_FILE)
-
-# JAR 파일 확인
-echo "JAR 파일 정보:" | tee -a $LOG_FILE
-jar tf $JAR_FILE | grep -E "META-INF/MANIFEST.MF|com/min/i/memory_BE/MemoryBeApplication.class" | tee -a $LOG_FILE
-
-# nohup으로 백그라운드에서 애플리케이션 실행
+# JAR 파일 실행
 echo "애플리케이션 시작 중..." | tee -a $LOG_FILE
 nohup java $JAVA_OPTS $SPRING_OPTS -jar $JAR_FILE > $LOG_DIR/app_$TIMESTAMP.log 2>&1 &
 
@@ -65,8 +58,6 @@ else
   echo "애플리케이션 시작에 실패했습니다! 로그를 확인하세요." | tee -a $LOG_FILE
   echo "마지막 로그 확인:" | tee -a $LOG_FILE
   tail -n 50 $LOG_DIR/app_$TIMESTAMP.log | tee -a $LOG_FILE
-  echo "JAR 파일 내부 확인:" | tee -a $LOG_FILE
-  jar tf $JAR_FILE | grep -i "application" | tee -a $LOG_FILE
   exit 1
 fi
 
