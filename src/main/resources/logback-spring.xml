@@ -15,7 +15,7 @@
       <layout class="ch.qos.logback.classic.PatternLayout">
         <pattern>%d{HH:mm:ss} [%thread] [%-5level] %logger{36} - %msg%n```%ex{full}```</pattern>
       </layout>
-      <username>Memory App Error Alert</username>
+      <username>에러봇(dev)</username>
       <avatarUrl>https://i.imgur.com/oBPxJGg.png</avatarUrl>
       <tts>false</tts>
     </appender>
@@ -47,7 +47,7 @@
       <layout class="ch.qos.logback.classic.PatternLayout">
         <pattern>%d{HH:mm:ss} [%thread] [%-5level] %logger{36} - %msg%n```%ex{full}```</pattern>
       </layout>
-      <username>Memory App Error Alert</username>
+      <username>에러봇(prod)</username>
       <avatarUrl>https://i.imgur.com/oBPxJGg.png</avatarUrl>
       <tts>false</tts>
     </appender>
