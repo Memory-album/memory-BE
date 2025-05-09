@@ -284,6 +284,7 @@ jobs:
       run: |
         ./gradlew clean bootJar
         ls -la build/libs/
+        file build/libs/*.jar
         
     - name: Grant execute permission for deploy script
       run: |
@@ -317,11 +318,13 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          # EC2 서버에서 파일 정리
+          # EC2 서버에서 파일 정리 및 확인
           mkdir -p ~/logs
+          cd ~/deploy
+          ls -la
           
           # 시크릿을 환경 변수 파일로 생성
-          cat > ~/deploy/.env << EOF
+          cat > ~/.env << EOF
           DB_PASSWORD=${{ secrets.DB_PASSWORD }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
           GMAIL_MAIL_USERNAME=${{ secrets.GMAIL_MAIL_USERNAME }}
@@ -338,16 +341,18 @@ jobs:
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
           EOF
           
+          # JAR 파일 확인
+          find ~/deploy -name "*.jar" -type f -exec file {} \;
+          
           # 스크립트 실행 권한 설정
-          cd ~/deploy
           chmod +x scripts/deploy.sh
           
           # deploy.sh 스크립트에 환경 변수 전달
-          export $(cat .env | xargs)
+          export $(cat ~/.env | xargs)
           ./scripts/deploy.sh
           
           # 상태 확인
-          sleep 10
+          sleep 5
           ps aux | grep java
     
     # 디스코드 배포 성공 알림

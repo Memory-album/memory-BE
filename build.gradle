@@ -81,8 +81,23 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 
-// bootJar 태스크는 Spring Boot 플러그인에 의해 자동으로 설정됩니다.
-// 기본 설정으로 돌아갑니다.
+bootJar {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    
+    from('src/main/resources') {
+        include '**/*'
+    }
+    
+    manifest {
+        attributes(
+            'Main-Class': 'org.springframework.boot.loader.JarLauncher',
+            'Start-Class': 'com.min.i.memory_BE.MemoryBeApplication',
+            'Implementation-Version': archiveVersion,
+            'Implementation-Title': 'Memory-BE',
+            'Implementation-Vendor': 'min-i'
+        )
+    }
+}
 
 tasks.named('processResources') {
 	duplicatesStrategy = DuplicatesStrategy.EXCLUDE

@@ -24,32 +24,52 @@ if pgrep -f "java -jar" > /dev/null; then
   fi
 fi
 
-# JAR 파일 찾기 - 빌드 디렉토리를 포함한 모든 경로 검색
-JAR_FILE=$(find ~/deploy -type f -name "memory-BE-*.jar" | grep -v "plain" | head -n 1)
+# 현재 디렉토리 확인
+CURRENT_DIR=$(pwd)
+echo "현재 디렉토리: $CURRENT_DIR" | tee -a $LOG_FILE
+echo "디렉토리 내용:" | tee -a $LOG_FILE
+ls -la | tee -a $LOG_FILE
+
+# JAR 파일 찾기 - 다양한 경로 시도
+echo "JAR 파일 검색 중..." | tee -a $LOG_FILE
+JAR_FILE=$(find $CURRENT_DIR -name "memory-BE-*.jar" -type f | head -n 1)
+
+# 찾지 못했으면 빌드 디렉토리 확인
+if [ -z "$JAR_FILE" ]; then
+  echo "현재 디렉토리에서 JAR 파일을 찾을 수 없습니다. 빌드 디렉토리 확인 중..." | tee -a $LOG_FILE
+  JAR_FILE=$(find $CURRENT_DIR/build/libs -name "memory-BE-*.jar" -type f 2>/dev/null | head -n 1)
+fi
+
+# 상위 디렉토리도 확인
+if [ -z "$JAR_FILE" ]; then
+  echo "빌드 디렉토리에서도 JAR 파일을 찾을 수 없습니다. 상위 디렉토리 확인 중..." | tee -a $LOG_FILE
+  JAR_FILE=$(find ~/deploy -name "memory-BE-*.jar" -type f 2>/dev/null | head -n 1)
+fi
+
+# 마지막 시도
+if [ -z "$JAR_FILE" ]; then
+  echo "상위 디렉토리에서도 JAR 파일을 찾을 수 없습니다. 홈 디렉토리 확인 중..." | tee -a $LOG_FILE
+  JAR_FILE=$(find ~ -name "memory-BE-*.jar" -type f 2>/dev/null | head -n 1)
+fi
 
 if [ -z "$JAR_FILE" ]; then
   echo "배포할 JAR 파일을 찾을 수 없습니다!" | tee -a $LOG_FILE
-  # 디렉토리 내용 확인
   echo "디렉토리 내용:" | tee -a $LOG_FILE
-  find ~/deploy -type f -name "*.jar" | tee -a $LOG_FILE
+  find ~ -name "*.jar" | tee -a $LOG_FILE
   exit 1
 fi
 
 echo "배포할 JAR 파일: $JAR_FILE" | tee -a $LOG_FILE
 
-# 실행 전 JAR 내용 확인
-echo "JAR 파일 내용:" | tee -a $LOG_FILE
-jar tf $JAR_FILE | grep -E "application.*\.yml|.env" | tee -a $LOG_FILE
-
-# JAR 파일에서 설정 파일 추출
-echo "application.yml 내용:" | tee -a $LOG_FILE
-jar xf $JAR_FILE BOOT-INF/classes/application.yml -p 2>/dev/null | head -30 | tee -a $LOG_FILE
+# JAR 파일 상태 확인
+echo "JAR 파일 정보:" | tee -a $LOG_FILE
+file $JAR_FILE | tee -a $LOG_FILE
 
 # 실행 환경 설정
 JAVA_OPTS="-Xms512m -Xmx1024m"
 SPRING_OPTS="-Dspring.profiles.active=dev -Ddebug=true"
 
-# 환경 변수 설정 - DB 설정
+# 환경 변수 설정
 ENV_VARS="-DDB_PASSWORD=${DB_PASSWORD:-default_password}"
 ENV_VARS="$ENV_VARS -DJWT_SECRET=${JWT_SECRET:-default_secret}"
 ENV_VARS="$ENV_VARS -DGMAIL_MAIL_USERNAME=${GMAIL_MAIL_USERNAME:-default_username}"
@@ -61,6 +81,7 @@ ENV_VARS="$ENV_VARS -DS3_BUCKET=${S3_BUCKET:-default_bucket}"
 
 # JAR 파일 실행
 echo "애플리케이션 시작 중..." | tee -a $LOG_FILE
+echo "실행 명령어: java $JAVA_OPTS $SPRING_OPTS $ENV_VARS -jar $JAR_FILE" | tee -a $LOG_FILE
 nohup java $JAVA_OPTS $SPRING_OPTS $ENV_VARS -jar $JAR_FILE > $LOG_DIR/app_$TIMESTAMP.log 2>&1 &
 
 # 프로세스 ID 저장
@@ -76,6 +97,15 @@ else
   echo "애플리케이션 시작에 실패했습니다! 로그를 확인하세요." | tee -a $LOG_FILE
   echo "마지막 로그 확인:" | tee -a $LOG_FILE
   tail -n 100 $LOG_DIR/app_$TIMESTAMP.log | tee -a $LOG_FILE
+  
+  # JAR 파일 내용 확인
+  echo "JAR 파일 내용 확인:" | tee -a $LOG_FILE
+  jar tf $JAR_FILE | grep -E "META-INF/MANIFEST.MF|\.class$" | head -20 | tee -a $LOG_FILE
+  
+  # MANIFEST.MF 내용 확인
+  echo "MANIFEST.MF 내용:" | tee -a $LOG_FILE
+  jar xf $JAR_FILE META-INF/MANIFEST.MF -p 2>/dev/null | tee -a $LOG_FILE
+  
   exit 1
 fi
 
