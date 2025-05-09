@@ -1,6 +1,6 @@
 # Memory-BE
 
-> Cross-Platform FFmpeg + Google Speech-to-Text Backend!!
+> Cross-Platform FFmpeg + Google Speech-to-Text Backend!
 
 ---
 
