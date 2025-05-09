@@ -77,6 +77,30 @@ jar tf $JAR_FILE | grep -E "org/springframework/boot/loader|META-INF/MANIFEST.MF
 JAVA_OPTS="-Xms512m -Xmx1024m"
 SPRING_OPTS="-Dspring.profiles.active=dev -Ddebug=true"
 
+# Google 자격 증명 설정
+echo "Google 자격 증명 설정 중..." | tee -a $LOG_FILE
+GOOGLE_CREDS_DIR=~/credentials
+mkdir -p $GOOGLE_CREDS_DIR
+GOOGLE_CREDS_FILE="$GOOGLE_CREDS_DIR/google-credentials.json"
+
+# 환경 변수 파일에서 자격 증명 정보 가져오기
+if [ -f ~/.google-credentials ]; then
+  cp ~/.google-credentials $GOOGLE_CREDS_FILE
+  chmod 600 $GOOGLE_CREDS_FILE
+  echo "Google 자격 증명 파일 준비 완료: $GOOGLE_CREDS_FILE" | tee -a $LOG_FILE
+else
+  echo "~/.google-credentials 파일이 없습니다. JAR에서 추출을 시도합니다..." | tee -a $LOG_FILE
+  # JAR 파일에서 자격 증명 파일 추출
+  JAR_CREDS_PATH="BOOT-INF/classes/keys/google-credentials.json"
+  
+  if unzip -p "$JAR_FILE" "$JAR_CREDS_PATH" > "$GOOGLE_CREDS_FILE" 2>/dev/null; then
+    chmod 600 "$GOOGLE_CREDS_FILE"
+    echo "JAR 파일에서 Google 자격 증명 파일을 추출했습니다: $GOOGLE_CREDS_FILE" | tee -a $LOG_FILE
+  else
+    echo "Google 자격 증명 파일을 JAR에서 추출할 수 없습니다." | tee -a $LOG_FILE
+  fi
+fi
+
 # 환경 변수 설정
 ENV_VARS="-DDB_PASSWORD=${DB_PASSWORD:-default_password}"
 ENV_VARS="$ENV_VARS -DJWT_SECRET=${JWT_SECRET:-default_secret}"
@@ -86,6 +110,9 @@ ENV_VARS="$ENV_VARS -DAWS_ACCESS_KEY=${AWS_ACCESS_KEY:-default_key}"
 ENV_VARS="$ENV_VARS -DAWS_SECRET_KEY=${AWS_SECRET_KEY:-default_secret}"
 ENV_VARS="$ENV_VARS -DAWS_REGION=${AWS_REGION:-ap-northeast-2}"
 ENV_VARS="$ENV_VARS -DS3_BUCKET=${S3_BUCKET:-default_bucket}"
+
+# Google 자격 증명 파일 환경 변수 설정
+export GOOGLE_APPLICATION_CREDENTIALS=$GOOGLE_CREDS_FILE
 
 # JAR 파일 실행 - Spring Boot JAR 직접 실행
 echo "애플리케이션 시작 중..." | tee -a $LOG_FILE

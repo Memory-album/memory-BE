@@ -43,15 +43,25 @@ public class SpeechToTextService {
     @PostConstruct
     public void init() {
         try {
-            Resource credentialsResource = resourceLoader.getResource(credentialsFilePath);
-            if (!credentialsResource.exists()) {
-                throw new FileNotFoundException("Google 인증파일 없음: " + credentialsFilePath);
+            // 환경 변수에서 자격 증명 파일 경로를 가져오거나 리소스에서 로드
+            String googleCredsEnv = System.getenv("GOOGLE_APPLICATION_CREDENTIALS");
+            if (googleCredsEnv != null && !googleCredsEnv.isEmpty()) {
+                log.info("환경 변수에서 Google 자격 증명 경로 사용: {}", googleCredsEnv);
+                // 환경 변수가 설정되어 있으면 해당 파일에서 자격 증명 로드
+                cachedCredentials = GoogleCredentials.fromStream(new FileInputStream(googleCredsEnv));
+            } else {
+                // 환경 변수가 없으면 리소스에서 로드
+                Resource credentialsResource = resourceLoader.getResource(credentialsFilePath);
+                if (!credentialsResource.exists()) {
+                    throw new FileNotFoundException("Google 인증파일 없음: " + credentialsFilePath);
+                }
+                
+                // 스트림으로 직접 읽기 (getFile() 대신)
+                InputStream credentialsStream = credentialsResource.getInputStream();
+                cachedCredentials = GoogleCredentials.fromStream(credentialsStream);
+                log.info("리소스에서 Google 자격 증명 로드 완료: {}", credentialsFilePath);
             }
-
-            cachedCredentials = GoogleCredentials.fromStream(new FileInputStream(credentialsResource.getFile()));
-            System.setProperty("GOOGLE_APPLICATION_CREDENTIALS", credentialsResource.getFile().getAbsolutePath());
-            log.info("Google 인증 로드 완료: {}", credentialsResource.getFile().getAbsolutePath());
-
+            
             ffmpegAvailable = audioFormatConverter.isFFmpegAvailable();
             log.info("FFmpeg 상태: {}", ffmpegAvailable ? "사용 가능" : "사용 불가");
 
