@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.2.0'
 	id 'io.spring.dependency-management' version '1.1.6'
+	id 'application'
 }
 
 group = 'com.min:i'
@@ -11,6 +12,10 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
 	}
+}
+
+application {
+    mainClass = 'com.min.i.memory_BE.MemoryBeApplication'
 }
 
 configurations {
@@ -90,13 +95,15 @@ bootJar {
     
     manifest {
         attributes(
-            'Main-Class': 'org.springframework.boot.loader.JarLauncher',
             'Start-Class': 'com.min.i.memory_BE.MemoryBeApplication',
             'Implementation-Version': archiveVersion,
             'Implementation-Title': 'Memory-BE',
             'Implementation-Vendor': 'min-i'
         )
     }
+    
+    // 기본 클래스패스 리소스 포함 확인
+    launchScript()
 }
 
 tasks.named('processResources') {

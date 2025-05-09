@@ -65,6 +65,14 @@ echo "배포할 JAR 파일: $JAR_FILE" | tee -a $LOG_FILE
 echo "JAR 파일 정보:" | tee -a $LOG_FILE
 file $JAR_FILE | tee -a $LOG_FILE
 
+# JAR 파일의 MANIFEST 확인
+echo "MANIFEST 파일 내용:" | tee -a $LOG_FILE
+unzip -p $JAR_FILE META-INF/MANIFEST.MF | tee -a $LOG_FILE
+
+# JAR 구조 확인 (문제 디버깅용)
+echo "JAR 파일 구조 확인:" | tee -a $LOG_FILE
+jar tf $JAR_FILE | grep -E "org/springframework/boot/loader|META-INF/MANIFEST.MF|com/min/i/memory_BE/MemoryBeApplication.class" | tee -a $LOG_FILE
+
 # 실행 환경 설정
 JAVA_OPTS="-Xms512m -Xmx1024m"
 SPRING_OPTS="-Dspring.profiles.active=dev -Ddebug=true"
@@ -79,9 +87,11 @@ ENV_VARS="$ENV_VARS -DAWS_SECRET_KEY=${AWS_SECRET_KEY:-default_secret}"
 ENV_VARS="$ENV_VARS -DAWS_REGION=${AWS_REGION:-ap-northeast-2}"
 ENV_VARS="$ENV_VARS -DS3_BUCKET=${S3_BUCKET:-default_bucket}"
 
-# JAR 파일 실행
+# JAR 파일 실행 - Spring Boot JAR 직접 실행
 echo "애플리케이션 시작 중..." | tee -a $LOG_FILE
 echo "실행 명령어: java $JAVA_OPTS $SPRING_OPTS $ENV_VARS -jar $JAR_FILE" | tee -a $LOG_FILE
+
+# 백그라운드에서 실행하고 로그를 파일로 리다이렉션
 nohup java $JAVA_OPTS $SPRING_OPTS $ENV_VARS -jar $JAR_FILE > $LOG_DIR/app_$TIMESTAMP.log 2>&1 &
 
 # 프로세스 ID 저장
@@ -104,7 +114,7 @@ else
   
   # MANIFEST.MF 내용 확인
   echo "MANIFEST.MF 내용:" | tee -a $LOG_FILE
-  jar xf $JAR_FILE META-INF/MANIFEST.MF -p 2>/dev/null | tee -a $LOG_FILE
+  unzip -p $JAR_FILE META-INF/MANIFEST.MF | tee -a $LOG_FILE
   
   exit 1
 fi

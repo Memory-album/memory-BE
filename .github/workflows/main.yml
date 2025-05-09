@@ -283,8 +283,11 @@ jobs:
     - name: Build with Gradle
       run: |
         ./gradlew clean bootJar
-        ls -la build/libs/
-        file build/libs/*.jar
+        ls -la build/libs
+        # JAR 파일 정보 확인
+        file build/libs/memory-BE-0.0.1-SNAPSHOT.jar
+        # JAR 구조 확인 (문제 디버깅)
+        jar tf build/libs/memory-BE-0.0.1-SNAPSHOT.jar | grep -E "org/springframework/boot/loader|META-INF/MANIFEST.MF|com/min/i/memory_BE/MemoryBeApplication.class"
         
     - name: Grant execute permission for deploy script
       run: |
