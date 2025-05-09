@@ -5,20 +5,17 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
 @Configuration
 public class MailConfig {
-    private static final Logger logger = LoggerFactory.getLogger(MailConfig.class);
 
-    // 네이버 메일 환경변수 (선택적)
-    @Value("${NAVER_MAIL_USERNAME:#{null}}")
+    // 네이버 메일 환경변수
+    @Value("${NAVER_MAIL_USERNAME}")
     private String naverUsername;
 
-    @Value("${NAVER_MAIL_PASSWORD:#{null}}")
+    @Value("${NAVER_MAIL_PASSWORD}")
     private String naverPassword;
 
     // 구글 메일 환경변수
@@ -30,17 +27,11 @@ public class MailConfig {
 
     @Bean(name = "naverMailSender")
     public JavaMailSender naverMailSender() {
-        // 네이버 메일 정보가 없으면 Gmail 사용
-        if (naverUsername == null || naverPassword == null) {
-            logger.warn("네이버 메일 정보가 없어 Gmail을 사용합니다.");
-            return gmailMailSender();
-        }
-        
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.naver.com");
         mailSender.setPort(465);
-        mailSender.setUsername(naverUsername);
-        mailSender.setPassword(naverPassword);
+        mailSender.setUsername(naverUsername);  // 환경변수로 설정된 네이버 이메일
+        mailSender.setPassword(naverPassword);  // 환경변수로 설정된 네이버 이메일 비밀번호
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.smtp.auth", "true");
@@ -54,8 +45,8 @@ public class MailConfig {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(465);
-        mailSender.setUsername(gmailUsername);
-        mailSender.setPassword(gmailPassword);
+        mailSender.setUsername(gmailUsername);  // 환경변수로 설정된 Gmail 이메일
+        mailSender.setPassword(gmailPassword);  // 환경변수로 설정된 Gmail 앱 비밀번호
 
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.smtp.auth", "true");
@@ -65,13 +56,12 @@ public class MailConfig {
     }
 
     public String getFromEmail(String email) {
-        if (email.endsWith("@gmail.com") || naverUsername == null) {
+        if (email.endsWith("@gmail.com")) {
             return gmailUsername;
-        } else if (email.endsWith("@naver.com") && naverUsername != null) {
+        } else if (email.endsWith("@naver.com")) {
             return naverUsername;
         } else {
-            // 기본값으로 Gmail 사용
-            return gmailUsername;
+            throw new IllegalArgumentException("지원되지 않는 이메일 도메인입니다.");
         }
     }
 }
