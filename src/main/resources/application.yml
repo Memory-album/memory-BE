@@ -89,7 +89,7 @@ google:
 # FastAPI 서버 설정
 fastapi:
   server:
-    url: http://localhost:8000  # FastAPI 서버 주소
+    url: ${FASTAPI_SERVER_URL:http://localhost:8000}
   connection:
     timeout: 5000  # 연결 타임아웃 (ms)
   read:
