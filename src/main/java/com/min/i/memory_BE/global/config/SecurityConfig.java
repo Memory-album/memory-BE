@@ -85,11 +85,11 @@ public class SecurityConfig {
       return source;
     }
     
-    @Bean
-    public MultipartResolver filterMultipartResolver() {
-        StandardServletMultipartResolver resolver = new StandardServletMultipartResolver();
-        return resolver;
-    }
+//    @Bean
+//    public MultipartResolver filterMultipartResolver() {
+//        StandardServletMultipartResolver resolver = new StandardServletMultipartResolver();
+//        return resolver;
+//    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -116,14 +116,13 @@ public class SecurityConfig {
                         "/oauth/callback",
                         "/oauth/login",
                         "/auth/login",
-                        "/api/v1/group/**",
                         "/api/v1/test/**",
-                        "/api/v1/media/analysis/**",
+
                         "/api/answers/speech-to-text"
             ).permitAll()
             .requestMatchers("/user/update", "/user/delete",
               "/user/activate", "/user/deactivate",
-              "/auth/logout", "/oauth/logout",
+              "/auth/logout", "/oauth/logout","/api/v1/group/**", "/api/v1/media/analysis/**",
               "/user/home").authenticated()
             .anyRequest().authenticated()
           )
