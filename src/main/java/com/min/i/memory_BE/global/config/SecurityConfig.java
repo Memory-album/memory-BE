@@ -63,7 +63,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
       CorsConfiguration configuration = new CorsConfiguration();
-      configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+      configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000","https://min-21h87evi1-yeonguks-projects.vercel.app","https://min-i.vercel.app","https://min-i-git-develop-yeonguks-projects.vercel.app"));
       configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
       configuration.setAllowedHeaders(Arrays.asList(
         "Authorization",
@@ -120,10 +120,11 @@ public class SecurityConfig {
 
                         "/api/answers/speech-to-text"
             ).permitAll()
-            .requestMatchers("/user/update", "/user/delete",
-              "/user/activate", "/user/deactivate",
-              "/auth/logout", "/oauth/logout","/api/v1/group/**", "/api/v1/media/analysis/**",
-              "/user/home").authenticated()
+//            .requestMatchers("/user/update", "/user/delete",
+//              "/user/activate", "/user/deactivate",
+//              "/auth/logout", "/oauth/logout","/api/v1/groups/**","/api/v1/albums/**","/api/v1/media/**",
+//              "/user/home").authenticated()
+                  // 인증 없이 접근 가능한 건 회원 api 뿐이라 나머지 api 같은 경우에는 전부 인증 필요하므로 우선 authenticated 제거했습니다.
             .anyRequest().authenticated()
           )
           .logout(logout -> logout
