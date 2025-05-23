@@ -117,7 +117,6 @@ public class SecurityConfig {
                         "/oauth/login",
                         "/auth/login",
                         "/api/v1/test/**",
-
                         "/api/answers/speech-to-text"
             ).permitAll()
 //            .requestMatchers("/user/update", "/user/delete",
