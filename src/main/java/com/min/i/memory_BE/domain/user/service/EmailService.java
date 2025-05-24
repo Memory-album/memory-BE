@@ -4,7 +4,9 @@ import com.min.i.memory_BE.domain.user.dto.UserRegisterDto;
 import com.min.i.memory_BE.global.config.MailConfig;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.min.i.memory_BE.domain.user.event.EmailVerificationEvent;
 
+import java.security.Key;
 import java.time.LocalDateTime;
 
 @Service
@@ -38,7 +41,28 @@ public class EmailService {
     private MailConfig mailConfig;  // MailConfig를 주입받아 fromEmail을 동적으로 설정
 
     @Value("${jwt.secret}")
-    private String secretKey;  // JWT 서명에 사용할 비밀키
+    private String secretKeyString;
+
+    private Key secretKey;
+
+    @PostConstruct
+    public void init() {
+        try {
+            // JwtTokenProvider와 동일한 방식으로 키 초기화
+            // .env 파일의 Base64 인코딩된 secretKeyString을 디코딩하여 Key 객체를 생성합니다.
+            if (secretKeyString.matches("^[A-Za-z0-9+/]*={0,2}$") && secretKeyString.length() >= 86) {
+                byte[] keyBytes = Decoders.BASE64.decode(secretKeyString);
+                this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+            } else {
+                logger.warn("EmailService: JWT secret key is not Base64 encoded or too short. Generating a secure key automatically. Please provide a Base64-encoded key in .env for production.");
+                this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+            }
+            logger.info("EmailService: JWT secret key initialized successfully.");
+        } catch (Exception e) {
+            logger.error("EmailService: Failed to initialize JWT secret key from provided string, generating new one: {}", e.getMessage(), e);
+            this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+        }
+    }
 
     // 이메일 인증 코드 발송
     public String sendVerificationCode(UserRegisterDto userRegisterDto) {
@@ -55,8 +79,8 @@ public class EmailService {
                     .claim("email", userRegisterDto.getEmail())
                     .claim("emailVerificationCode", verificationCode)
                     .claim("expirationTime", expirationTime.toString())
-                    .claim("isEmailVerified", false)  // 이메일 인증 여부는 false로 설정
-                    .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS256)
+                    .claim("isEmailVerified", false)
+                    .signWith(secretKey, SignatureAlgorithm.HS512)
                     .compact();
 
             // 이메일 전송
@@ -232,7 +256,7 @@ public class EmailService {
                     .claim("emailVerificationCode", resetCode)
                     .claim("expirationTime", expirationTime.toString())
                     .claim("type", "PASSWORD_RESET")
-                    .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS256)
+                    .signWith(secretKey, SignatureAlgorithm.HS512)
                     .compact();
 
             logger.info("비밀번호 재설정을 위한 메일 전송됨 {}: {}", email, jwt);

@@ -25,7 +25,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
+import io.jsonwebtoken.io.Decoders;
+import java.security.Key;
+import jakarta.annotation.PostConstruct;
 import java.time.LocalDateTime;
 
 @Service
@@ -39,7 +41,9 @@ public class UserService {
     private final S3Service s3Service;
 
     @Value("${jwt.secret}")
-    private String secretKey;
+    private String secretKeyString;
+
+    private Key secretKey;
 
     @Autowired
     public UserService(UserRepository userRepository,
@@ -53,7 +57,28 @@ public class UserService {
         this.eventPublisher = eventPublisher;
         this.s3Service = s3Service;
     }
-    
+
+    @PostConstruct
+    public void init() {
+        try {
+            // JwtTokenProvider와 동일한 방식으로 키 초기화
+            // .env 파일의 Base64 인코딩된 secretKeyString을 디코딩하여 Key 객체를 생성
+            // provider 와 일관성 유지를 위한 생성자 주입
+            if (secretKeyString.matches("^[A-Za-z0-9+/]*={0,2}$") && secretKeyString.length() >= 86) {
+                byte[] keyBytes = Decoders.BASE64.decode(secretKeyString);
+                this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+            } else {
+                logger.warn("UserService: JWT secret key is not Base64 encoded or too short. Generating a secure key automatically. Please provide a Base64-encoded key in .env for production.");
+                this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+            }
+            logger.info("UserService: JWT secret key initialized successfully.");
+        } catch (Exception e) {
+            logger.error("UserService: Failed to initialize JWT secret key from provided string, generating new one: {}", e.getMessage(), e);
+            this.secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS512);
+        }
+    }
+
+
     // 인증 관련 메서드
     public JwtAuthenticationResponse generateTokens(String email) {
         String token = jwtTokenProvider.generateToken(email);
@@ -75,7 +100,7 @@ public class UserService {
                         .claim("emailVerificationCode", verificationCode)
                         .claim("expirationTime", expirationTime.toString())
                   .claim("isEmailVerified", true)
-                  .signWith(Keys.hmacShaKeyFor(secretKey.getBytes()), SignatureAlgorithm.HS512)
+                        .signWith(secretKey, SignatureAlgorithm.HS512)  // ⬅️ secretKey 객체 사용 (수정!)
                         .compact();
             }
             return null;
@@ -84,6 +109,7 @@ public class UserService {
             return null;
         }
     }
+
     
     // 회원가입 완료
     @Transactional
@@ -238,14 +264,14 @@ public class UserService {
         
         return event.getJwtToken();
     }
-    
+
     public boolean verifyPasswordResetCode(String email, String verificationCode, String jwtToken) {
         try {
             Claims claims = Jwts.parserBuilder()
-              .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes()))
-              .build()
-              .parseClaimsJws(jwtToken)
-              .getBody();
+                    .setSigningKey(secretKey)
+                    .build()
+                    .parseClaimsJws(jwtToken)
+                    .getBody();
             
             String storedEmail = claims.get("email", String.class);
             String storedCode = claims.get("emailVerificationCode", String.class);
@@ -262,13 +288,13 @@ public class UserService {
             return false;
         }
     }
-    
+
     public void resetPassword(PasswordResetDto request, String jwtToken) {
         Claims claims = Jwts.parserBuilder()
-          .setSigningKey(Keys.hmacShaKeyFor(secretKey.getBytes()))
-          .build()
-          .parseClaimsJws(jwtToken)
-          .getBody();
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(jwtToken)
+                .getBody();
         
         String email = claims.get("email", String.class);
         
@@ -343,10 +369,10 @@ public class UserService {
     // 유틸리티 메서드
     private Claims validateRegistrationToken(String token) {
         return Jwts.parserBuilder()
-          .setSigningKey(secretKey.getBytes())
-          .build()
-          .parseClaimsJws(token)
-          .getBody();
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     public User getUserById(Long userId) {
