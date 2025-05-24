@@ -19,48 +19,72 @@ import java.nio.file.Path;
 public class AudioFormatConverter {
 
     private String resolvedFfmpegPath;
-
+    //변수선언
+    private boolean ffmpegAvailable = false;
    // 수정
     private static final String[] SUPPORTED_FORMATS = {"flac"}; 
 
+//    @PostConstruct
+//    public void init() {
+//        try {
+//            String osName = System.getProperty("os.name").toLowerCase();
+//            String ffmpegResourcePath;
+//
+//            if (osName.contains("win")) {
+//                ffmpegResourcePath = "bin/ffmpeg-win.exe";
+//            } else if (osName.contains("mac")) {
+//                ffmpegResourcePath = "bin/ffmpeg-mac";
+//            } else if (osName.contains("nux") || osName.contains("nix")) {
+//                ffmpegResourcePath = "bin/ffmpeg-linux";
+//            } else {
+//                throw new UnsupportedOperationException("지원하지 않는 OS: " + osName);
+//            }
+//
+//            File ffmpegFile = new ClassPathResource(ffmpegResourcePath).getFile();
+//            if (!ffmpegFile.exists()) {
+//                throw new IllegalStateException("ffmpeg 실행파일이 없습니다: " + ffmpegResourcePath);
+//            }
+//
+//            resolvedFfmpegPath = ffmpegFile.getAbsolutePath();
+//            if (!osName.contains("win")) {
+//                ffmpegFile.setExecutable(true);
+//            }
+//
+//            log.info("FFmpeg 경로 설정 완료: {}", resolvedFfmpegPath);
+//
+//            // ffmpeg 버전 로그 (실전 디버깅에 유용)
+//            ProcessBuilder pb = new ProcessBuilder(resolvedFfmpegPath, "-version");
+//            pb.redirectErrorStream(true);
+//            Process p = pb.start();
+//            p.waitFor();
+//            log.info("FFmpeg 버전 확인 완료");
+//
+//        } catch (Exception e) {
+//            log.error("FFmpeg 로딩 실패", e);
+//            resolvedFfmpegPath = null;
+//        }
+//    }
+
+    //git lfs 바이너리 횟수가 초기화되어 우선 시스템 파일 내부에서 확인
     @PostConstruct
     public void init() {
         try {
-            String osName = System.getProperty("os.name").toLowerCase();
-            String ffmpegResourcePath;
-
-            if (osName.contains("win")) {
-                ffmpegResourcePath = "bin/ffmpeg-win.exe";
-            } else if (osName.contains("mac")) {
-                ffmpegResourcePath = "bin/ffmpeg-mac";
-            } else if (osName.contains("nux") || osName.contains("nix")) {
-                ffmpegResourcePath = "bin/ffmpeg-linux";
-            } else {
-                throw new UnsupportedOperationException("지원하지 않는 OS: " + osName);
-            }
-
-            File ffmpegFile = new ClassPathResource(ffmpegResourcePath).getFile();
-            if (!ffmpegFile.exists()) {
-                throw new IllegalStateException("ffmpeg 실행파일이 없습니다: " + ffmpegResourcePath);
-            }
-
-            resolvedFfmpegPath = ffmpegFile.getAbsolutePath();
-            if (!osName.contains("win")) {
-                ffmpegFile.setExecutable(true);
-            }
-
-            log.info("FFmpeg 경로 설정 완료: {}", resolvedFfmpegPath);
-
-            // ffmpeg 버전 로그 (실전 디버깅에 유용)
-            ProcessBuilder pb = new ProcessBuilder(resolvedFfmpegPath, "-version");
+            // 시스템 ffmpeg 사용 가능 여부 확인
+            ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-version");
             pb.redirectErrorStream(true);
             Process p = pb.start();
-            p.waitFor();
-            log.info("FFmpeg 버전 확인 완료");
+            int exitCode = p.waitFor();
+
+            if (exitCode == 0) {
+                ffmpegAvailable = true;
+                log.info("시스템 FFmpeg 사용 가능");
+            } else {
+                log.warn("시스템 FFmpeg 실행 실패");
+            }
 
         } catch (Exception e) {
-            log.error("FFmpeg 로딩 실패", e);
-            resolvedFfmpegPath = null;
+            log.warn("FFmpeg가 시스템에 설치되어 있지 않습니다. 오디오 변환 기능이 비활성화됩니다: {}", e.getMessage());
+            ffmpegAvailable = false;
         }
     }
 
