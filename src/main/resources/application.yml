@@ -91,9 +91,9 @@ fastapi:
   server:
     url: ${FASTAPI_SERVER_URL:http://localhost:8000}
   connection:
-    timeout: 5000  # 연결 타임아웃 (ms)
+    timeout: 10000  # 연결 타임아웃 (ms) - 10초
   read:
-    timeout: 30000  # 읽기 타임아웃 (ms)
+    timeout: 120000  # 읽기 타임아웃 (ms) - 120초(2분)
 
 ---
 spring.config.activate.on-profile: local

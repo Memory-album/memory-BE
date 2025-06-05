@@ -113,9 +113,9 @@ fastapi:
   server:
     url: http://localhost:8000
   connection:
-    timeout: 5000
+    timeout: 10000
   read:
-    timeout: 30000
+    timeout: 120000
 
 security:
   user:
